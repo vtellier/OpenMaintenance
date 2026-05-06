@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import './index.css';
+import ConfirmationModal from './components/ConfirmationModal';
+
+
 
 function AddEquipmentForm({ onClose, onAdd }) {
   const [name, setName] = useState('');
@@ -65,6 +68,8 @@ function App() {
   const [equipments, setEquipments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddEquipment, setShowAddEquipment] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [equipmentToDelete, setEquipmentToDelete] = useState(null);
 
   useEffect(() => {
     const fetchEquipments = async () => {
@@ -84,6 +89,25 @@ function App() {
 
     fetchEquipments();
   }, []);
+
+  const handleDeleteEquipment = async (equipmentId) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/equipments/${equipmentId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete equipment');
+      }
+
+      setEquipments(equipments.filter(equipment => equipment.id !== equipmentId));
+      if (activeTab === equipmentId) {
+        setActiveTab(equipments[0]?.id || 0);
+      }
+    } catch (error) {
+      console.error('Error deleting equipment:', error);
+    }
+  };
 
   const handleAddEquipment = async (newEquipment) => {
     try {
@@ -145,6 +169,16 @@ function App() {
         {showAddEquipment && (
           <AddEquipmentForm onClose={() => setShowAddEquipment(false)} onAdd={handleAddEquipment} />
         )}
+        {showDeleteConfirmation && (
+          <ConfirmationModal
+            onClose={() => setShowDeleteConfirmation(false)}
+            onConfirm={() => {
+              handleDeleteEquipment(equipmentToDelete);
+              setShowDeleteConfirmation(false);
+            }}
+            message="Are you sure you want to delete this equipment? This action cannot be undone."
+          />
+        )}
 
         <div className="bg-white p-6 rounded-lg shadow-sm">
           {loading ? (
@@ -153,7 +187,19 @@ function App() {
             <>
               {equipments.map((equipment) => (
                 <div key={equipment.id} className={activeTab === equipment.id ? "block" : "hidden"}>
-                  <h2 className="text-xl font-semibold mb-4">{equipment.name} Maintenance</h2>
+                  <div className="flex justify-between items-start">
+                    <h2 className="text-xl font-semibold mb-4">{equipment.name} Maintenance</h2>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEquipmentToDelete(equipment.id);
+                        setShowDeleteConfirmation(true);
+                      }}
+                      className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 focus:outline-none"
+                    >
+                      Delete
+                    </button>
+                  </div>
                   <p>{equipment.description || `No description available for ${equipment.name}.`}</p>
                 </div>
               ))}
