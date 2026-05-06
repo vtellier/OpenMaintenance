@@ -6,7 +6,7 @@ import (
 )
 
 func InitDB() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "./maintenance.db")
+	db, err := sql.Open("sqlite3", "./data/maintenance.db")
 	if err != nil {
 		return nil, err
 	}

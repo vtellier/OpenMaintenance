@@ -57,9 +57,16 @@ An **Intervention** records the execution of a Task, forming the maintenance his
 ### Deployment
 Single binary deployment with embedded SQLite database:
 ```bash
-go build -o openmaintenance .
-./openmaintenance
+# Build the application
+go build -o bin/openmaintenance .
+
+# Run the application
+./bin/openmaintenance
 ```
+
+The application will:
+- Create a `data/maintenance.db` SQLite database automatically
+- Start a web server on port 3000
 
 Access the web interface at `http://localhost:3000`
 
