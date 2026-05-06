@@ -16,6 +16,9 @@
 - **Small as possible**: Only the necessary information to understand the project. Use short and straightforward sentences.
 - **No code example**: unless in the instructions for installation, otherwise the reader will open the source code themselves
 
+## When coding
+- **Always check your code**: Everytime you modify some code, validate it still compiles
+
 ## Critical Reminders
 - **Verify Before Acting**: Always check for hidden configs or undocumented setup steps.
 - **Ask for Clarification**: Eveytime the user asks something, make sure you have a good understanding, ask instead of guessing.

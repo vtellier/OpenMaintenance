@@ -89,9 +89,9 @@ go run main.go
 
 The application will:
 - Create a `backend/bin/maintenance.db` SQLite database automatically
-- Serve the React frontend on port 3000
+- Serve the backend API on port 3001
 
-Access the web interface at `http://localhost:3000`
+Access the backend API at `http://localhost:3001`
 
 ### Repository Structure
 ```
