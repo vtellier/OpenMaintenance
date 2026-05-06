@@ -18,4 +18,27 @@ No complex setup required—just **download and run**.
 ## Raspberry Pi Support
 The project is designed to be **Raspberry Pi-compatible** (ARM support), though not actively tested.
 
+## Data Model
+
+### Equipment
+An **Equipment** represents a component of the maintained system (e.g., a boat engine, car transmission, or home HVAC unit). Each equipment has:
+- A **name** (e.g., "Main Engine")
+- A **description** (optional details)
+- Timestamps for creation and updates
+
+### Task
+A **Task** defines a maintenance checkpoint tied to an Equipment. Tasks are predefined (e.g., from manufacturer guidelines) and include:
+- **Name** (e.g., "Oil Change")
+- **Description** (optional details)
+- **Conditions**: Triggered by the first occurrence of:
+  - **Hours interval** (e.g., every 100 hours of usage) **OR**
+  - **Months interval** (e.g., every 6 months)
+
+### Intervention
+An **Intervention** records the execution of a Task, forming the maintenance history. Each intervention includes:
+- **Date** (when performed)
+- **Location** (optional, e.g., "Marina X")
+- **Comments** (optional notes)
+- Timestamps for tracking
+
 
