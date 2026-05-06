@@ -1,0 +1,13 @@
+package models
+
+import "time"
+
+type Intervention struct {
+	ID          int       `db:"id" json:"id"`
+	TaskID      int       `db:"task_id" json:"task_id"`
+	Date        time.Time `db:"date" json:"date"`
+	Location    *string   `db:"location" json:"location,omitempty"`
+	Comments    *string   `db:"comments" json:"comments,omitempty"`
+	CreatedAt   time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
+}

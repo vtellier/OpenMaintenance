@@ -59,6 +59,9 @@ Single binary deployment with embedded SQLite database and React frontend:
 
 #### Backend (Go)
 ```bash
+# Navigate to the backend directory
+cd backend
+
 # Build the Go backend
 go build -o bin/openmaintenance .
 ```
@@ -73,21 +76,38 @@ npm install
 
 # Build the React app
 npm run build
-
-# Copy the React build to the backend static directory
-cp -r build ../static
 ```
 
 #### Run the Application
 ```bash
+# Navigate to the backend directory
+cd backend
+
 # Run the Go backend
-./bin/openmaintenance
+go run main.go
 ```
 
 The application will:
-- Create a `data/maintenance.db` SQLite database automatically
+- Create a `backend/bin/maintenance.db` SQLite database automatically
 - Serve the React frontend on port 3000
 
 Access the web interface at `http://localhost:3000`
+
+### Repository Structure
+```
+OpenMaintenance/
+├── backend/          # Go backend source code
+│   ├── bin/          # Database and compiled binary
+│   ├── internal/     # Internal modules
+│   ├── main.go       # Entry point
+│   ├── go.mod        # Go dependencies
+│   └── go.sum        # Go dependency checksums
+├── frontend/         # React frontend source code
+│   ├── public/       # Static assets
+│   ├── build/        # Built frontend files
+│   └── package-lock.json
+├── README.md         # Project documentation
+└── LICENSE           # License file
+```
 
 
