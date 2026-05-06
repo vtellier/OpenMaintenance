@@ -3,31 +3,107 @@ package routes
 import (
 	"database/sql"
 	"github.com/gofiber/fiber/v2"
+	dbpackage "github.com/vtellier/OpenMaintenance/internal/db"
+	"github.com/vtellier/OpenMaintenance/internal/models"
+	"strconv"
 )
 
-func SetupEquipmentRoutes(app *fiber.App, db *sql.DB) {
+func SetupEquipmentRoutes(app *fiber.App, database *sql.DB) {
 	app.Get("/equipments", func(c *fiber.Ctx) error {
-		// List all equipments
-		return c.JSON(fiber.Map{"message": "List equipments"})
+		equipments, err := dbpackage.ListEquipments(database)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(equipments)
 	})
 
 	app.Post("/equipments", func(c *fiber.Ctx) error {
-		// Create new equipment
-		return c.JSON(fiber.Map{"message": "Create equipment"})
+		equipment := new(models.Equipment)
+		if err := c.BodyParser(equipment); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		if err := dbpackage.CreateEquipment(database, equipment); err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		return c.JSON(equipment)
 	})
 
 	app.Get("/equipments/:id", func(c *fiber.Ctx) error {
-		// Get equipment by ID
-		return c.JSON(fiber.Map{"message": "Get equipment"})
+		id, _ := strconv.Atoi(c.Params("id"))
+		equipment, err := dbpackage.GetEquipment(database, id)
+		if err != nil {
+			return c.Status(404).JSON(fiber.Map{"error": "Equipment not found"})
+		}
+		return c.JSON(equipment)
 	})
 
 	app.Put("/equipments/:id", func(c *fiber.Ctx) error {
-		// Update equipment
-		return c.JSON(fiber.Map{"message": "Update equipment"})
+		id, _ := strconv.Atoi(c.Params("id"))
+		equipment := new(models.Equipment)
+		if err := c.BodyParser(equipment); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		}
+		equipment.ID = id
+
+		if err := dbpackage.UpdateEquipment(database, equipment); err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		return c.JSON(equipment)
 	})
 
 	app.Delete("/equipments/:id", func(c *fiber.Ctx) error {
-		// Delete equipment
-		return c.JSON(fiber.Map{"message": "Delete equipment"})
+		id, _ := strconv.Atoi(c.Params("id"))
+		if err := dbpackage.DeleteEquipment(database, id); err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.SendStatus(204)
+	})
+
+	app.Post("/equipments", func(c *fiber.Ctx) error {
+		equipment := new(models.Equipment)
+		if err := c.BodyParser(equipment); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		if err := dbpackage.CreateEquipment(database, equipment); err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		return c.JSON(equipment)
+	})
+
+	app.Get("/equipments/:id", func(c *fiber.Ctx) error {
+		id, _ := strconv.Atoi(c.Params("id"))
+		equipment, err := dbpackage.GetEquipment(database, id)
+		if err != nil {
+			return c.Status(404).JSON(fiber.Map{"error": "Equipment not found"})
+		}
+		return c.JSON(equipment)
+	})
+
+	app.Put("/equipments/:id", func(c *fiber.Ctx) error {
+		id, _ := strconv.Atoi(c.Params("id"))
+		equipment := new(models.Equipment)
+		if err := c.BodyParser(equipment); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		}
+		equipment.ID = id
+
+		if err := dbpackage.UpdateEquipment(database, equipment); err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		return c.JSON(equipment)
+	})
+
+	app.Delete("/equipments/:id", func(c *fiber.Ctx) error {
+		id, _ := strconv.Atoi(c.Params("id"))
+		if err := dbpackage.DeleteEquipment(database, id); err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.SendStatus(204)
 	})
 }
