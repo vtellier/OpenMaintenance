@@ -41,4 +41,26 @@ An **Intervention** records the execution of a Task, forming the maintenance his
 - **Comments** (optional notes)
 - Timestamps for tracking
 
+## Features
+
+### API Endpoints
+- **Equipments**: Full CRUD operations (`/equipments`)
+- **Tasks**: Full CRUD with equipment filtering (`/tasks`, `/equipments/:id/tasks`)
+- **Interventions**: Full CRUD with task filtering (`/interventions`, `/tasks/:id/interventions`)
+
+### HTMX Frontend
+- Dynamic navigation between sections
+- Real-time form submissions and updates
+- Auto-loading data tables
+- Responsive design with Tailwind CSS
+
+### Deployment
+Single binary deployment with embedded SQLite database:
+```bash
+go build -o openmaintenance .
+./openmaintenance
+```
+
+Access the web interface at `http://localhost:3000`
+
 

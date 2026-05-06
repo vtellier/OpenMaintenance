@@ -24,6 +24,7 @@ func main() {
 	routes.SetupEquipmentRoutes(app, db)
 	routes.SetupTaskRoutes(app, db)
 	routes.SetupInterventionRoutes(app, db)
+	routes.SetupViewRoutes(app)
 
 	log.Fatal(app.Listen(":3000"))
 }
