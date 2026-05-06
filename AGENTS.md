@@ -18,4 +18,5 @@
 
 ## Critical Reminders
 - **Verify Before Acting**: Always check for hidden configs or undocumented setup steps.
-- **Ask for Clarification**: If the user expects a specific stack (e.g., React, Django), confirm before assuming.
+- **Ask for Clarification**: Eveytime the user asks something, make sure you have a good understanding, ask instead of guessing.
+- **Keep track of versioning**: Suggest the user to `git commit` instead of continuing modifying when there's already a lot of uncommitted modification.
