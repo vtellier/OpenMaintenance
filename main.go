@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/vtellier/OpenMaintenance/internal/db"
 	"github.com/vtellier/OpenMaintenance/internal/routes"
 	_ "github.com/mattn/go-sqlite3"
@@ -18,13 +19,21 @@ func main() {
 
 	// Initialize Fiber app
 	app := fiber.New()
+
+	// Enable CORS for React frontend
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "http://localhost:3000",
+		AllowMethods: "GET,POST,PUT,DELETE",
+	}))
+
+	// Serve React static files in production
 	app.Static("/", "./static")
 
-	// Setup routes
-	routes.SetupEquipmentRoutes(app, db)
-	routes.SetupTaskRoutes(app, db)
-	routes.SetupInterventionRoutes(app, db)
-	routes.SetupViewRoutes(app)
+	// API routes
+	api := app.Group("/api")
+	routes.SetupEquipmentRoutes(api, db)
+	routes.SetupTaskRoutes(api, db)
+	routes.SetupInterventionRoutes(api, db)
 
-	log.Fatal(app.Listen(":3000"))
+	log.Fatal(app.Listen(":3001"))
 }

@@ -11,7 +11,7 @@ No complex setup required—just **download and run**.
 
 ## Tech Stack
 - **Backend**: Go (Fiber) – Single binary, cross-platform, and lightweight.
-- **Frontend**: HTML + HTMX + Tailwind CSS – No build step, dynamic without heavy JS.
+- **Frontend**: React + Tailwind CSS – Dynamic and scalable UI.
 - **Database**: SQLite – Zero setup, single file, embedded.
 - **Deployment**: Single binary + SQLite file – No dependencies, just run.
 
@@ -48,25 +48,45 @@ An **Intervention** records the execution of a Task, forming the maintenance his
 - **Tasks**: Full CRUD with equipment filtering (`/tasks`, `/equipments/:id/tasks`)
 - **Interventions**: Full CRUD with task filtering (`/interventions`, `/tasks/:id/interventions`)
 
-### HTMX Frontend
-- Dynamic navigation between sections
-- Real-time form submissions and updates
-- Auto-loading data tables
+### React Frontend
+- Component-based architecture
+- Dynamic navigation and state management
 - Responsive design with Tailwind CSS
+- Scalable for complex UI features
 
 ### Deployment
-Single binary deployment with embedded SQLite database:
-```bash
-# Build the application
-go build -o bin/openmaintenance .
+Single binary deployment with embedded SQLite database and React frontend:
 
-# Run the application
+#### Backend (Go)
+```bash
+# Build the Go backend
+go build -o bin/openmaintenance .
+```
+
+#### Frontend (React)
+```bash
+# Navigate to the frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+
+# Build the React app
+npm run build
+
+# Copy the React build to the backend static directory
+cp -r build ../static
+```
+
+#### Run the Application
+```bash
+# Run the Go backend
 ./bin/openmaintenance
 ```
 
 The application will:
 - Create a `data/maintenance.db` SQLite database automatically
-- Start a web server on port 3000
+- Serve the React frontend on port 3000
 
 Access the web interface at `http://localhost:3000`
 
