@@ -2,12 +2,11 @@
 
 ## Key Facts
 - **Purpose**: Free, open-source web app for tracking maintenance tasks (boats, cars, homes, etc.).
-- **Tech Stack**: Go (Fiber) backend, SQLite database, HTMX + Tailwind CSS frontend.
 - **Entry Point**: No obvious entry point (e.g., `index.html`, `main.py`, or `package.json`).
-- **No Build/Test/Lint Configs**: No `package.json`, `Makefile`, or other tooling configs detected.
+- **Build/Test/Lint Configs**: `frontend/package.json` and `backend/go.mod` detected.
 
 ## Workflow Notes
-- **No Monorepo**: Single, flat directory structure.
+- **Directory Structure**: Contains `frontend` and `backend` folders.
 - **No Existing Commands**: No scripts or CLI tools documented.
 - **No CI/CD**: No `.github`, `.gitlab`, or other workflow configs.
 
@@ -17,7 +16,7 @@
 - **No code example**: unless in the instructions for installation, otherwise the reader will open the source code themselves
 
 ## When coding
-- **Always check your code**: Everytime you modify some code, validate it still compiles
+- **Always check your code**: Every time you modify **frontend** or **backend** code, validate it still compiles. Run `npm run build` for the frontend and `go build` for the backend.
 
 ## Critical Reminders
 - **Verify Before Acting**: Always check for hidden configs or undocumented setup steps.

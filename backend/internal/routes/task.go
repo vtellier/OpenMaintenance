@@ -26,18 +26,23 @@ func SetupTaskRoutes(api fiber.Router, database *sql.DB) {
 		return c.JSON(tasks)
 	})
 
-	api.Post("/tasks", func(c *fiber.Ctx) error {
-		task := new(models.Task)
-		if err := c.BodyParser(task); err != nil {
-			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
-		}
+  api.Post("/tasks", func(c *fiber.Ctx) error {
+    task := new(models.Task)
+    if err := c.BodyParser(task); err != nil {
+      return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+    }
 
-		if err := dbpackage.CreateTask(database, task); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
-		}
+    // Validate that equipment_id is provided and is a positive integer
+    if task.EquipmentID <= 0 {
+      return c.Status(400).JSON(fiber.Map{"error": "equipment_id is required and must be a positive integer"})
+    }
 
-		return c.JSON(task)
-	})
+    if err := dbpackage.CreateTask(database, task); err != nil {
+      return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+    }
+
+    return c.JSON(task)
+  })
 
 	api.Get("/tasks/:id", func(c *fiber.Ctx) error {
 		id, _ := strconv.Atoi(c.Params("id"))
