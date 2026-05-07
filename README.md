@@ -10,10 +10,11 @@ OpenMaintenance is designed to be **easy to deploy anywhere**, including:
 No complex setup required—just **download and run**.
 
 ## Tech Stack
-- **Backend**: Go (Fiber) – Single binary, cross-platform, and lightweight.
+- **Backend**: Go (Echo) – Single binary, cross-platform, and lightweight.
 - **Frontend**: React + Tailwind CSS – Dynamic and scalable UI.
 - **Database**: SQLite – Zero setup, single file, embedded.
 - **Deployment**: Single binary + SQLite file – No dependencies, just run.
+- **API**: OpenAPI 3.0 – Spec-first design with auto-generated Go code and validation.
 
 ## Raspberry Pi Support
 The project is designed to be **Raspberry Pi-compatible** (ARM support), though not actively tested.
@@ -25,6 +26,101 @@ An **Equipment** represents a component of the maintained system (e.g., a boat e
 - A **name** (e.g., "Main Engine")
 - A **description** (optional details)
 - Timestamps for creation and updates
+
+---
+
+## API Development
+
+### OpenAPI + Echo Workflow
+
+#### 1. Update the OpenAPI Spec
+- Edit `backend/api/openapi.yaml` to define or modify endpoints, models, and validation rules.
+- Follow [OpenAPI 3.0](https://swagger.io/specification/) conventions.
+
+#### 2. Regenerate Go Code
+Run the following command to update the generated Go code:
+
+```bash
+make generate-openapi
+```
+
+Or manually:
+```bash
+~/go/bin/oapi-codegen -generate types,server -package generated backend/api/openapi.yaml > backend/internal/generated/openapi.gen.go
+```
+
+#### 3. Bind Handlers to Echo Routes
+- Import the generated handlers in `backend/internal/routes/`.
+- Bind them to Echo routes using the generated validation middleware.
+
+Example:
+```go
+import (
+	"github.com/labstack/echo/v4"
+	"github.com/vtellier/OpenMaintenance/backend/internal/generated"
+	"github.com/oapi-codegen/runtime"
+)
+
+func SetupEquipmentRoutes(api *echo.Group, db *sql.DB) {
+	// Bind generated handler with validation
+	api.GET("/equipments", runtime.Middleware(
+		func(ctx context.Context, request generated.GetEquipmentsRequestObject) (generated.GetEquipmentsResponseObject, error) {
+			// Implement business logic here
+		},
+	))
+}
+```
+
+#### 4. Serve the OpenAPI Spec
+- The raw spec is available at `/api/openapi.yaml`.
+- Use [Swagger UI](https://swagger.io/tools/swagger-ui/) to serve interactive docs at `/api/docs`.
+
+---
+
+### Example: Adding a New Endpoint
+
+1. **Update `backend/api/openapi.yaml`**:
+   ```yaml
+   paths:
+     /api/equipments/{id}:
+       get:
+         summary: Get equipment by ID
+         parameters:
+           - $ref: '#/components/parameters/EquipmentID'
+         responses:
+           200:
+             description: OK
+             content:
+               application/json:
+                 schema:
+                   $ref: '#/components/schemas/Equipment'
+   ```
+
+2. **Regenerate Code**:
+   ```bash
+   make generate-openapi
+   ```
+
+3. **Bind to Echo**:
+   ```go
+   api.GET("/equipments/:id", runtime.Middleware(handlers.GetEquipmentByID))
+   ```
+
+4. **Implement Handler**:
+   ```go
+   func GetEquipmentByID(ctx context.Context, request generated.GetEquipmentByIDRequestObject) (*generated.GetEquipmentByID200Response, error) {
+       // Fetch equipment from DB
+       return &generated.GetEquipmentByID200Response{Equipment: equipment}, nil
+   }
+   ```
+
+---
+
+### Troubleshooting
+
+- **Regeneration Issues**: Ensure `openapi.yaml` is valid (use [Swagger Editor](https://editor.swagger.io/) to validate).
+- **Validation Errors**: Check that request/response models match the spec.
+- **Echo Integration**: Verify routes are bound correctly and middleware is applied.
 
 ### Task
 A **Task** defines a maintenance checkpoint tied to an Equipment. Tasks are predefined (e.g., from manufacturer guidelines) and include:
