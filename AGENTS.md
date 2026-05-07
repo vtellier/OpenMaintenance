@@ -10,7 +10,7 @@ Two layers: a backend and a frontend.
 
 ### Backend
 - **Source code**: located in the `backend/` folder
-- **Stack**: Go + SQLite
+- **Stack**: Go + Echo + SQLite
 - **API**: A REST API which is defined with an OpenAPI spec located at `backend/api/`
 
 ### Frontend
@@ -24,6 +24,7 @@ Two layers: a backend and a frontend.
 ## Workflow Notes
 - **No CI/CD**: No `.github`, `.gitlab`, or other workflow configs.
 - **Scripts / CLI / Tools**: There is no common tool, the backend and the frontend have their own, independ from each others
+- **NO TESTING**
 
 ## Agent instructions
 
@@ -36,6 +37,7 @@ Two layers: a backend and a frontend.
 - **Always check your code**: Every time you modify **frontend** or **backend** code, validate it still compiles. Run `npm run build` for the frontend and `go build` for the backend.
 
 ### Critical Reminders
-- **Ask for Clarification**: Eveytime the user asks something, make sure you have a good understanding, ask instead of guessing but only when necessary.
-- **Keep track of versioning**: Suggest the user to `git commit` instead of continuing modifying when there's already a lot of uncommitted modification.
-- **Verify before saying**: Always check the information you read from the documentation is consistent with what's in the repository. And when not consistent you must warn about it.
+- **Ask for Clarification**: When there is ambiguity, ask instead of guessing.
+- **Remind about git**: Suggest the user to `git commit` when there's a lot of uncommitted modification.
+- **Short answers**: Avoid giving too much information that has not been asked, focus on answering what has been explicitly asked.
+- **Don't over-plan**: Offer plans that target only the given scope. If the scope isn't clear ask for more details.

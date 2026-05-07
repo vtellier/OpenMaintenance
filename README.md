@@ -1,13 +1,27 @@
 # OpenMaintenance
 
-OpenMaintenance is a **100% self-hostable**, free, and open-source web app to track maintenance tasks for any equipment (boats, cars, homes, etc.). Log checks, set hour/time-based reminders, and export data as CSV.
+OpenMaintenance is a **minimalist** self-hostable, free, and open-source web app to **track maintenance tasks** for any equipment (boats, cars, homes, etc.). Log checks, set hour/time-based reminders, and export data as CSV.
+
+## Main features
+
+- **No authentication**: anyone who has access to the app can use it.
+- **Multiple equipments**: Gather all the devices that needs maintenance in the same place.
+- **Custom maintenance program**: You define the maintenance program yourself, whether you decide to follow the manufacturer's recommandations, your own or both.
+- **Intervention history**: Log what you did, when you did it to not forget anything.
+- **Know what needs to be done before it's too late**: On a single dashboard you get to see what tasks you will have to do in the near future so you can organize yourself.
+- **Multi-device friendly**: This is a web app, you can use it from your desktop computer, a mobile or a tablet.
+
+Future features:
+- **Export**: That's your data, you get the right to export them as CSV and use them somewhere else.
+- **Notifications**: Get notified when it's already too late.
 
 ## Self-Hosting
 OpenMaintenance is designed to be **easy to deploy anywhere**, including:
 - **Low-end VPS** (minimal resource usage)
 - **Local machines** (Windows, macOS, Linux)
+- **Raspberry Pi Support**: The project is designed to be **Raspberry Pi-compatible** (ARM support), though not actively tested.
 
-No complex setup required—just **download and run**.
+No complex setup required, just **download the binaries and run**.
 
 ## Tech Stack
 - **Backend**: Go (Echo) – Single binary, cross-platform, and lightweight.
@@ -15,9 +29,6 @@ No complex setup required—just **download and run**.
 - **Database**: SQLite – Zero setup, single file, embedded.
 - **Deployment**: Single binary + SQLite file – No dependencies, just run.
 - **API**: OpenAPI 3.0 – Spec-first design with auto-generated Go code and validation.
-
-## Raspberry Pi Support
-The project is designed to be **Raspberry Pi-compatible** (ARM support), though not actively tested.
 
 ## Data Model
 
