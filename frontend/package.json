@@ -8,7 +8,7 @@
     "build": "vite build && vite build --ssr src/entry-server.ts",
     "preview": "NODE_ENV=production node server.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "postinstall": "arrow-js-skill install --agent codex --project . --yes"
+    "postinstall": "npx @arrow-js/skill"
   },
   "dependencies": {
     "@arrow-js/core": "^1.0.6",
