@@ -1,0 +1,396 @@
+openapi: 3.0.3
+info:
+  title: OpenMaintenance API
+  description: API for managing maintenance tasks, equipments, and interventions
+  version: 1.0.0
+servers:
+  - url: http://localhost:3001/api
+    description: Local development server
+paths:
+  /equipments:
+    get:
+      summary: List all equipments
+      description: Retrieve a list of all equipments
+      tags:
+        - Equipment
+      responses:
+        '200':
+          description: A list of equipments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Equipment'
+    post:
+      summary: Create a new equipment
+      description: Add a new equipment to the system
+      tags:
+        - Equipment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Equipment'
+      responses:
+        '201':
+          description: Equipment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+        '400':
+          description: Invalid input
+  /equipments/{id}:
+    get:
+      summary: Get equipment by ID
+      description: Retrieve a single equipment by its ID
+      tags:
+        - Equipment
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the equipment
+      responses:
+        '200':
+          description: Equipment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+        '404':
+          description: Equipment not found
+    put:
+      summary: Update an equipment
+      description: Update an existing equipment
+      tags:
+        - Equipment
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the equipment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Equipment'
+      responses:
+        '200':
+          description: Equipment updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+        '400':
+          description: Invalid input
+        '404':
+          description: Equipment not found
+    delete:
+      summary: Delete an equipment
+      description: Remove an equipment from the system
+      tags:
+        - Equipment
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the equipment
+      responses:
+        '204':
+          description: Equipment deleted
+        '404':
+          description: Equipment not found
+  /tasks:
+    get:
+      summary: List all tasks
+      description: Retrieve a list of all tasks
+      tags:
+        - Task
+      responses:
+        '200':
+          description: A list of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+    post:
+      summary: Create a new task
+      description: Add a new task to the system
+      tags:
+        - Task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Task'
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Invalid input
+  /tasks/{id}:
+    get:
+      summary: Get task by ID
+      description: Retrieve a single task by its ID
+      tags:
+        - Task
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the task
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Task not found
+    put:
+      summary: Update a task
+      description: Update an existing task
+      tags:
+        - Task
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Task'
+      responses:
+        '200':
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Invalid input
+        '404':
+          description: Task not found
+    delete:
+      summary: Delete a task
+      description: Remove a task from the system
+      tags:
+        - Task
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the task
+      responses:
+        '204':
+          description: Task deleted
+        '404':
+          description: Task not found
+  /interventions:
+    get:
+      summary: List all interventions
+      description: Retrieve a list of all interventions
+      tags:
+        - Intervention
+      responses:
+        '200':
+          description: A list of interventions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Intervention'
+    post:
+      summary: Create a new intervention
+      description: Add a new intervention to the system
+      tags:
+        - Intervention
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Intervention'
+      responses:
+        '201':
+          description: Intervention created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Intervention'
+        '400':
+          description: Invalid input
+  /interventions/{id}:
+    get:
+      summary: Get intervention by ID
+      description: Retrieve a single intervention by its ID
+      tags:
+        - Intervention
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the intervention
+      responses:
+        '200':
+          description: Intervention details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Intervention'
+        '404':
+          description: Intervention not found
+    put:
+      summary: Update an intervention
+      description: Update an existing intervention
+      tags:
+        - Intervention
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the intervention
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Intervention'
+      responses:
+        '200':
+          description: Intervention updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Intervention'
+        '400':
+          description: Invalid input
+        '404':
+          description: Intervention not found
+    delete:
+      summary: Delete an intervention
+      description: Remove an intervention from the system
+      tags:
+        - Intervention
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the intervention
+      responses:
+        '204':
+          description: Intervention deleted
+        '404':
+          description: Intervention not found
+components:
+  schemas:
+    Equipment:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the equipment
+        name:
+          type: string
+          description: Name of the equipment
+        description:
+          type: string
+          description: Detailed description of the equipment
+        created_at:
+          type: string
+          format: date-time
+          description: When the equipment was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the equipment was last updated
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the task
+        equipment_id:
+          type: integer
+          description: ID of the associated equipment
+        name:
+          type: string
+          description: Name of the task
+        description:
+          type: string
+          description: Detailed description of the task
+        hours_interval:
+          type: integer
+          description: Interval in hours for the task
+        months_interval:
+          type: integer
+          description: Interval in months for the task
+        created_at:
+          type: string
+          format: date-time
+          description: When the task was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the task was last updated
+    Intervention:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the intervention
+        task_id:
+          type: integer
+          description: ID of the associated task
+        date:
+          type: string
+          format: date
+          description: Date of the intervention
+        location:
+          type: string
+          description: Location where the intervention was performed
+        comments:
+          type: string
+          description: Additional comments about the intervention
+        created_at:
+          type: string
+          format: date-time
+          description: When the intervention was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the intervention was last updated
