@@ -67,3 +67,6 @@ frontend/*.log
 frontend/*.tmp
 frontend/*.bak
 frontend/*.swp
+
+# Generated API files
+frontend/generated/

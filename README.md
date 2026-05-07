@@ -48,6 +48,16 @@ An **Equipment** represents a component of the maintained system (e.g., a boat e
 - Edit `backend/api/openapi.yaml` to define or modify endpoints, models, and validation rules.
 - Follow [OpenAPI 3.0](https://swagger.io/specification/) conventions.
 
+### TODO
+- Add explicit `operationId` fields to the OpenAPI spec to avoid auto-generated names (e.g., `equipmentsGet`, `tasksPost`).
+
+### Frontend API Client Generation
+To generate the frontend API client from the OpenAPI spec, run:
+
+```bash
+cd frontend && npx openapi-generator-cli generate -i ../backend/api/openapi.yaml -g typescript-fetch -o generated/api
+```
+
 #### 2. Regenerate Go Code
 Run the following command to update the generated Go code:
 
