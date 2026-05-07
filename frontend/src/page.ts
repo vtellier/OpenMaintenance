@@ -2,6 +2,7 @@ import '@arrow-js/framework'
 
 import { App } from './App'
 import { NotFound } from './components/NotFound'
+import { ApiTestPage } from './pages/ApiTestPage'
 
 export interface Page {
   description: string
@@ -23,6 +24,15 @@ export function routeToPage(url: string): Page {
       ...homePage,
       status: 200,
       view: App(),
+    }
+  }
+
+  if (pathname === '/api-test') {
+    return {
+      description: 'Test page for API client',
+      status: 200,
+      title: 'API Test | Arrow App',
+      view: ApiTestPage(),
     }
   }
 

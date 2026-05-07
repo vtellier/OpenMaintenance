@@ -20,11 +20,11 @@ func main() {
 	// Initialize Echo app
 	e := echo.New()
 
-	// Enable CORS for React frontend
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:3000"},
-		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
-	}))
+  // Enable CORS for React frontend
+e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+    AllowOrigins: []string{"http://localhost:3000", "http://127.0.0.1:5173", "http://localhost:5173"},
+    AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
+}))
 
 	// Serve React static files in production
 	e.Static("/", "./static")
