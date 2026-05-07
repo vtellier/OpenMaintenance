@@ -1,0 +1,25 @@
+{
+  "name": "frontend",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.14.0",
+  "scripts": {
+    "dev": "node server.mjs",
+    "build": "vite build && vite build --ssr src/entry-server.ts",
+    "preview": "NODE_ENV=production node server.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "postinstall": "arrow-js-skill install --agent codex --project . --yes"
+  },
+  "dependencies": {
+    "@arrow-js/core": "^1.0.6",
+    "@arrow-js/framework": "^1.0.6",
+    "@arrow-js/hydrate": "^1.0.6",
+    "@arrow-js/ssr": "^1.0.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.5",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.0",
+    "@arrow-js/skill": "^1.0.6"
+  }
+}

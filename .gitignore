@@ -34,3 +34,36 @@ vendor/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Frontend dependencies
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.svelte-kit/
+
+# Frontend build artifacts
+frontend/build/
+frontend/.output/
+
+# Frontend cache
+frontend/.cache/
+frontend/.nuxt/
+
+# Frontend logs
+frontend/.npm/
+frontend/.pnpm/
+frontend/.yarn/
+
+# Frontend environment files
+frontend/.env
+frontend/.env.*
+
+# Frontend IDE files
+frontend/.idea/
+frontend/.vscode/
+
+# Frontend misc
+frontend/*.log
+frontend/*.tmp
+frontend/*.bak
+frontend/*.swp
