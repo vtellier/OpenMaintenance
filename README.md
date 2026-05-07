@@ -11,7 +11,7 @@ No complex setup required—just **download and run**.
 
 ## Tech Stack
 - **Backend**: Go (Echo) – Single binary, cross-platform, and lightweight.
-- **Frontend**: React + Tailwind CSS – Dynamic and scalable UI.
+- **Frontend**: [Arrow.js](https://arrow-js.com/) – Lightweight, minimalist framework for a fast and efficient UI.
 - **Database**: SQLite – Zero setup, single file, embedded.
 - **Deployment**: Single binary + SQLite file – No dependencies, just run.
 - **API**: OpenAPI 3.0 – Spec-first design with auto-generated Go code and validation.
@@ -144,11 +144,11 @@ An **Intervention** records the execution of a Task, forming the maintenance his
 - **Tasks**: Full CRUD with equipment filtering (`/tasks`, `/equipments/:id/tasks`)
 - **Interventions**: Full CRUD with task filtering (`/interventions`, `/tasks/:id/interventions`)
 
-### React Frontend
+### Arrow.js Frontend
+- Lightweight, minimalist framework
 - Component-based architecture
-- Dynamic navigation and state management
-- Responsive design with Tailwind CSS
-- Scalable for complex UI features
+- Efficient state management
+- Designed for simplicity and performance
 
 ### Deployment
 Single binary deployment with embedded SQLite database and React frontend:
