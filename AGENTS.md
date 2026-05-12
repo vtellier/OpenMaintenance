@@ -25,6 +25,7 @@ Two layers: a backend and a frontend.
 - **No CI/CD**: No `.github`, `.gitlab`, or other workflow configs.
 - **Scripts / CLI / Tools**: There is no common tool, the backend and the frontend have their own, independ from each others
 - **NO TESTING**
+- **API Client Generation**: Use `pnpm run generate:api` in the frontend directory to generate the TypeScript API client from the OpenAPI spec. Use `pnpm run clean:api` to remove generated files.
 
 ## Agent instructions
 
@@ -35,12 +36,18 @@ Two layers: a backend and a frontend.
 
 ### When coding
 - **Always check your code**: Every time you modify **frontend** or **backend** code, validate it still compiles. Run `npm run build` for the frontend and `go build` for the backend.
+- **Use Context7 MCP**: To read the docs, especially the ones of Arrow.js.
+- **Use Chrom-DevTool MCP**: To test the frontend
 
 ### Critical Reminders
 - **Ask for Clarification**: When there is ambiguity, ask instead of guessing.
 - **Remind about git**: Suggest the user to `git commit` when there's a lot of uncommitted modification.
 - **Short answers**: Avoid giving too much information that has not been asked, focus on answering what has been explicitly asked.
 - **Don't over-plan**: Offer plans that target only the given scope. If the scope isn't clear ask for more details.
+- **Always run background tasks via pty plugin**: the plugin `opencode-pty` is the only way you have to run tasks in background, NEVER bypass it.
+
+### Session rituals
+- **Session summary**: **Always** append a 1-10 lines session summary to STATUS.md before exiting the session. It shall include date and time.
 
 <!-- arrow-js-skill:start -->
 # Arrow
@@ -59,3 +66,4 @@ Prefer idiomatic Arrow patterns:
 
 Keep no-build core usage simple. If SSR or hydration is involved, preserve payload and boundary behavior.
 <!-- arrow-js-skill:end -->
+

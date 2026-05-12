@@ -55,7 +55,13 @@ An **Equipment** represents a component of the maintained system (e.g., a boat e
 To generate the frontend API client from the OpenAPI spec, run:
 
 ```bash
-cd frontend && npx openapi-generator-cli generate -i ../backend/api/openapi.yaml -g typescript-fetch -o generated/api
+cd frontend && pnpm run generate:api
+```
+
+To clean the generated API client files, run:
+
+```bash
+cd frontend && pnpm run clean:api
 ```
 
 #### 2. Regenerate Go Code
