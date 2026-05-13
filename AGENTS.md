@@ -34,6 +34,14 @@ Two layers: a backend and a frontend.
 - **Small as possible**: Only the necessary information to understand the project. Use short and straightforward sentences.
 - **No code example**: unless in the instructions for installation, otherwise the reader will open the source code themselves
 
+### Development Prerequisites
+The following must be installed on the developer's machine for the agent to work correctly:
+
+- **chrome-devtools-mcp** (global): Required for the Chrome DevTools MCP to work.
+  ```bash
+  npm install -g chrome-devtools-mcp
+  ```
+
 ### When coding
 - **Always check your code**: Every time you modify **frontend** or **backend** code, validate it still compiles. Run `npm run build` for the frontend and `go build` for the backend.
 - **Use Context7 MCP**: To read the docs, especially the ones of Arrow.js.
@@ -45,6 +53,7 @@ Two layers: a backend and a frontend.
 - **Short answers**: Avoid giving too much information that has not been asked, focus on answering what has been explicitly asked.
 - **Don't over-plan**: Offer plans that target only the given scope. If the scope isn't clear ask for more details.
 - **Always run background tasks via pty plugin**: the plugin `opencode-pty` is the only way you have to run tasks in background, NEVER bypass it.
+- **Figure out why a TCP port is busy**: when you try to run a server on a specific port and this port appears to already be in use, figure out what process uses it and offer to kill it instead of picking up another port.
 
 ### Session rituals
 - **Session summary**: **Always** append a 1-10 lines session summary to STATUS.md before exiting the session. It shall include date and time.
