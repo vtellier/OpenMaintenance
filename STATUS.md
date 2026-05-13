@@ -18,3 +18,6 @@
 - Created ROADMAP.md with milestone-based development tracking
 - Created `/update-roadmap` custom command in `.opencode/commands/update-roadmap.md`
 - Added ROADMAP.md update ritual to AGENTS.md session rituals
+- Added `tracks_hours`, `hours`, `hours_updated_at` to Equipment in OpenAPI schema, Go model, DB schema, DB functions, handlers
+- Regenerated TypeScript API client
+- Checked off Milestone 1 items 1-3 in ROADMAP.md

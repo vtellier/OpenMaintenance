@@ -17,6 +17,9 @@ func InitDB() (*sql.DB, error) {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL,
 			description TEXT,
+			tracks_hours INTEGER NOT NULL DEFAULT 0,
+			hours REAL,
+			hours_updated_at TIMESTAMP,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
@@ -48,6 +51,16 @@ func InitDB() (*sql.DB, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// Migrations for existing databases
+	migrations := []string{
+		"ALTER TABLE equipments ADD COLUMN tracks_hours INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE equipments ADD COLUMN hours REAL",
+		"ALTER TABLE equipments ADD COLUMN hours_updated_at TIMESTAMP",
+	}
+	for _, m := range migrations {
+		db.Exec(m) // ignore errors (column may already exist)
 	}
 
 	return db, nil

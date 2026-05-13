@@ -391,6 +391,17 @@ components:
         description:
           type: string
           description: Detailed description of the equipment
+        tracks_hours:
+          type: boolean
+          description: Whether this equipment uses an hour-meter
+          default: false
+        hours:
+          type: number
+          description: Current hour-meter value. Only relevant if tracks_hours is true
+        hours_updated_at:
+          type: string
+          format: date-time
+          description: When the hour-meter was last updated. Only relevant if tracks_hours is true
         created_at:
           type: string
           format: date-time
@@ -410,6 +421,13 @@ components:
         description:
           type: string
           description: Detailed description of the equipment
+        tracks_hours:
+          type: boolean
+          description: Whether this equipment uses an hour-meter
+          default: false
+        hours:
+          type: number
+          description: Current hour-meter value. Only relevant if tracks_hours is true
     Task:
       type: object
       properties:

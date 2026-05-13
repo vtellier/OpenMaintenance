@@ -11,9 +11,13 @@ func CreateEquipment(db *sql.DB, equipment *models.Equipment) error {
 	equipment.UpdatedAt = time.Now()
 
 	result, err := db.Exec(
-		"INSERT INTO equipments (name, description, created_at, updated_at) VALUES (?, ?, ?, ?)",
+		`INSERT INTO equipments (name, description, tracks_hours, hours, hours_updated_at, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		equipment.Name,
 		equipment.Description,
+		equipment.TracksHours,
+		equipment.Hours,
+		equipment.HoursUpdatedAt,
 		equipment.CreatedAt,
 		equipment.UpdatedAt,
 	)
@@ -27,18 +31,32 @@ func CreateEquipment(db *sql.DB, equipment *models.Equipment) error {
 }
 
 func GetEquipment(db *sql.DB, id int) (*models.Equipment, error) {
-	row := db.QueryRow("SELECT id, name, description, created_at, updated_at FROM equipments WHERE id = ?", id)
+	row := db.QueryRow(
+		`SELECT id, name, description, tracks_hours, hours, hours_updated_at, created_at, updated_at
+		 FROM equipments WHERE id = ?`, id,
+	)
 
 	equipment := &models.Equipment{}
+	var hours sql.NullFloat64
+	var hoursUpdatedAt sql.NullTime
 	err := row.Scan(
 		&equipment.ID,
 		&equipment.Name,
 		&equipment.Description,
+		&equipment.TracksHours,
+		&hours,
+		&hoursUpdatedAt,
 		&equipment.CreatedAt,
 		&equipment.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
+	}
+	if hours.Valid {
+		equipment.Hours = &hours.Float64
+	}
+	if hoursUpdatedAt.Valid {
+		equipment.HoursUpdatedAt = &hoursUpdatedAt.Time
 	}
 
 	return equipment, nil
@@ -48,9 +66,13 @@ func UpdateEquipment(db *sql.DB, equipment *models.Equipment) error {
 	equipment.UpdatedAt = time.Now()
 
 	_, err := db.Exec(
-		"UPDATE equipments SET name = ?, description = ?, updated_at = ? WHERE id = ?",
+		`UPDATE equipments SET name = ?, description = ?, tracks_hours = ?, hours = ?, hours_updated_at = ?, updated_at = ?
+		 WHERE id = ?`,
 		equipment.Name,
 		equipment.Description,
+		equipment.TracksHours,
+		equipment.Hours,
+		equipment.HoursUpdatedAt,
 		equipment.UpdatedAt,
 		equipment.ID,
 	)
@@ -63,7 +85,10 @@ func DeleteEquipment(db *sql.DB, id int) error {
 }
 
 func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
-	rows, err := db.Query("SELECT id, name, description, created_at, updated_at FROM equipments")
+	rows, err := db.Query(
+		`SELECT id, name, description, tracks_hours, hours, hours_updated_at, created_at, updated_at
+		 FROM equipments`,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -72,15 +97,26 @@ func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 	var equipments []models.Equipment
 	for rows.Next() {
 		equipment := models.Equipment{}
+		var hours sql.NullFloat64
+		var hoursUpdatedAt sql.NullTime
 		err := rows.Scan(
 			&equipment.ID,
 			&equipment.Name,
 			&equipment.Description,
+			&equipment.TracksHours,
+			&hours,
+			&hoursUpdatedAt,
 			&equipment.CreatedAt,
 			&equipment.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
+		}
+		if hours.Valid {
+			equipment.Hours = &hours.Float64
+		}
+		if hoursUpdatedAt.Valid {
+			equipment.HoursUpdatedAt = &hoursUpdatedAt.Time
 		}
 		equipments = append(equipments, equipment)
 	}

@@ -62,7 +62,8 @@ The following must be installed on the developer's machine for the agent to work
 ### When coding
 - **Always check your code**: Every time you modify **frontend** or **backend** code, validate it still compiles. Run `npm run build` for the frontend and `go build` for the backend.
 - **Use Context7 MCP**: To read the docs, especially the ones of Arrow.js.
-- **Use Chrom-DevTool MCP**: To test the frontend
+- **Use Chrome-DevTool MCP**: To test the frontend
+- **Test as you go**: use `curl` when modifying the backend or the API, use chrome-devtools when modifying the frontend.
 
 ### Critical Reminders
 - **Ask questions**: When there is ambiguity, ask instead of guessing.
@@ -71,6 +72,7 @@ The following must be installed on the developer's machine for the agent to work
 - **Don't over-plan**: Offer plans that target only the given scope. If the scope isn't clear ask for more details.
 - **Always run background tasks via pty plugin**: the plugin `opencode-pty` is the only way you have to run tasks in background, NEVER bypass it.
 - **Figure out why a TCP port is busy**: when you try to run a server on a specific port and this port appears to already be in use, figure out what process uses it and offer to kill it instead of picking up another port.
+- **Never run `pkill` blindly**: always check `ps aux | grep ...` first to confirm the process actually exists before attempting to kill it.
 
 ### Session rituals
 - **Session summary**: **Always** append a 1-10 lines session summary to STATUS.md before exiting the session. It shall include date and time.
