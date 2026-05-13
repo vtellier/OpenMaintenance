@@ -15,14 +15,9 @@ export const MainPage = component(() => {
       <button class="${() => 'tab-button' + (state.activeTab === 'intervention' ? ' active' : '')}" @click="${() => state.activeTab = 'intervention'}">Interventions</button>
     </div>
     <div class="tab-content">
-      ${() => {
-        switch (state.activeTab) {
-          case 'equipment': return html`${EquipmentCard()}`
-          case 'task': return html`${TaskCard()}`
-          case 'intervention': return html`${InterventionCard()}`
-          default: return html`${EquipmentCard()}`
-        }
-      }}
+      ${() => state.activeTab === 'equipment' ? html`${EquipmentCard()}` : null}
+      ${() => state.activeTab === 'task' ? html`${TaskCard()}` : null}
+      ${() => state.activeTab === 'intervention' ? html`${InterventionCard()}` : null}
     </div>
   </div>`
 })
