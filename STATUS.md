@@ -66,3 +66,14 @@
 - Removed dead code: EquipmentCard.ts, TaskCard.ts, InterventionCard.ts, MainPage.ts, ApiTestPage.ts (none are imported by active code).
 - Fixed entry-server.ts type error (`ReturnType<typeof routeToPage>` is `Promise<Page>` not `Page`).
 - Verified all builds pass: `pnpm run typecheck` (tsc), `pnpm run build` (vite client+ssr), `go build ./...` (backend).
+
+## 2026-05-13 (session 3)
+
+- Completed Milestone 4: created three new pages for equipment management:
+  - **Edit page** (`/equipments/:id/edit`): full form (name, description, tracks_hours toggle, current hours), validates name required, confirms before enabling tracks_hours when tasks have hours_interval, saves via `updateEquipment` API and redirects to detail page.
+  - **Delete page** (`/equipments/:id/delete`): confirmation with equipment name and cascade-delete warning, deletes via `deleteEquipment` API and redirects to equipments list.
+  - **Update hours page** (`/equipments/:id/edit/hours`): shows current hours, validates new hours >= current, saves via `updateEquipment` API.
+- Registered all three routes in `page.ts` before the detail route to match specific paths first.
+- Added CSS for form pages (`.form-page`, `.form__actions`, `.btn--danger`).
+- Fixed SSR crashes caused by `component()` wrapping arguments in reactive proxies (native methods like `parseInt` fail on proxy strings). Fix: capture `id` in outer closure, pass plain number/href into `component()`.
+- Fixed server crash from `document is undefined` during SSR reactive updates when using `reactive()` outside `component()` wrapper.
