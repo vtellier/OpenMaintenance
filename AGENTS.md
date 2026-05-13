@@ -27,6 +27,23 @@ Two layers: a backend and a frontend.
 - **NO TESTING**
 - **API Client Generation**: Use `pnpm run generate:api` in the frontend directory to generate the TypeScript API client from the OpenAPI spec. Use `pnpm run clean:api` to remove generated files.
 
+## Product Specifications
+
+**All features, data model, and GUI specifications are documented in the `doc/` folder.** Before coding any feature, review the relevant spec file:
+
+- **Product vision & principles**: [`doc/overview.md`](./doc/overview.md)
+- **Data model** (Equipment, Task, Intervention, hour-meter rules): [`doc/data-model.md`](./doc/data-model.md)
+- **GUI specifications**:
+  - [Navigation & app shell](./doc/gui/navigation.md)
+  - [Dashboard (landing screen)](./doc/gui/dashboard.md)
+  - [Equipments (list & detail)](./doc/gui/equipments.md)
+  - [Tasks (maintenance program)](./doc/gui/tasks.md)
+  - [Interventions (logging actions)](./doc/gui/interventions.md)
+  - [History (global view)](./doc/gui/history.md)
+  - [Settings](./doc/gui/settings.md)
+
+**Key rule**: The OpenAPI spec is the single source of truth for the backend. The frontend GUI specs in `doc/gui/` define the target user experience. Keep both aligned.
+
 ## Agent instructions
 
 ### The README.md
