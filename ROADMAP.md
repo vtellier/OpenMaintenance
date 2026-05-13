@@ -30,13 +30,13 @@
 
 ## Milestone 4 — Equipment Screens
 
-- [ ] Equipment list (grid of cards with name, description, hour-meter, last intervention, next due)
-- [ ] Equipment detail screen with 3 tabs: Tasks, History, Info
-- [ ] Add equipment flow
-- [ ] Edit equipment flow
-- [ ] Delete equipment (with confirmation)
-- [ ] Hour-meter update flow (reachable from dashboard, equipment detail, and equipment list)
-- [ ] Confirm before enabling `tracks_hours` on existing equipment that has tasks using `hours_interval`
+- [x] Equipment list (grid of cards with name, description, hour-meter, last intervention, next due)
+- [x] Equipment detail screen with 3 tabs: Tasks, History, Info
+- [x] Add equipment flow
+- [x] Edit equipment flow
+- [x] Delete equipment (with confirmation)
+- [x] Hour-meter update flow (reachable from dashboard, equipment detail, and equipment list)
+- [x] Confirm before enabling `tracks_hours` on existing equipment that has tasks using `hours_interval`
 
 ## Milestone 5 — Task Management
 

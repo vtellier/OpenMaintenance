@@ -50,3 +50,19 @@
   - Updated SettingsPage with radio-button theme picker (Auto/Light/Dark) and About section (version, repo, license)
   - Added inline `<script>` in SSR head to apply stored theme before first paint (prevents flash)
   - Added `prefers-color-scheme` listener in client entry for Auto mode reactivity
+  - Fixed EquipmentCard, TaskCard, InterventionCard type errors (wrong API method names, type mismatches)
+  - Fixed App.ts pageContent type (unknown → ArrowExpression)
+  - Fixed ApiTestPage import and API method usage
+  - Milestone 4: Equipment screens (full implementation)
+    - Rewrote EquipmentsPage with live data loading (equipments + tasks + interventions), card grid, add modal (name, description, tracks_hours toggle, initial hours), empty state with CTA, mobile FAB
+    - Rewrote EquipmentDetailPage with live data: header (name, hours, Update hours/Edit/Delete buttons), 3 tabs (Tasks with urgency indicators, History from interventions, Info read-only), modals for edit (full equipment form), delete confirmation, hours update, tracks_hours confirmation dialog
+    - Created lib/format.ts for shared utilities (relativeTime, formatDate, formatHours, staleness helpers)
+    - Added CSS for equipment grid cards, modals, toggle switches, urgency indicators, form fields, flash messages, mobile FAB
+
+## 2026-05-13 (session 2)
+
+- Fixed "Invalid HTML position" SSR crash on EquipmentDetailPage — root cause: `${equipmentId}` in `href="/equipments/${equipmentId}/edit"` was a mid-attribute expression that Arrow.js template parser cannot handle (the `<!--¤-->` placeholder becomes literal attribute text instead of a DOM comment node, causing placeholder count mismatch). Fix: pre-compute href values as variables and use full-attribute expressions (`href="${editHref}"`).
+- Fixed add modal not opening in EquipmentsPage — `addModal` was a static variable evaluated once instead of a reactive function. Fixed by pre-computing `addModalHtml` template and wrapping it in `() => state.showAddModal ? addModalHtml : null`.
+- Removed dead code: EquipmentCard.ts, TaskCard.ts, InterventionCard.ts, MainPage.ts, ApiTestPage.ts (none are imported by active code).
+- Fixed entry-server.ts type error (`ReturnType<typeof routeToPage>` is `Promise<Page>` not `Page`).
+- Verified all builds pass: `pnpm run typecheck` (tsc), `pnpm run build` (vite client+ssr), `go build ./...` (backend).

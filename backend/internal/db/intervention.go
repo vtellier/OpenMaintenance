@@ -86,7 +86,7 @@ func ListInterventions(db *sql.DB) ([]models.Intervention, error) {
 	}
 	defer rows.Close()
 
-	var interventions []models.Intervention
+	interventions := make([]models.Intervention, 0)
 	for rows.Next() {
 		intervention := models.Intervention{}
 		var hoursAt sql.NullFloat64
@@ -153,7 +153,7 @@ func ListInterventionsByTask(db *sql.DB, taskID int) ([]models.Intervention, err
 	}
 	defer rows.Close()
 
-	var interventions []models.Intervention
+	interventions := make([]models.Intervention, 0)
 	for rows.Next() {
 		intervention := models.Intervention{}
 		var hoursAt sql.NullFloat64

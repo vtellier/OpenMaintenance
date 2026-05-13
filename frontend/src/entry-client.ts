@@ -4,7 +4,7 @@ import { getStoredTheme, applyTheme } from '@/theme'
 import '@/style.css'
 
 const payload = readPayload()
-const page = routeToPage(window.location.pathname)
+const page = await routeToPage(window.location.pathname)
 const root = document.getElementById(payload.rootId ?? 'app')
 
 if (!root) {

@@ -17,7 +17,7 @@ export interface Page {
 
 const equipmentPathRe = /^\/equipments\/(\d+)(?:\/(history|info))?$/
 
-export function routeToPage(url: string): Page {
+export async function routeToPage(url: string): Promise<Page> {
   const pathname = new URL(url, 'http://arrow.local').pathname
 
   if (pathname === '/' || pathname === '') {
@@ -42,11 +42,12 @@ export function routeToPage(url: string): Page {
   if (match) {
     const id = match[1]
     const tab = match[2] ?? ''
+    const view = await EquipmentDetailPage(id, tab)
     return {
       description: `Equipment #${id} details`,
       status: 200,
       title: `Equipment #${id} | OpenMaintenance`,
-      view: EquipmentDetailPage(id, tab),
+      view: App(pathname, view),
     }
   }
 

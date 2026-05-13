@@ -92,7 +92,7 @@ func ListTasks(db *sql.DB) ([]models.Task, error) {
 	}
 	defer rows.Close()
 
-	var tasks []models.Task
+	tasks := make([]models.Task, 0)
 	for rows.Next() {
 		task := models.Task{}
 		err := rows.Scan(
@@ -121,7 +121,7 @@ func ListTasksByEquipment(db *sql.DB, equipmentID int) ([]models.Task, error) {
 	}
 	defer rows.Close()
 
-	var tasks []models.Task
+	tasks := make([]models.Task, 0)
 	for rows.Next() {
 		task := models.Task{}
 		err := rows.Scan(

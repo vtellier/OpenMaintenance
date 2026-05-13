@@ -95,7 +95,7 @@ func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 	}
 	defer rows.Close()
 
-	var equipments []models.Equipment
+	equipments := make([]models.Equipment, 0)
 	for rows.Next() {
 		equipment := models.Equipment{}
 		var hours sql.NullFloat64
