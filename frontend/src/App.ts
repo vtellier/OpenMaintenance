@@ -3,6 +3,6 @@ import { MainPage } from '@/pages/MainPage'
 
 export const App = component(() =>
   html`<main class="shell">
-    <${MainPage} />
+    ${MainPage()}
   </main>`
 )

@@ -17,10 +17,10 @@ export const MainPage = component(() => {
     <div class="tab-content">
       ${() => {
         switch (state.activeTab) {
-          case 'equipment': return html`<${EquipmentCard} />`
-          case 'task': return html`<${TaskCard} />`
-          case 'intervention': return html`<${InterventionCard} />`
-          default: return html`<${EquipmentCard} />`
+          case 'equipment': return html`${EquipmentCard()}`
+          case 'task': return html`${TaskCard()}`
+          case 'intervention': return html`${InterventionCard()}`
+          default: return html`${EquipmentCard()}`
         }
       }}
     </div>
