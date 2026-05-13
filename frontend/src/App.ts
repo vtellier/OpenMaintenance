@@ -1,8 +1,9 @@
-import { component, html } from '@arrow-js/core'
-import { MainPage } from '@/pages/MainPage'
+import { html } from '@arrow-js/core'
+import { NavBar } from '@/components/NavBar'
 
-export const App = component(() =>
-  html`<main class="shell">
-    ${MainPage()}
-  </main>`
-)
+export function App(currentPath: string, pageContent: unknown) {
+  return html`<div class="app-shell">
+    ${NavBar(currentPath)}
+    <main class="app-content">${pageContent}</main>
+  </div>`
+}

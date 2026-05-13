@@ -2,7 +2,11 @@ import '@arrow-js/framework'
 
 import { App } from '@/App'
 import { NotFound } from '@/components/NotFound'
-import { ApiTestPage } from '@/pages/ApiTestPage'
+import { DashboardPage } from '@/pages/DashboardPage'
+import { EquipmentsPage } from '@/pages/EquipmentsPage'
+import { EquipmentDetailPage } from '@/pages/EquipmentDetailPage'
+import { HistoryPage } from '@/pages/HistoryPage'
+import { SettingsPage } from '@/pages/SettingsPage'
 
 export interface Page {
   description: string
@@ -11,35 +15,63 @@ export interface Page {
   view: unknown
 }
 
-const homePage = {
-  description: 'A tiny reactive core with SSR when you need it.',
-  title: 'Arrow App',
-}
+const equipmentPathRe = /^\/equipments\/(\d+)(?:\/(history|info))?$/
 
 export function routeToPage(url: string): Page {
   const pathname = new URL(url, 'http://arrow.local').pathname
 
   if (pathname === '/' || pathname === '') {
     return {
-      ...homePage,
+      description: 'Dashboard — upcoming and overdue maintenance tasks',
       status: 200,
-      view: App(),
+      title: 'Dashboard | OpenMaintenance',
+      view: App(pathname, DashboardPage()),
     }
   }
 
-  if (pathname === '/api-test') {
+  if (pathname === '/equipments') {
     return {
-      description: 'Test page for API client',
+      description: 'All equipments',
       status: 200,
-      title: 'API Test | Arrow App',
-      view: ApiTestPage(),
+      title: 'Equipments | OpenMaintenance',
+      view: App(pathname, EquipmentsPage()),
+    }
+  }
+
+  const match = pathname.match(equipmentPathRe)
+  if (match) {
+    const id = match[1]
+    const tab = match[2] ?? ''
+    return {
+      description: `Equipment #${id} details`,
+      status: 200,
+      title: `Equipment #${id} | OpenMaintenance`,
+      view: EquipmentDetailPage(id, tab),
+    }
+  }
+
+  if (pathname === '/history') {
+    return {
+      description: 'Global intervention history',
+      status: 200,
+      title: 'History | OpenMaintenance',
+      view: App(pathname, HistoryPage()),
+    }
+  }
+
+  if (pathname === '/settings') {
+    return {
+      description: 'App settings',
+      status: 200,
+      title: 'Settings | OpenMaintenance',
+      view: App(pathname, SettingsPage()),
     }
   }
 
   return {
     description: `There is no route for ${pathname}.`,
     status: 404,
-    title: 'Not Found | Arrow App',
+    title: 'Not Found | OpenMaintenance',
     view: NotFound({ path: pathname }),
   }
 }

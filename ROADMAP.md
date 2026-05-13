@@ -23,10 +23,10 @@
 
 ## Milestone 3 — Frontend Foundation
 
-- [ ] URL routing (all 6 routes: `/`, `/equipments`, `/equipments/:id`, `/equipments/:id/history`, `/equipments/:id/info`, `/history`, `/settings`)
-- [ ] Navigation shell (top navbar on desktop, bottom tab bar on mobile)
+- [x] URL routing (all 6 routes: `/`, `/equipments`, `/equipments/:id`, `/equipments/:id/history`, `/equipments/:id/info`, `/history`, `/settings`)
+- [x] Navigation shell (top navbar on desktop, bottom tab bar on mobile)
 - [ ] Light/dark/auto theme support
-- [ ] Responsive layout
+- [x] Responsive layout
 
 ## Milestone 4 — Equipment Screens
 

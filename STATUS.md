@@ -33,3 +33,12 @@
 - Milestone 2: Validated intervention date is not in the future
 - Milestone 2: Cascade delete (equipment→tasks→interventions, task→interventions)
 - Milestone 2: Auto-update equipment hours when intervention records higher hours_at
+- Milestone 3: Created NavBar (desktop top navbar + mobile bottom tab bar with active highlighting)
+- Milestone 3: Created App shell wrapping NavBar + page content
+- Milestone 3: Created page components (DashboardPage, EquipmentsPage, EquipmentDetailPage with 3 sub-tabs, HistoryPage, SettingsPage)
+- Milestone 3: Created page.ts router matching all 6 routes (+ 404)
+- Fixed `Error: Invalid HTML position` — root cause was Arrow.js template parser mismatch when `${}` expressions appear inside HTML attribute values adjacent to text (e.g., `class="foo${expr}"`); fixed by making attributes full expressions (`class="${'foo' + expr}"`)
+- Fixed same issue in EquipmentDetailPage sub-tab href and class attributes
+- Verified all 6 routes return 200 in production build via curl
+- Verified all routes render correctly in chrome-devtools (desktop + mobile viewports)
+- Cleaned up stale dev server processes
