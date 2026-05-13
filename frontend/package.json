@@ -8,7 +8,9 @@
     "build": "vite build && vite build --ssr src/entry-server.ts",
     "preview": "NODE_ENV=production node server.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "postinstall": "npx @arrow-js/skill"
+    "postinstall": "npx @arrow-js/skill",
+    "generate:api": "openapi-generator-cli generate -i ../backend/api/openapi.yaml -g typescript-fetch -o generated/api",
+    "clean:api": "rm -rf generated/api/* && mkdir -p generated/api"
   },
   "dependencies": {
     "@arrow-js/core": "^1.0.6",
