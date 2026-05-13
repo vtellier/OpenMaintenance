@@ -178,7 +178,7 @@ An **Intervention** records the execution of a Task, forming the maintenance his
 - Designed for simplicity and performance
 
 ### Deployment
-Single binary deployment with embedded SQLite database and React frontend:
+Single binary deployment with embedded SQLite database and Arrow.js frontend:
 
 #### Backend (Go)
 ```bash
@@ -189,16 +189,16 @@ cd backend
 go build -o bin/openmaintenance .
 ```
 
-#### Frontend (React)
+#### Frontend (Arrow.js)
 ```bash
 # Navigate to the frontend directory
 cd frontend
 
 # Install dependencies
-npm install
+pnpm install
 
-# Build the React app
-npm run build
+# Build the frontend
+pnpm run build
 ```
 
 #### Run the Application
@@ -225,7 +225,7 @@ OpenMaintenance/
 │   ├── main.go       # Entry point
 │   ├── go.mod        # Go dependencies
 │   └── go.sum        # Go dependency checksums
-├── frontend/         # React frontend source code
+├── frontend/         # Arrow.js frontend source code
 │   ├── public/       # Static assets
 │   ├── build/        # Built frontend files
 │   └── package-lock.json
