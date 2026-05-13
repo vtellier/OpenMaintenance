@@ -5,6 +5,7 @@ function renderHead(page: ReturnType<typeof routeToPage>) {
   return [
     `<title>${page.title}</title>`,
     `<meta name="description" content="${page.description}" />`,
+    '<script>!function(){var t=localStorage.getItem("openmaintenance:theme");if(!t||t==="auto"){t=window.matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light"}document.documentElement.setAttribute("data-theme",t)}()</script>',
   ].join('')
 }
 

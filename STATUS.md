@@ -42,3 +42,11 @@
 - Verified all 6 routes return 200 in production build via curl
 - Verified all routes render correctly in chrome-devtools (desktop + mobile viewports)
 - Cleaned up stale dev server processes
+- Milestone 3: Light/dark/auto theme support
+  - Created `frontend/src/theme.ts` module (get/set/resolve/apply theme)
+  - Added light theme CSS variables in `[data-theme="light"]` and made dark the default in `:root, [data-theme="dark"]`
+  - Replaced hard-coded hover colors (`#3f3f46`, `#27272a`) with CSS variables
+  - Added `color-scheme: dark/light` for proper browser UI theming
+  - Updated SettingsPage with radio-button theme picker (Auto/Light/Dark) and About section (version, repo, license)
+  - Added inline `<script>` in SSR head to apply stored theme before first paint (prevents flash)
+  - Added `prefers-color-scheme` listener in client entry for Auto mode reactivity

@@ -1,14 +1,36 @@
-:root {
+:root, [data-theme="dark"] {
   --bg: #09090b;
   --fg: #fafafa;
   --muted: #a1a1aa;
   --border: #27272a;
   --card: #18181b;
+  --card-hover: #27272a;
+  --border-hover: #3f3f46;
   --accent: #ffb000;
   --accent-dim: rgba(255, 176, 0, 0.12);
+  --accent-hover: rgba(255, 176, 0, 0.2);
   --navbar-h: 56px;
   --tabbar-h: 64px;
+  color-scheme: dark;
+}
 
+[data-theme="light"] {
+  --bg: #ffffff;
+  --fg: #18181b;
+  --muted: #71717a;
+  --border: #e4e4e7;
+  --card: #f4f4f5;
+  --card-hover: #e4e4e7;
+  --border-hover: #d4d4d8;
+  --accent: #b45309;
+  --accent-dim: rgba(180, 83, 9, 0.1);
+  --accent-hover: rgba(180, 83, 9, 0.18);
+  --navbar-h: 56px;
+  --tabbar-h: 64px;
+  color-scheme: light;
+}
+
+:root {
   color: var(--fg);
   background: var(--bg);
   font: 15px/1.6 'Inter', system-ui, sans-serif;
@@ -215,8 +237,8 @@ button, a { font: inherit; }
 }
 
 .btn:hover {
-  border-color: #3f3f46;
-  background: #27272a;
+  border-color: var(--border-hover);
+  background: var(--card-hover);
 }
 
 .btn--accent {
@@ -226,7 +248,7 @@ button, a { font: inherit; }
 }
 
 .btn--accent:hover {
-  background: rgba(255, 176, 0, 0.2);
+  background: var(--accent-hover);
 }
 
 /* ── Not Found ── */
@@ -253,6 +275,83 @@ button, a { font: inherit; }
 
 code {
   font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── Settings ── */
+
+.settings-section {
+  margin-bottom: 32px;
+}
+
+.settings-section__title {
+  margin: 0 0 16px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.settings-field__label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.theme-picker {
+  display: flex;
+  gap: 8px;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.theme-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.theme-option:hover {
+  border-color: var(--border-hover);
+  background: var(--card-hover);
+  color: var(--fg);
+}
+
+.theme-option.active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.theme-option input {
+  display: none;
+}
+
+.settings-about__line {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.settings-about__line a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.settings-about__line a:hover {
+  text-decoration: underline;
 }
 
 /* ── Mobile ── */

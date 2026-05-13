@@ -1,5 +1,6 @@
 import { hydrate, readPayload } from '@arrow-js/hydrate'
 import { routeToPage } from '@/page'
+import { getStoredTheme, applyTheme } from '@/theme'
 import '@/style.css'
 
 const payload = readPayload()
@@ -19,4 +20,10 @@ await hydrate(root, page.view, payload, {
       )
     }
   },
+})
+
+applyTheme(getStoredTheme())
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  const theme = getStoredTheme()
+  if (theme === 'auto') applyTheme('auto')
 })
