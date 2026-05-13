@@ -15,6 +15,7 @@ App-wide settings. Kept intentionally short — OpenMaintenance is minimalist.
 ## Future settings (out of scope for v1)
 
 - "Due soon" window (currently fixed at 30 days for time-based tasks).
+- Hour-meter **staleness threshold** (default: 7 days). Equipments whose `hours_updated_at` is older than this threshold are emphasized in the Dashboard freshness banner.
 - Date format / locale.
 - CSV export.
 - Notification settings.

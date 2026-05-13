@@ -13,6 +13,7 @@ A component of the maintained system (e.g. "Main Engine", "Family Car", "House H
 | `description`     | string    | no       | Optional free text                                      |
 | `tracks_hours`    | boolean   | yes      | Whether this equipment uses an hour-meter (default: false) |
 | `hours`           | number    | no       | Current hour-meter value. Only relevant if `tracks_hours` is true. |
+| `hours_updated_at`| timestamp | no       | Timestamp of the last hour-meter update. Only relevant if `tracks_hours` is true. |
 | `created_at`      | timestamp | yes      | Auto                                                    |
 | `updated_at`      | timestamp | yes      | Auto                                                    |
 
@@ -24,6 +25,13 @@ A component of the maintained system (e.g. "Main Engine", "Family Car", "House H
   - When logging an intervention (current hours captured at that moment).
   - Independently, from the equipment detail screen.
 - If `tracks_hours` is false, hour-based task intervals are not allowed on this equipment's tasks.
+
+#### `hours_updated_at` (freshness tracking)
+
+- Updated **only when `hours` actually increases**. Setting the same value or a lower one does not reset the timestamp.
+- Applies to both update paths: explicit "Update hours" action and intervention logging (when `hours_at` is provided and is greater than current `hours`).
+- Used by the Dashboard to surface a CTA encouraging the user to keep the hour-meter fresh — without a fresh hour-meter, hour-based due dates cannot be trusted.
+- A **"staleness threshold"** (default: 7 days) is used to flag the oldest updates. Configurable in Settings (future). The Dashboard CTA always lists every hour-tracked equipment, but visually emphasizes those older than the threshold.
 
 ## Task
 
@@ -61,7 +69,9 @@ A single recorded execution of a Task. Forms the history.
 
 ### Side effects
 
-- When an intervention is recorded with `hours_at`, the parent equipment's `hours` is updated to that value (if greater than current).
+- When an intervention is recorded with `hours_at` and that value is greater than the equipment's current `hours`:
+  - The equipment's `hours` is updated to that value.
+  - The equipment's `hours_updated_at` is set to "now".
 - The next due date for the task is recomputed from the latest intervention.
 
 ## Derived: "due" status
