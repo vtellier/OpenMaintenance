@@ -1,8 +1,8 @@
 import '@arrow-js/framework'
 
-import { App } from './App'
-import { NotFound } from './components/NotFound'
-import { ApiTestPage } from './pages/ApiTestPage'
+import { App } from '@/App'
+import { NotFound } from '@/components/NotFound'
+import { ApiTestPage } from '@/pages/ApiTestPage'
 
 export interface Page {
   description: string

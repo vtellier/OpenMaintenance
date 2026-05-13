@@ -1,5 +1,5 @@
 import { renderToString, serializePayload } from '@arrow-js/ssr'
-import { routeToPage } from './page'
+import { routeToPage } from '@/page'
 
 function renderHead(page: ReturnType<typeof routeToPage>) {
   return [

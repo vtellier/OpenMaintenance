@@ -48,9 +48,6 @@ An **Equipment** represents a component of the maintained system (e.g., a boat e
 - Edit `backend/api/openapi.yaml` to define or modify endpoints, models, and validation rules.
 - Follow [OpenAPI 3.0](https://swagger.io/specification/) conventions.
 
-### TODO
-- Add explicit `operationId` fields to the OpenAPI spec to avoid auto-generated names (e.g., `equipmentsGet`, `tasksPost`).
-
 ### Frontend API Client Generation
 To generate the frontend API client from the OpenAPI spec, run:
 
@@ -63,6 +60,10 @@ To clean the generated API client files, run:
 ```bash
 cd frontend && pnpm run clean:api
 ```
+
+> **API config**: The frontend API client URL is configured in `frontend/src/api/config.ts`.
+> Always import `apiConfig` from there instead of creating a duplicate `Configuration`
+> inline. This keeps the backend URL in a single place.
 
 #### 2. Regenerate Go Code
 Run the following command to update the generated Go code:

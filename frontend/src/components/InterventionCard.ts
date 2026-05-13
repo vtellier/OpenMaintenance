@@ -1,5 +1,5 @@
 import { component, html, reactive } from '@arrow-js/core'
-import { Intervention } from '../../generated/api/models/Intervention'
+import { Intervention } from '@generated/api/models/Intervention'
 
 export const InterventionCard = component(() => {
   const state = reactive({

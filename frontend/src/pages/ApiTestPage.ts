@@ -1,7 +1,7 @@
 import { component, html } from '@arrow-js/core';
 import { reactive } from '@arrow-js/core';
-import { EquipmentApi, Equipment } from '../../generated/api/apis/EquipmentApi';
-import { apiConfig } from '../api/config';
+import { EquipmentApi, Equipment } from '@generated/api/apis/EquipmentApi';
+import { apiConfig } from '@/api/config';
 
 export const ApiTestPage = component(() => {
   const state = reactive({

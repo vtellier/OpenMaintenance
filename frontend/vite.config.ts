@@ -13,6 +13,12 @@ export default defineConfig(({ isSsrBuild }) => ({
     host: '127.0.0.1',
     port: 5173,
   },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
+      '@generated': path.resolve(__dirname, 'generated'),
+    },
+  },
   optimizeDeps: {
     exclude: arrowPackages,
   },

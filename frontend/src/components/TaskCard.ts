@@ -1,5 +1,5 @@
 import { component, html, reactive } from '@arrow-js/core'
-import { Task } from '../../generated/api/models/Task'
+import { Task } from '@generated/api/models/Task'
 
 export const TaskCard = component(() => {
   const state = reactive({

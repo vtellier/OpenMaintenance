@@ -1,7 +1,7 @@
 import { component, html, reactive } from '@arrow-js/core'
-import { EquipmentCard } from '../components/EquipmentCard'
-import { TaskCard } from '../components/TaskCard'
-import { InterventionCard } from '../components/InterventionCard'
+import { EquipmentCard } from '@/components/EquipmentCard'
+import { TaskCard } from '@/components/TaskCard'
+import { InterventionCard } from '@/components/InterventionCard'
 
 export const MainPage = component(() => {
   const state = reactive({

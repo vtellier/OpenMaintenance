@@ -1,6 +1,6 @@
 import { hydrate, readPayload } from '@arrow-js/hydrate'
-import { routeToPage } from './page'
-import './style.css'
+import { routeToPage } from '@/page'
+import '@/style.css'
 
 const payload = readPayload()
 const page = routeToPage(window.location.pathname)

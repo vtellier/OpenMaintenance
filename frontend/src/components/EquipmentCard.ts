@@ -1,10 +1,9 @@
 import { component, html, reactive } from '@arrow-js/core'
-import { Equipment } from '../../generated/api/models/Equipment'
-import { EquipmentApi, Configuration } from '../../generated/api'
+import { Equipment } from '@generated/api/models/Equipment'
+import { EquipmentApi } from '@generated/api'
+import { apiConfig } from '@/api/config'
 
 export const EquipmentCard = component(() => {
-  // Initialize API client
-  const apiConfig = new Configuration({ basePath: 'http://127.0.0.1:3001/api' })
   const equipmentApi = new EquipmentApi(apiConfig)
   
   const state = reactive({
