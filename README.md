@@ -2,6 +2,8 @@
 
 OpenMaintenance is a **minimalist** self-hostable, free, and open-source web app to **track maintenance tasks** for any equipment (boats, cars, homes, etc.). Log checks, set hour/time-based reminders, and export data as CSV.
 
+> **Specifications**: See [`doc/`](./doc) for the product vision, data model, and GUI specs.
+
 ## Main features
 
 - **No authentication**: anyone who has access to the app can use it.
