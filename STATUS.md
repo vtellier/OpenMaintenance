@@ -15,3 +15,6 @@
 - Updated `main.go` to use `RegisterHandlersWithBaseURL`
 - Removed old `backend/internal/routes/` directory (equipment.go, task.go, intervention.go, views.go)
 - Removed unused `gofiber/fiber/v2` dependency and stale `views.go` referencing React/Fiber
+- Created ROADMAP.md with milestone-based development tracking
+- Created `/update-roadmap` custom command in `.opencode/commands/update-roadmap.md`
+- Added ROADMAP.md update ritual to AGENTS.md session rituals

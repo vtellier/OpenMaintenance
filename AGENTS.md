@@ -65,7 +65,7 @@ The following must be installed on the developer's machine for the agent to work
 - **Use Chrom-DevTool MCP**: To test the frontend
 
 ### Critical Reminders
-- **Ask for Clarification**: When there is ambiguity, ask instead of guessing.
+- **Ask questions**: When there is ambiguity, ask instead of guessing.
 - **Remind about git**: Suggest the user to `git commit` when there's a lot of uncommitted modification.
 - **Short answers**: Avoid giving too much information that has not been asked, focus on answering what has been explicitly asked.
 - **Don't over-plan**: Offer plans that target only the given scope. If the scope isn't clear ask for more details.
@@ -74,6 +74,7 @@ The following must be installed on the developer's machine for the agent to work
 
 ### Session rituals
 - **Session summary**: **Always** append a 1-10 lines session summary to STATUS.md before exiting the session. It shall include date and time.
+- **Update ROADMAP.md**: After completing any work, update ROADMAP.md to reflect progress. Use `/update-roadmap` to run the dedicated update command, or manually check off completed items in the appropriate milestone.
 
 See `.opencode/skills/arrow-js/SKILL.md` for Arrow.js guidance.
 
