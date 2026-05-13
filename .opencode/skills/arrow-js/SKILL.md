@@ -34,6 +34,142 @@ Use this skill when the project uses Arrow packages such as `@arrow-js/core`, `@
   - `@arrow-js/ssr`: `renderToString`, `serializePayload`
   - `@arrow-js/hydrate`: `hydrate`, `readPayload`
 
+## Gotchas / Pitfalls
+
+### 1. No `$`{`}` in the middle of an attribute value
+
+Arrow.js replaces every `$`{`}` expression slot with a `<!--¤-->` comment placeholder. It then sets `innerHTML` on a `<template>` element and walks the parsed DOM counting placeholders. If the count doesn't match the number of expressions, it throws `"Invalid HTML position"`.
+
+**The problem**: A mid-attribute expression like `href="/prefix/${id}/suffix"` produces `href="/prefix/<!--¤-->/suffix"`. The browser parses `<!--¤-->` as literal text *inside* the attribute value, not as a DOM comment node. The DOM walker only checks for exact-match attribute values (`attr.value === '<!--¤-->'`) and comment nodes. It misses the embedded marker → count mismatch → crash.
+
+**✅ Correct**: Pre-compute the full attribute value, then use a full-attribute expression:
+```ts
+const editHref = '/equipments/' + id + '/edit'
+html`<a href="${editHref}">Edit</a>`     // href="<!--¤-->" — exact match
+```
+
+**❌ Wrong**: Expression inside the attribute string:
+```ts
+html`<a href="/equipments/${id}/edit">Edit</a>`   // href="/equipments/<!--¤-->/edit" — no match
+```
+
+This also applies to partial-class expressions like `class="btn ${cls}"` — use `class="${'btn ' + cls}"` instead.
+
+---
+
+### 2. `reactive()` must be inside `component()` for SSR
+
+If you use `reactive()` in a function that is rendered via SSR (e.g., a page factory passed to `renderToString`), the reactive system may try to patch the DOM during SSR evaluation because it doesn't have an SSR-aware rendering context. This crashes with `document is undefined` inside Arrow.js core code.
+
+**✅ Correct**: Wrap the reactive logic in `component()`:
+```ts
+export function MyPage(id: string) {
+  const equipmentId = parseInt(id, 10)
+  return component(() => {
+    const state = reactive({ ... })
+    // state mutations will use SSR-safe paths during renderToString
+    return html`<div>${state.field}</div>`
+  })()
+}
+```
+
+`component()` sets up the proper rendering context (SSR vs client) so that reactive updates are handled correctly.
+
+---
+
+### 3. `component()` arguments are wrapped in reactive proxies
+
+When you define `component((id: string) => { ... })`, Arrow.js wraps `id` in a reactive Proxy. Native JavaScript methods that internally access `this.toString()` (like `parseInt`) fail with `TypeError: String.prototype.toString requires that 'this' be a String` because the Proxy doesn't have the internal `[[StringData]]` slot.
+
+**✅ Correct**: Capture arguments in an outer closure and pass pre-computed primitives into `component()`:
+```ts
+export function MyPage(idParam: string) {
+  const equipmentId = parseInt(idParam, 10)  // plain number, no proxy
+  const backHref = '/equipments/' + equipmentId
+  return component(() => {
+    // use equipmentId and backHref here — they're plain values from closure
+    return html`<a href="${backHref}">#${equipmentId}</a>`
+  })()
+}
+```
+
+**❌ Wrong**: Passing args through `component()` parameter list:
+```ts
+export const MyPage = component((id: string) => {
+  const equipmentId = parseInt(id, 10)  // id is a Proxy — crashes here
+  // ...
+})
+```
+
+---
+
+### 4. No early returns in plain page factory functions
+
+If your page factory function checks a condition and returns early (e.g., `if (state.loading) return html\`<p>Loading...</p>\``), the function runs only once. When the async operation completes and `state.loading` becomes `false`, the function has already returned the loading template — it never re-executes to produce the real content.
+
+**✅ Correct**: Use reactive conditional expressions inside the template:
+```ts
+return html`<section>
+  ${() => {
+    if (!state.loaded) return html`<p>Loading...</p>`
+    if (state.error) return html`<div class="flash">${state.error}</div>`
+    return html`<div class="content">...</div>`
+  }}
+</section>`
+```
+
+The `$`{`() => ...`}` wraps the conditional chain in a reactive function that re-evaluates whenever tracked state changes.
+
+---
+
+### 5. Static interpolations are evaluated once
+
+A `$`{`variable}` in an `html` template evaluates the expression once and never updates, even if the underlying data changes. This is the default for non-function expressions.
+
+```ts
+// ❌ Shows loading forever — addModal is evaluated once as null
+var addModal = state.showAddModal ? html`<form>...</form>` : null
+return html`<div>${addModal}</div>`
+
+// ✅ Reactive — re-evaluates when state.showAddModal changes
+const modalHtml = html`<form>...</form>`  // pre-compute the template once
+return html`<div>${() => state.showAddModal ? modalHtml : null}</div>`
+```
+
+**Pattern**: Pre-compute the template literal (e.g., `const modalHtml = html\`<form>...</form>\``), then wrap the conditional in a reactive function: `$`{`() => condition ? modalHtml : null}``. This avoids recreating the template on every evaluation.
+
+---
+
+### 6. Date objects in reactive state lose methods
+
+`reactive()` wraps objects with a Proxy. Dates are special — their methods like `.getTime()`, `.toLocaleDateString()`, `.toISOString()` rely on the internal `[[DateValue]]` slot that the Proxy doesn't forward correctly. Calling them on a proxied Date throws `TypeError: this is not a Date object`.
+
+**✅ Correct**: Store dates as ISO strings in reactive state, or convert with `new Date(Number(proxyDate))` — but even that can fail if `Number()` triggers the proxy path. Safest: avoid putting `Date` instances inside `reactive()`; use ISO strings instead.
+
+```ts
+const state = reactive({
+  createdAt: '2026-05-13T00:00:00Z'  // ISO string, not new Date()
+})
+// Use formatDate utility that accepts strings
+const formatted = formatDate(state.createdAt)
+```
+
+---
+
+### 7. Arrays of templates work, but static arrays don't update
+
+`html``$`{`items.map(i => html`<span>${i}</span>`)}`` renders a list. If `items` is a static array, the list is rendered once. If you need the list to update when items change, wrap the map in a reactive function:
+
+```ts
+// ✅ Reactive list
+html`<ul>$`{`() => state.items.map(i => html`<li>${i}</li>`)}`</ul>`
+
+// ❌ Static — rendered once
+html`<ul>$`{`state.items.map(i => html`<li>${i}</li>`)}`</ul>`
+```
+
+---
+
 ## References
 
 - `.arrow-js/skill/getting-started.md`
