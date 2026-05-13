@@ -497,6 +497,9 @@ components:
         comments:
           type: string
           description: Additional comments about the intervention
+        hours_at:
+          type: number
+          description: Equipment hour-meter reading at the time of intervention. Only relevant if the equipment tracks hours
         created_at:
           type: string
           format: date-time
@@ -524,3 +527,6 @@ components:
         comments:
           type: string
           description: Additional comments about the intervention
+        hours_at:
+          type: number
+          description: Equipment hour-meter reading at the time of intervention. Only relevant if the equipment tracks hours

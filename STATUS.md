@@ -21,3 +21,6 @@
 - Added `tracks_hours`, `hours`, `hours_updated_at` to Equipment in OpenAPI schema, Go model, DB schema, DB functions, handlers
 - Regenerated TypeScript API client
 - Checked off Milestone 1 items 1-3 in ROADMAP.md
+- Added `hours_at` to Intervention in OpenAPI schema, Go model, DB schema, DB CRUD functions
+- Regenerated TypeScript API client
+- Checked off Milestone 1 items 4-7 in ROADMAP.md

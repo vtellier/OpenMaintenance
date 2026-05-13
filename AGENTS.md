@@ -73,6 +73,7 @@ The following must be installed on the developer's machine for the agent to work
 - **Always run background tasks via pty plugin**: the plugin `opencode-pty` is the only way you have to run tasks in background, NEVER bypass it.
 - **Figure out why a TCP port is busy**: when you try to run a server on a specific port and this port appears to already be in use, figure out what process uses it and offer to kill it instead of picking up another port.
 - **Never run `pkill` blindly**: always check `ps aux | grep ...` first to confirm the process actually exists before attempting to kill it.
+- **Don't delete files you didn't create**: if you see an untracked file you don't recognize, just leave it alone (don't commit it, don't delete it — it's not your place).
 
 ### Session rituals
 - **Session summary**: **Always** append a 1-10 lines session summary to STATUS.md before exiting the session. It shall include date and time.

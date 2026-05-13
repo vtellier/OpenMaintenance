@@ -40,6 +40,7 @@ func InitDB() (*sql.DB, error) {
 			date TIMESTAMP NOT NULL,
 			location TEXT,
 			comments TEXT,
+			hours_at REAL,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (task_id) REFERENCES tasks(id)
@@ -58,6 +59,7 @@ func InitDB() (*sql.DB, error) {
 		"ALTER TABLE equipments ADD COLUMN tracks_hours INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE equipments ADD COLUMN hours REAL",
 		"ALTER TABLE equipments ADD COLUMN hours_updated_at TIMESTAMP",
+		"ALTER TABLE interventions ADD COLUMN hours_at REAL",
 	}
 	for _, m := range migrations {
 		db.Exec(m) // ignore errors (column may already exist)

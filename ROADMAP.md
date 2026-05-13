@@ -8,10 +8,10 @@
 - [x] Add `tracks_hours`, `hours`, `hours_updated_at` to OpenAPI `Equipment` schema
 - [x] Add `tracks_hours`, `hours`, `hours_updated_at` to Equipment DB table and Go model
 - [x] Update backend handlers for new Equipment fields
-- [ ] Add `hours_at` to OpenAPI `Intervention` schema
-- [ ] Add `hours_at` to Intervention DB table and Go model
-- [ ] Update backend handlers for new Intervention fields
-- [ ] Regenerate TypeScript API client (`pnpm run generate:api`)
+- [x] Add `hours_at` to OpenAPI `Intervention` schema
+- [x] Add `hours_at` to Intervention DB table and Go model
+- [x] Update backend handlers for new Intervention fields
+- [x] Regenerate TypeScript API client (`pnpm run generate:api`)
 
 ## Milestone 2 — Business Logic
 
