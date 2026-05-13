@@ -3,14 +3,34 @@ package handlers
 import (
 	"github.com/labstack/echo/v4"
 	dbpackage "github.com/vtellier/OpenMaintenance/internal/db"
+	"github.com/vtellier/OpenMaintenance/internal/logic"
 	"github.com/vtellier/OpenMaintenance/internal/models"
 )
+
+func (h *Handler) enrichTask(task *models.Task) {
+	equipment, err := dbpackage.GetEquipment(h.DB, task.EquipmentID)
+	if err != nil {
+		return
+	}
+
+	lastIntervention, _ := dbpackage.GetLastInterventionByTask(h.DB, task.ID)
+
+	status, nextDate, nextHours := logic.ComputeDueStatus(*task, *equipment, lastIntervention)
+	task.DueStatus = status
+	task.NextDueDate = nextDate
+	task.NextDueHours = nextHours
+}
 
 func (h *Handler) ListTasks(ctx echo.Context) error {
 	tasks, err := dbpackage.ListTasks(h.DB)
 	if err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
+
+	for i := range tasks {
+		h.enrichTask(&tasks[i])
+	}
+
 	return ctx.JSON(200, tasks)
 }
 
@@ -19,6 +39,11 @@ func (h *Handler) ListTasksByEquipment(ctx echo.Context, equipmentId int) error 
 	if err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
+
+	for i := range tasks {
+		h.enrichTask(&tasks[i])
+	}
+
 	return ctx.JSON(200, tasks)
 }
 
@@ -36,6 +61,8 @@ func (h *Handler) CreateTask(ctx echo.Context) error {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
 
+	h.enrichTask(task)
+
 	return ctx.JSON(201, task)
 }
 
@@ -44,6 +71,9 @@ func (h *Handler) GetTask(ctx echo.Context, id int) error {
 	if err != nil {
 		return ctx.JSON(404, map[string]string{"error": "Task not found"})
 	}
+
+	h.enrichTask(task)
+
 	return ctx.JSON(200, task)
 }
 
@@ -57,6 +87,8 @@ func (h *Handler) UpdateTask(ctx echo.Context, id int) error {
 	if err := dbpackage.UpdateTask(h.DB, task); err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
+
+	h.enrichTask(task)
 
 	return ctx.JSON(200, task)
 }

@@ -24,3 +24,8 @@
 - Added `hours_at` to Intervention in OpenAPI schema, Go model, DB schema, DB CRUD functions
 - Regenerated TypeScript API client
 - Checked off Milestone 1 items 4-7 in ROADMAP.md
+- Added computed due_status, next_due_date, next_due_hours to Task in OpenAPI schema, Go model
+- Created logic package with ComputeDueStatus (handles months and hours intervals, no-intervention baselines)
+- Added GetLastInterventionByTask DB function
+- Enriched all task handlers (List, Get, Create, Update) with due-status computation
+- Regenerated TypeScript API client

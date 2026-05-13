@@ -112,6 +112,33 @@ func ListInterventions(db *sql.DB) ([]models.Intervention, error) {
 	return interventions, nil
 }
 
+func GetLastInterventionByTask(db *sql.DB, taskID int) (*models.Intervention, error) {
+	row := db.QueryRow(
+		"SELECT id, task_id, date, location, comments, hours_at, created_at, updated_at FROM interventions WHERE task_id = ? ORDER BY date DESC LIMIT 1", taskID,
+	)
+
+	intervention := &models.Intervention{}
+	var hoursAt sql.NullFloat64
+	err := row.Scan(
+		&intervention.ID,
+		&intervention.TaskID,
+		&intervention.Date,
+		&intervention.Location,
+		&intervention.Comments,
+		&hoursAt,
+		&intervention.CreatedAt,
+		&intervention.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if hoursAt.Valid {
+		intervention.HoursAt = &hoursAt.Float64
+	}
+
+	return intervention, nil
+}
+
 func ListInterventionsByTask(db *sql.DB, taskID int) ([]models.Intervention, error) {
 	rows, err := db.Query(
 		"SELECT id, task_id, date, location, comments, hours_at, created_at, updated_at FROM interventions WHERE task_id = ?", taskID,

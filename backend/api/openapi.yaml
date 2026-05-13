@@ -449,6 +449,20 @@ components:
         months_interval:
           type: integer
           description: Interval in months for the task
+        due_status:
+          type: string
+          description: Computed due status (overdue, due_soon, ok)
+          enum:
+            - overdue
+            - due_soon
+            - ok
+        next_due_date:
+          type: string
+          format: date
+          description: Next calendar due date based on months_interval
+        next_due_hours:
+          type: number
+          description: Next hour-meter threshold based on hours_interval
         created_at:
           type: string
           format: date-time

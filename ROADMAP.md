@@ -15,7 +15,7 @@
 
 ## Milestone 2 — Business Logic
 
-- [ ] Compute derived due-status (overdue / due soon / OK) on Task responses
+- [x] Compute derived due-status (overdue / due soon / OK) on Task responses
 - [ ] Cascade delete: equipment → tasks → interventions
 - [ ] Auto-update equipment hours when an intervention records higher `hours_at`
 - [ ] Validate intervention `date` is not in the future
