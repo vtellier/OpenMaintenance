@@ -9,6 +9,7 @@ servers:
 paths:
   /equipments:
     get:
+      operationId: listEquipments
       summary: List all equipments
       description: Retrieve a list of all equipments
       tags:
@@ -23,6 +24,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/Equipment'
     post:
+      operationId: createEquipment
       summary: Create a new equipment
       description: Add a new equipment to the system
       tags:
@@ -32,7 +34,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Equipment'
+              $ref: '#/components/schemas/EquipmentInput'
       responses:
         '201':
           description: Equipment created
@@ -44,6 +46,7 @@ paths:
           description: Invalid input
   /equipments/{id}:
     get:
+      operationId: getEquipment
       summary: Get equipment by ID
       description: Retrieve a single equipment by its ID
       tags:
@@ -65,6 +68,7 @@ paths:
         '404':
           description: Equipment not found
     put:
+      operationId: updateEquipment
       summary: Update an equipment
       description: Update an existing equipment
       tags:
@@ -81,7 +85,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Equipment'
+              $ref: '#/components/schemas/EquipmentInput'
       responses:
         '200':
           description: Equipment updated
@@ -94,6 +98,7 @@ paths:
         '404':
           description: Equipment not found
     delete:
+      operationId: deleteEquipment
       summary: Delete an equipment
       description: Remove an equipment from the system
       tags:
@@ -110,8 +115,32 @@ paths:
           description: Equipment deleted
         '404':
           description: Equipment not found
+  /equipments/{equipment_id}/tasks:
+    get:
+      operationId: listTasksByEquipment
+      summary: List tasks for an equipment
+      description: Retrieve all tasks associated with an equipment
+      tags:
+        - Task
+      parameters:
+        - in: path
+          name: equipment_id
+          schema:
+            type: integer
+          required: true
+          description: ID of the equipment
+      responses:
+        '200':
+          description: A list of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
   /tasks:
     get:
+      operationId: listTasks
       summary: List all tasks
       description: Retrieve a list of all tasks
       tags:
@@ -126,6 +155,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/Task'
     post:
+      operationId: createTask
       summary: Create a new task
       description: Add a new task to the system
       tags:
@@ -135,7 +165,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Task'
+              $ref: '#/components/schemas/TaskInput'
       responses:
         '201':
           description: Task created
@@ -147,6 +177,7 @@ paths:
           description: Invalid input
   /tasks/{id}:
     get:
+      operationId: getTask
       summary: Get task by ID
       description: Retrieve a single task by its ID
       tags:
@@ -168,6 +199,7 @@ paths:
         '404':
           description: Task not found
     put:
+      operationId: updateTask
       summary: Update a task
       description: Update an existing task
       tags:
@@ -184,7 +216,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Task'
+              $ref: '#/components/schemas/TaskInput'
       responses:
         '200':
           description: Task updated
@@ -197,6 +229,7 @@ paths:
         '404':
           description: Task not found
     delete:
+      operationId: deleteTask
       summary: Delete a task
       description: Remove a task from the system
       tags:
@@ -213,8 +246,32 @@ paths:
           description: Task deleted
         '404':
           description: Task not found
+  /tasks/{task_id}/interventions:
+    get:
+      operationId: listInterventionsByTask
+      summary: List interventions for a task
+      description: Retrieve all interventions associated with a task
+      tags:
+        - Intervention
+      parameters:
+        - in: path
+          name: task_id
+          schema:
+            type: integer
+          required: true
+          description: ID of the task
+      responses:
+        '200':
+          description: A list of interventions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Intervention'
   /interventions:
     get:
+      operationId: listInterventions
       summary: List all interventions
       description: Retrieve a list of all interventions
       tags:
@@ -229,6 +286,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/Intervention'
     post:
+      operationId: createIntervention
       summary: Create a new intervention
       description: Add a new intervention to the system
       tags:
@@ -238,7 +296,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Intervention'
+              $ref: '#/components/schemas/InterventionInput'
       responses:
         '201':
           description: Intervention created
@@ -250,6 +308,7 @@ paths:
           description: Invalid input
   /interventions/{id}:
     get:
+      operationId: getIntervention
       summary: Get intervention by ID
       description: Retrieve a single intervention by its ID
       tags:
@@ -271,6 +330,7 @@ paths:
         '404':
           description: Intervention not found
     put:
+      operationId: updateIntervention
       summary: Update an intervention
       description: Update an existing intervention
       tags:
@@ -287,7 +347,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Intervention'
+              $ref: '#/components/schemas/InterventionInput'
       responses:
         '200':
           description: Intervention updated
@@ -300,6 +360,7 @@ paths:
         '404':
           description: Intervention not found
     delete:
+      operationId: deleteIntervention
       summary: Delete an intervention
       description: Remove an intervention from the system
       tags:
@@ -338,6 +399,17 @@ components:
           type: string
           format: date-time
           description: When the equipment was last updated
+    EquipmentInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Name of the equipment
+        description:
+          type: string
+          description: Detailed description of the equipment
     Task:
       type: object
       properties:
@@ -367,6 +439,27 @@ components:
           type: string
           format: date-time
           description: When the task was last updated
+    TaskInput:
+      type: object
+      required:
+        - equipment_id
+        - name
+      properties:
+        equipment_id:
+          type: integer
+          description: ID of the associated equipment
+        name:
+          type: string
+          description: Name of the task
+        description:
+          type: string
+          description: Detailed description of the task
+        hours_interval:
+          type: integer
+          description: Interval in hours for the task
+        months_interval:
+          type: integer
+          description: Interval in months for the task
     Intervention:
       type: object
       properties:
@@ -394,3 +487,22 @@ components:
           type: string
           format: date-time
           description: When the intervention was last updated
+    InterventionInput:
+      type: object
+      required:
+        - task_id
+        - date
+      properties:
+        task_id:
+          type: integer
+          description: ID of the associated task
+        date:
+          type: string
+          format: date
+          description: Date of the intervention
+        location:
+          type: string
+          description: Location where the intervention was performed
+        comments:
+          type: string
+          description: Additional comments about the intervention

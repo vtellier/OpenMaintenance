@@ -1,2 +1,7 @@
 # Generated OpenAPI code
 internal/generated/
+
+# Build artifacts
+OpenMaintenance
+tmp-main
+*.log
