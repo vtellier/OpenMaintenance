@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"database/sql"
+	"fmt"
+
 	"github.com/labstack/echo/v4"
 	dbpackage "github.com/vtellier/OpenMaintenance/internal/db"
 	"github.com/vtellier/OpenMaintenance/internal/logic"
@@ -57,6 +60,10 @@ func (h *Handler) CreateTask(ctx echo.Context) error {
 		return ctx.JSON(400, map[string]string{"error": "equipment_id is required and must be a positive integer"})
 	}
 
+	if err := validateTaskIntervals(h.DB, task); err != nil {
+		return ctx.JSON(400, map[string]string{"error": err.Error()})
+	}
+
 	if err := dbpackage.CreateTask(h.DB, task); err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
@@ -84,6 +91,10 @@ func (h *Handler) UpdateTask(ctx echo.Context, id int) error {
 	}
 	task.ID = id
 
+	if err := validateTaskIntervals(h.DB, task); err != nil {
+		return ctx.JSON(400, map[string]string{"error": err.Error()})
+	}
+
 	if err := dbpackage.UpdateTask(h.DB, task); err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
@@ -91,6 +102,24 @@ func (h *Handler) UpdateTask(ctx echo.Context, id int) error {
 	h.enrichTask(task)
 
 	return ctx.JSON(200, task)
+}
+
+func validateTaskIntervals(db *sql.DB, task *models.Task) error {
+	if task.HoursInterval == nil && task.MonthsInterval == nil {
+		return fmt.Errorf("at least one of hours_interval or months_interval must be set")
+	}
+
+	if task.HoursInterval != nil {
+		equipment, err := dbpackage.GetEquipment(db, task.EquipmentID)
+		if err != nil {
+			return fmt.Errorf("equipment not found: %w", err)
+		}
+		if !equipment.TracksHours {
+			return fmt.Errorf("hours_interval requires the equipment to have hour-meter tracking enabled")
+		}
+	}
+
+	return nil
 }
 
 func (h *Handler) DeleteTask(ctx echo.Context, id int) error {

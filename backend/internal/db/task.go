@@ -67,8 +67,22 @@ func UpdateTask(db *sql.DB, task *models.Task) error {
 }
 
 func DeleteTask(db *sql.DB, id int) error {
+	DeleteInterventionsByTask(db, id)
 	_, err := db.Exec("DELETE FROM tasks WHERE id = ?", id)
 	return err
+}
+
+func DeleteTasksByEquipment(db *sql.DB, equipmentID int) error {
+	tasks, err := ListTasksByEquipment(db, equipmentID)
+	if err != nil {
+		return err
+	}
+	for _, t := range tasks {
+		if err := DeleteTask(db, t.ID); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func ListTasks(db *sql.DB) ([]models.Task, error) {

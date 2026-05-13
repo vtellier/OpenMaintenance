@@ -16,10 +16,10 @@
 ## Milestone 2 — Business Logic
 
 - [x] Compute derived due-status (overdue / due soon / OK) on Task responses
-- [ ] Cascade delete: equipment → tasks → interventions
-- [ ] Auto-update equipment hours when an intervention records higher `hours_at`
-- [ ] Validate intervention `date` is not in the future
-- [ ] Validate hour-meter constraints (hours_interval only if tracks_hours)
+- [x] Cascade delete: equipment → tasks → interventions
+- [x] Auto-update equipment hours when an intervention records higher `hours_at`
+- [x] Validate intervention `date` is not in the future
+- [x] Validate hour-meter constraints (hours_interval only if tracks_hours)
 
 ## Milestone 3 — Frontend Foundation
 

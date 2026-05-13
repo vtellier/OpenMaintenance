@@ -29,3 +29,7 @@
 - Added GetLastInterventionByTask DB function
 - Enriched all task handlers (List, Get, Create, Update) with due-status computation
 - Regenerated TypeScript API client
+- Milestone 2: Validated task intervals (at least one required, hours_interval needs tracks_hours)
+- Milestone 2: Validated intervention date is not in the future
+- Milestone 2: Cascade delete (equipment→tasks→interventions, task→interventions)
+- Milestone 2: Auto-update equipment hours when intervention records higher hours_at

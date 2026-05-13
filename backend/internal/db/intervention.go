@@ -139,6 +139,11 @@ func GetLastInterventionByTask(db *sql.DB, taskID int) (*models.Intervention, er
 	return intervention, nil
 }
 
+func DeleteInterventionsByTask(db *sql.DB, taskID int) error {
+	_, err := db.Exec("DELETE FROM interventions WHERE task_id = ?", taskID)
+	return err
+}
+
 func ListInterventionsByTask(db *sql.DB, taskID int) ([]models.Intervention, error) {
 	rows, err := db.Query(
 		"SELECT id, task_id, date, location, comments, hours_at, created_at, updated_at FROM interventions WHERE task_id = ?", taskID,

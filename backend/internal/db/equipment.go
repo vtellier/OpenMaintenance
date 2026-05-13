@@ -80,6 +80,7 @@ func UpdateEquipment(db *sql.DB, equipment *models.Equipment) error {
 }
 
 func DeleteEquipment(db *sql.DB, id int) error {
+	DeleteTasksByEquipment(db, id)
 	_, err := db.Exec("DELETE FROM equipments WHERE id = ?", id)
 	return err
 }
