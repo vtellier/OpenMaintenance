@@ -64,6 +64,7 @@ The following must be installed on the developer's machine for the agent to work
 - **Use Context7 MCP**: To read the docs, especially the ones of Arrow.js.
 - **Use Chrome-DevTool MCP**: To test the frontend
 - **Test as you go**: use `curl` when modifying the backend or the API, use chrome-devtools when modifying the frontend.
+- **Re-read skill pitfalls**: Before modifying any framework code (Arrow.js, Go/Echo, etc.), re-read the **Gotchas / Pitfalls** section of the relevant `.opencode/skills/*/SKILL.md` file.
 
 ### Critical Reminders
 - **Ask questions**: When there is ambiguity, ask instead of guessing.
@@ -79,6 +80,7 @@ The following must be installed on the developer's machine for the agent to work
 ### Session rituals
 - **Session summary**: **Always** append a 1-10 lines session summary to STATUS.md before exiting the session. It shall include date and time.
 - **Update ROADMAP.md**: After completing any work, update ROADMAP.md to reflect progress. Use `/update-roadmap` to run the dedicated update command, or manually check off completed items in the appropriate milestone.
+- **Re-read skill pitfalls**: Before modifying any framework code (Arrow.js, Go/Echo, etc.), re-read the **Gotchas / Pitfalls** section of the relevant `.opencode/skills/*/SKILL.md` file. These are hard-won lessons that the agent has already added — don't re-learn them.
 
 See `.opencode/skills/arrow-js/SKILL.md` for Arrow.js guidance.
 
