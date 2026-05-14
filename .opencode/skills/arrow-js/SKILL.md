@@ -170,6 +170,26 @@ html`<ul>$`{`state.items.map(i => html`<li>${i}</li>`)}`</ul>`
 
 ---
 
+### 8. Expression slots that change between null and a template show function source
+
+When an expression slot evaluates to a non-template value (e.g. `null`, a string) during the **initial** render, the binding creates a text-node observer. If the value later changes to a template function, `writeExpressions` treats the observer as a Text node and calls `.toString()` on the template function — producing `"(el) => renderTemplate(template, el)"` instead of rendering the template.
+
+This happens because the initial value determines the observer type. A text observer simply replaces its `.data` with the stringified value — it never calls `createRenderFn`.
+
+**✅ Correct**: Wrap template-toggling expressions in a function so they go through the watcher branch, which uses `createRenderFn` and handles dynamic type changes:
+
+```ts
+// ❌ Shows function source when toggling on
+return html`<div>${state.showModal ? modalTemplate() : null}</div>`
+
+// ✅ Renders the template when toggled on
+return html`<div>${() => state.showModal ? modalTemplate() : null}</div>`
+```
+
+The same applies to any expression that switches between a plain value and a template at runtime — always wrap in `() =>`.
+
+---
+
 ## References
 
 - `.arrow-js/skill/getting-started.md`
