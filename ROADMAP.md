@@ -17,7 +17,7 @@
 
 - [x] Compute derived due-status (overdue / due soon / OK) on Task responses
 - [x] Cascade delete: equipment → tasks → interventions
-- [x] Auto-update equipment hours when an intervention records higher `hours_at`
+- [ ] Auto-update equipment hours when an intervention records higher `hours_at` _(unchecked: `hours_updated_at` is never written by the backend — neither on `CreateEquipment` with initial hours, nor on `UpdateEquipment` when hours increase; see bug fix in Milestone 6)_
 - [x] Validate intervention `date` is not in the future
 - [x] Validate hour-meter constraints (hours_interval only if tracks_hours)
 
@@ -44,29 +44,40 @@
 - [x] Add task flow (modal with name, description, intervals)
 - [x] Edit task flow (modal with prefilled form)
 - [x] Delete task (modal with cascade-delete warning)
-- [x] "Mark done" quick-log from task row (opens intervention quick-log modal pre-filled with task)
+- [ ] "Mark done" quick-log from task row (opens intervention quick-log modal pre-filled with task) _(unchecked: modal opens and UI is correct, but saving always returns HTTP 400 — the generated TS client serializes the date as `YYYY-MM-DD` while the Go backend expects RFC3339; see bug fix in Milestone 6)_
 
-## Milestone 6 — Dashboard
+## Milestone 6 — Bug Fixes
+
+### Critical
+- [x] **Date format mismatch**: change Intervention `date` field in OpenAPI spec from `format: date` to `format: date-time`, regenerate TS client — fixes HTTP 400 on all intervention saves
+- [ ] **`hours_updated_at` never set**: backend `CreateEquipment` and `UpdateEquipment` must set `hours_updated_at = now` when `tracks_hours` is true and hours increase
+- [ ] **Date formatting shows NaN everywhere**: frontend `safeDate()` in `format.ts` uses `Number(date)` which returns `NaN` for date strings — replace with `new Date(date)`
+
+### Minor
+- [ ] Page title shows generic "Equipment #N" instead of the actual equipment name
+- [ ] Interval display shows "Every 100h or Every 6mo" — remove the redundant second "Every"
+
+## Milestone 7 — Dashboard
+
+_Depends on Milestone 6 (quick-log must work, `hours_updated_at` must be set, dates must display correctly)._
 
 - [ ] Hour-meter freshness banner (collapsible, stale entries emphasized, "Update hours" CTA per equipment)
-- [ ] Tasks grouped by equipment, sorted by urgency
+- [ ] Tasks grouped by equipment, sorted by urgency (overdue/due-soon only; OK tasks hidden)
 - [ ] "Mark done" quick-log from each task row
-- [ ] Empty state: "You're all caught up"
+- [ ] Empty state: "You're all caught up. Nothing due right now." + CTA if no equipments exist
 
-## Milestone 7 — Interventions & History
+## Milestone 8 — Interventions & Global History
 
-- [ ] Quick-log modal (date, hours, comments — accessible from Dashboard and Tasks)
 - [ ] Full intervention form (equipment picker, task picker, date, hours, location, comments)
-- [ ] Global history screen (chronological, filters by equipment and date range)
-- [ ] Per-equipment history tab
-- [ ] Edit intervention from history
-- [ ] Delete intervention from history (with confirmation)
-- [ ] Side effects on intervention save (task next-due recomputed, equipment hours updated)
+- [ ] Global history screen (reverse-chronological list, filter by equipment and date range)
+- [ ] "+" log intervention CTA from global History and per-equipment History tab
+- [ ] Edit intervention from history (global + per-equipment)
+- [ ] Delete intervention from history with confirmation (global + per-equipment)
 
-## Milestone 8 — Settings
+## Milestone 9 — Settings
 
-- [ ] Theme toggle (Auto / Light / Dark)
-- [ ] About section (version, repo link, license)
+- [x] Theme toggle (Auto / Light / Dark)
+- [x] About section (version, repo link, license)
 
 ## Future (post-V1)
 

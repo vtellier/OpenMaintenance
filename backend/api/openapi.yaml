@@ -503,7 +503,7 @@ components:
           description: ID of the associated task
         date:
           type: string
-          format: date
+          format: date-time
           description: Date of the intervention
         location:
           type: string
@@ -533,7 +533,7 @@ components:
           description: ID of the associated task
         date:
           type: string
-          format: date
+          format: date-time
           description: Date of the intervention
         location:
           type: string
