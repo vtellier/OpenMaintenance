@@ -1,5 +1,13 @@
 # Session Summary
 
+## 2026-05-14 14:50 — Non-Regression Test Skill
+
+Added `.opencode/skills/non-regression-test/SKILL.md` so the agent can load
+a focused procedure when fixing frontend bugs. Skill contains: workflow,
+spec template, locator preference order, chrome-devtools → Playwright
+translation, DB state rules, gotchas, and run commands. AGENTS.md shortened
+to a one-line pointer to the skill (removes duplication).
+
 ## 2026-05-14 14:30 — Playwright Non-Regression Test Harness
 
 Set up a minimal Playwright test harness for pinning frontend bugs.

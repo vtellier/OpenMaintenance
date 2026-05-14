@@ -65,7 +65,7 @@ The following must be installed on the developer's machine for the agent to work
 - **Use Context7 MCP**: To read the docs, especially the ones of Arrow.js.
 - **Use Chrome-DevTool MCP**: To explore and debug the frontend interactively.
 - **Test as you go**: use `curl` when modifying the backend or the API, use chrome-devtools when investigating frontend issues.
-- **Pin frontend bugs with a Playwright test**: Whenever you fix a frontend bug, before declaring it fixed, check `frontend/tests/non-regression/` for an existing spec. If none exists, add one named after the bug (e.g. `safedate-shows-nan.spec.ts`) that reproduces the bug and asserts the fixed behavior. Then run `pnpm test` from `frontend/` (with both servers running) and confirm it passes. Update the index in `frontend/tests/non-regression/README.md`.
+- **Pin frontend bugs with a Playwright test**: Whenever you fix a frontend bug, load the `non-regression-test` skill and follow it. The short version: add or update a spec under `frontend/tests/non-regression/`, run `pnpm test`, update the index README.
 - **Re-read skill pitfalls**: Before modifying any framework code (Arrow.js, Go/Echo, etc.), re-read the **Gotchas / Pitfalls** section of the relevant `.opencode/skills/*/SKILL.md` file.
 
 ### Critical Reminders
