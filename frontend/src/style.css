@@ -371,6 +371,93 @@ code {
   text-decoration: underline;
 }
 
+/* ── Dashboard ── */
+
+.hours-banner {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.hours-banner__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+
+.hours-banner__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.hours-banner__toggle {
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.hours-banner__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.hours-banner__row:last-child {
+  border-bottom: none;
+}
+
+.hours-banner__row--stale {
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.hours-banner__eq-name {
+  color: var(--fg);
+  text-decoration: none;
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.hours-banner__eq-name:hover {
+  color: var(--accent);
+}
+
+.hours-banner__hours {
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.hours-banner__updated {
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.hours-banner__updated.stale {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.hours-banner__updated.very-stale {
+  color: #ef4444;
+  font-weight: 600;
+}
+
 /* ── Mobile ── */
 
 /* ── Equipment Grid ── */
