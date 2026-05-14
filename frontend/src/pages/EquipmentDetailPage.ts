@@ -4,7 +4,7 @@ import { Task } from '@generated/api/models/Task'
 import { Intervention } from '@generated/api/models/Intervention'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { relativeTime, formatHours, formatDate, isHoursVeryStale } from '@/lib/format'
+import { relativeTime, formatHours, formatDate, isHoursVeryStale, dueRelative } from '@/lib/format'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -305,10 +305,10 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
             ${currentTab === 'info' ? infoTabContent() : null}
           </div>
 
-          ${state.showAddTask ? addTaskModal() : null}
-          ${state.showEditTask ? editTaskModal() : null}
-          ${state.showDeleteTask ? deleteTaskModal() : null}
-          ${state.showQuickLog ? quickLogModal() : null}
+          ${() => state.showAddTask ? addTaskModal() : null}
+          ${() => state.showEditTask ? editTaskModal() : null}
+          ${() => state.showDeleteTask ? deleteTaskModal() : null}
+          ${() => state.showQuickLog ? quickLogModal() : null}
         `
       }}
     </section>`
@@ -336,6 +336,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               const lastLabel = lastInv ? formatDate(lastInv.date) + (lastInv.hoursAt != null ? ' \u2022 ' + formatHours(lastInv.hoursAt) : '') : 'never'
               const dueClass = 'due-indicator due-indicator--' + (t.dueStatus === 'overdue' ? 'overdue' : t.dueStatus === 'due_soon' ? 'due-soon' : 'ok')
               const dueLabel = t.dueStatus === 'overdue' ? 'Overdue' : t.dueStatus === 'due_soon' ? 'Due soon' : 'OK'
+              const dueRelativeStr = dueRelative(t.nextDueDate, t.nextDueHours)
               return html`<div class="task-row">
                 <div class="task-row__info">
                   <p class="task-row__name">${t.name}</p>
@@ -343,7 +344,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
                   <p class="task-row__meta">Last: ${lastLabel}</p>
                 </div>
                 <div class="task-row__actions">
-                  <span class="${dueClass}">${dueLabel}</span>
+                  <span class="${dueClass}">${dueClass.indexOf('--ok') >= 0 ? dueLabel : dueLabel + ' \u2014 ' + dueRelativeStr}</span>
                   <button class="btn btn--small" @click="${() => onQuickLog(t)}">Done</button>
                   <button class="btn btn--small" @click="${() => onEditTask(t)}">Edit</button>
                   <button class="btn btn--small btn--danger" @click="${() => onDeleteTask(t)}">Del</button>
@@ -357,8 +358,10 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
     function historyTabContent() {
       const sorted = [...state.interventions].sort((a, b) => {
-        if (!a.date || !b.date) return 0
-        return b.date.getTime() - a.date.getTime()
+        const da = a.date ? new Date(Number(a.date)) : null
+        const db = b.date ? new Date(Number(b.date)) : null
+        if (!da || !db) return 0
+        return db.getTime() - da.getTime()
       })
       return html`
         ${sorted.length === 0
@@ -415,7 +418,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
         <div class="modal-overlay" @click="${onCancelAdd}">
           <div class="modal">
             <h2 class="modal__title">Add task</h2>
-            ${state.addError ? html`<div class="flash flash--error">${state.addError}</div>` : null}
+            ${() => state.addError ? html`<div class="flash flash--error">${state.addError}</div>` : null}
             <div class="form-field">
               <label class="form-field__label">Name *</label>
               <input placeholder="e.g. Oil change" .value="${() => state.addName}" @input="${(e: Event) => { state.addName = (e.target as HTMLInputElement).value }}" />
@@ -449,7 +452,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
         <div class="modal-overlay" @click="${onCancelEdit}">
           <div class="modal">
             <h2 class="modal__title">Edit task</h2>
-            ${state.editError ? html`<div class="flash flash--error">${state.editError}</div>` : null}
+            ${() => state.editError ? html`<div class="flash flash--error">${state.editError}</div>` : null}
             <div class="form-field">
               <label class="form-field__label">Name *</label>
               <input placeholder="e.g. Oil change" .value="${() => state.editName}" @input="${(e: Event) => { state.editName = (e.target as HTMLInputElement).value }}" />
@@ -483,7 +486,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
         <div class="modal-overlay" @click="${onCancelDelete}">
           <div class="modal">
             <h2 class="modal__title">Delete task</h2>
-            ${state.deleteError ? html`<div class="flash flash--error">${state.deleteError}</div>` : null}
+            ${() => state.deleteError ? html`<div class="flash flash--error">${state.deleteError}</div>` : null}
             <p class="confirm-text">Are you sure you want to delete <strong>${() => state.deleteTaskName}</strong>? All interventions recorded for this task will also be deleted.</p>
             <div class="modal__actions">
               <button class="btn" @click="${onCancelDelete}">Cancel</button>
@@ -500,7 +503,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
         <div class="modal-overlay" @click="${onCancelQuickLog}">
           <div class="modal">
             <h2 class="modal__title">Mark done: ${() => state.quickTaskName}</h2>
-            ${state.quickError ? html`<div class="flash flash--error">${state.quickError}</div>` : null}
+            ${() => state.quickError ? html`<div class="flash flash--error">${state.quickError}</div>` : null}
             <div class="form-field">
               <label class="form-field__label">Date *</label>
               <input type="date" .value="${() => state.quickDate}" @input="${(e: Event) => { state.quickDate = (e.target as HTMLInputElement).value }}" />

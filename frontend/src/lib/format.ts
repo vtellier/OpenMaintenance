@@ -45,6 +45,22 @@ export function isHoursStale(date: Date | undefined): boolean {
   return days > STALE_HOURS_THRESHOLD_DAYS
 }
 
+export function dueRelative(nextDueDate: Date | undefined, nextDueHours: number | undefined): string {
+  const d = safeDate(nextDueDate)
+  if (d) {
+    const now = Date.now()
+    const diff = d.getTime() - now
+    const days = Math.round(diff / (1000 * 60 * 60 * 24))
+    if (days < 0) return 'overdue by ' + Math.abs(days) + 'd'
+    if (days === 0) return 'due today'
+    return 'in ' + days + 'd'
+  }
+  if (nextDueHours != null) {
+    return 'at ' + Math.round(nextDueHours).toLocaleString() + ' h'
+  }
+  return ''
+}
+
 export function isHoursVeryStale(date: Date | undefined): boolean {
   const d = safeDate(date)
   if (!d) return true

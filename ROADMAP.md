@@ -40,11 +40,11 @@
 
 ## Milestone 5 — Task Management
 
-- [ ] Task list with urgency indicators (overdue = red, due soon = amber)
-- [ ] Add task flow
-- [ ] Edit task flow
-- [ ] Delete task (with confirmation)
-- [ ] "Mark done" quick-log from task row (opens intervention quick-log modal pre-filled with task)
+- [x] Task list with urgency indicators (overdue = red, due soon = amber) + relative-time display
+- [x] Add task flow (modal with name, description, intervals)
+- [x] Edit task flow (modal with prefilled form)
+- [x] Delete task (modal with cascade-delete warning)
+- [x] "Mark done" quick-log from task row (opens intervention quick-log modal pre-filled with task)
 
 ## Milestone 6 — Dashboard
 

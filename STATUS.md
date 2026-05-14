@@ -77,3 +77,19 @@
 - Added CSS for form pages (`.form-page`, `.form__actions`, `.btn--danger`).
 - Fixed SSR crashes caused by `component()` wrapping arguments in reactive proxies (native methods like `parseInt` fail on proxy strings). Fix: capture `id` in outer closure, pass plain number/href into `component()`.
 - Fixed server crash from `document is undefined` during SSR reactive updates when using `reactive()` outside `component()` wrapper.
+
+## 2026-05-13 (session 4)
+
+- Committed EquipmentDetailPage refactor (component + reactive state + task CRUD modals + quick-log)
+- Regenerated TypeScript API client
+- Added `dueRelative()` helper in format.ts for relative-time urgency display
+- Added relative-time display to task urgency indicators in EquipmentDetailPage
+- Added CSS for `.tab-toolbar`, `.task-row__actions`, `.btn--small`, `.task-row__meta`
+- Completed Milestone 5 (Task Management): urgency indicators with relative time, add/edit/delete tasks, quick-log mark-done
+
+## 2026-05-14 (session 5)
+
+- Fixed "(el) => renderTemplate(template, el)" bug: Arrow.js expression slots that change from `null` to a template use a Text-node observer that toStrings the template function. Fix: wrap toggleable template expressions in `() =>` so they go through the watcher branch which handles dynamic type changes.
+- Fixed SSR crash from Proxy-wrapped Date objects: `dueRelative()` called `.getTime()` directly on a reactive proxy Date. Fix: use `safeDate()` helper (creates a plain Date via `Number()`).
+- Added port 5174 to backend CORS origins
+- Verified all task modals (Add, Edit, Delete, Mark done) via chrome-devtools
