@@ -68,11 +68,11 @@ _Depends on Milestone 6 (quick-log must work, `hours_updated_at` must be set, da
 
 ## Milestone 8 — Interventions & Global History
 
-- [ ] Full intervention form (equipment picker, task picker, date, hours, location, comments)
-- [ ] Global history screen (reverse-chronological list, filter by equipment and date range)
-- [ ] "+" log intervention CTA from global History and per-equipment History tab
-- [ ] Edit intervention from history (global + per-equipment)
-- [ ] Delete intervention from history with confirmation (global + per-equipment)
+- [x] Full intervention form (equipment picker, task picker, date, hours, location, comments)
+- [x] Global history screen (reverse-chronological list, filter by equipment and date range)
+- [x] "+" log intervention CTA from global History and per-equipment History tab
+- [x] Edit intervention from history (global + per-equipment)
+- [x] Delete intervention from history with confirmation (global + per-equipment)
 
 ## Milestone 9 — Settings
 

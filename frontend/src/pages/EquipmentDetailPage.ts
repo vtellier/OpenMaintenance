@@ -5,6 +5,7 @@ import { Intervention } from '@generated/api/models/Intervention'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { relativeTime, formatHours, formatDate, isHoursVeryStale, dueRelative } from '@/lib/format'
+import { FullInterventionModal } from '@/components/FullInterventionModal'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -50,6 +51,22 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       quickComments: '',
       quickSaving: false,
       quickError: null as string | null,
+
+      showFullForm: false,
+      editId: null as number | null,
+      equipmentId: null as number | null,
+      taskId: null as number | null,
+      date: '',
+      hours: 0,
+      location: '',
+      comments: '',
+      saving: false,
+      error: null as string | null,
+
+      showHistoryDelete: false,
+      historyDeleteTarget: null as Intervention | null,
+      historyDeleteSaving: false,
+      historyDeleteError: null as string | null,
     })
 
     async function load() {
@@ -301,6 +318,104 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       }
     }
 
+    // ── Full Intervention Form ──
+
+    function onAddFromHistory() {
+      state.showFullForm = true
+      state.editId = null
+      state.equipmentId = equipmentId
+      state.taskId = null
+      state.date = new Date().toISOString().substring(0, 10)
+      state.hours = state.equipment?.hours ?? 0
+      state.location = ''
+      state.comments = ''
+      state.saving = false
+      state.error = null
+    }
+
+    function onEditFromHistory(inv: Intervention) {
+      state.showFullForm = true
+      state.editId = inv.id ?? null
+      state.equipmentId = equipmentId
+      state.taskId = inv.taskId ?? null
+      state.date = inv.date ? formatDate(inv.date) : ''
+      state.hours = inv.hoursAt ?? 0
+      state.location = inv.location ?? ''
+      state.comments = inv.comments ?? ''
+      state.saving = false
+      state.error = null
+    }
+
+    function onCancelFullForm() {
+      state.showFullForm = false
+    }
+
+    function onFullFormOverlayClick(e: Event) {
+      if ((e.target as HTMLElement).classList.contains('modal-overlay')) onCancelFullForm()
+    }
+
+    async function onSaveFullForm() {
+      if (state.taskId == null || !state.date) return
+      state.saving = true
+      state.error = null
+
+      const body = {
+        taskId: state.taskId,
+        date: new Date(state.date + 'T00:00:00'),
+        hoursAt: tracksHours() ? state.hours : undefined,
+        location: state.location.trim() || undefined,
+        comments: state.comments.trim() || undefined,
+      }
+
+      try {
+        if (state.editId != null) {
+          await interventionApi.updateIntervention({
+            id: state.editId,
+            interventionInput: body,
+          })
+        } else {
+          await interventionApi.createIntervention({
+            interventionInput: body,
+          })
+        }
+        state.showFullForm = false
+        await load()
+      } catch {
+        state.error = 'Failed to save intervention'
+      } finally {
+        state.saving = false
+      }
+    }
+
+    function onHistoryDeleteClick(inv: Intervention) {
+      state.showHistoryDelete = true
+      state.historyDeleteTarget = inv
+      state.historyDeleteError = null
+    }
+
+    function onCancelHistoryDelete() {
+      state.showHistoryDelete = false
+    }
+
+    function onHistoryDeleteOverlayClick(e: Event) {
+      if ((e.target as HTMLElement).classList.contains('modal-overlay')) onCancelHistoryDelete()
+    }
+
+    async function onConfirmHistoryDelete() {
+      if (state.historyDeleteTarget == null || state.historyDeleteTarget.id == null) return
+      state.historyDeleteSaving = true
+      state.historyDeleteError = null
+      try {
+        await interventionApi.deleteIntervention({ id: state.historyDeleteTarget.id })
+        state.showHistoryDelete = false
+        await load()
+      } catch {
+        state.historyDeleteError = 'Failed to delete intervention'
+      } finally {
+        state.historyDeleteSaving = false
+      }
+    }
+
     // ── Templates ──
 
     return html`<section class="page">
@@ -347,6 +462,31 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           ${() => state.showEditTask ? editTaskModal() : null}
           ${() => state.showDeleteTask ? deleteTaskModal() : null}
           ${() => state.showQuickLog ? quickLogModal() : null}
+          ${() => state.showFullForm ? FullInterventionModal(state as any, {
+            equipments: () => [state.equipment!],
+            allTasks: () => state.allTasks,
+            equipmentIdFixed: equipmentId,
+            title: state.editId != null ? 'Edit intervention' : 'Log intervention',
+            onCancel: onCancelFullForm,
+            onOverlayClick: onFullFormOverlayClick,
+            onSave: onSaveFullForm,
+          }) : null}
+
+          ${() => state.showHistoryDelete ? html`
+            <div class="modal-overlay" @click="${onHistoryDeleteOverlayClick}">
+              <div class="modal">
+                <h2 class="modal__title">Delete intervention</h2>
+                ${() => state.historyDeleteError ? html`<div class="flash flash--error">${state.historyDeleteError}</div>` : null}
+                <p class="confirm-text">Are you sure you want to delete this intervention? Equipment hours and task due dates will be recomputed from the remaining history.</p>
+                <div class="modal__actions">
+                  <button class="btn" @click="${onCancelHistoryDelete}">Cancel</button>
+                  <button class="btn btn--danger" @click="${onConfirmHistoryDelete}" disabled="${() => state.historyDeleteSaving}">
+                    ${() => state.historyDeleteSaving ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ` : null}
         `
       }}
     </section>`
@@ -402,17 +542,27 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
         return db.getTime() - da.getTime()
       })
       return html`
+        <div class="tab-toolbar">
+          <h2>History</h2>
+          <button class="btn btn--accent" @click="${onAddFromHistory}">+ Log intervention</button>
+        </div>
         ${sorted.length === 0
-          ? html`<p class="page__empty">No interventions recorded yet.</p>`
+          ? html`<p class="page__empty">No history yet for this equipment.</p>`
           : html`<div class="history-list">
             ${sorted.map(inv => {
               const dateStr = formatDate(inv.date)
-              const hoursStr = inv.hoursAt != null ? ' \u2022 ' + formatHours(inv.hoursAt) : ''
               return html`<div class="history-item">
-                <p class="history-item__task">${getTaskName(inv.taskId)}</p>
-                <p class="history-item__date">${dateStr}${hoursStr}</p>
-                ${inv.location ? html`<p class="history-item__details">${inv.location}</p>` : null}
-                ${inv.comments ? html`<p class="history-item__details">${inv.comments}</p>` : null}
+                <div class="history-item__main">
+                  <p class="history-item__task">${getTaskName(inv.taskId)}</p>
+                  <p class="history-item__date">${dateStr}</p>
+                  ${inv.hoursAt != null ? html`<p class="history-item__details">${formatHours(inv.hoursAt)}</p>` : null}
+                  ${inv.location ? html`<p class="history-item__details">${inv.location}</p>` : null}
+                  ${inv.comments ? html`<p class="history-item__details history-item__comments">${inv.comments}</p>` : null}
+                </div>
+                <div class="history-item__actions">
+                  <button class="btn btn--small" @click="${() => onEditFromHistory(inv)}">Edit</button>
+                  <button class="btn btn--small btn--danger" @click="${() => onHistoryDeleteClick(inv)}">Del</button>
+                </div>
               </div>`
             })}
           </div>`

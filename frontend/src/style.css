@@ -874,10 +874,19 @@ code {
 }
 
 .history-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   padding: 12px 16px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--card);
+  gap: 12px;
+}
+
+.history-item__main {
+  flex: 1;
+  min-width: 0;
 }
 
 .history-item__task {
@@ -896,6 +905,34 @@ code {
   font-size: 13px;
   color: var(--muted);
   margin: 4px 0 0;
+}
+
+.history-item__comments {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── History filters ── */
+
+.history-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.history-filters .form-field {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 140px;
 }
 
 /* ── Info tab ── */
