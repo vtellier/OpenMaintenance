@@ -17,7 +17,7 @@
 
 - [x] Compute derived due-status (overdue / due soon / OK) on Task responses
 - [x] Cascade delete: equipment → tasks → interventions
-- [ ] Auto-update equipment hours when an intervention records higher `hours_at` _(unchecked: `hours_updated_at` is never written by the backend — neither on `CreateEquipment` with initial hours, nor on `UpdateEquipment` when hours increase; see bug fix in Milestone 6)_
+- [x] Auto-update equipment hours when an intervention records higher `hours_at`
 - [x] Validate intervention `date` is not in the future
 - [x] Validate hour-meter constraints (hours_interval only if tracks_hours)
 
@@ -44,7 +44,7 @@
 - [x] Add task flow (modal with name, description, intervals)
 - [x] Edit task flow (modal with prefilled form)
 - [x] Delete task (modal with cascade-delete warning)
-- [ ] "Mark done" quick-log from task row (opens intervention quick-log modal pre-filled with task) _(unchecked: modal opens and UI is correct, but saving always returns HTTP 400 — the generated TS client serializes the date as `YYYY-MM-DD` while the Go backend expects RFC3339; see bug fix in Milestone 6)_
+- [x] "Mark done" quick-log from task row (opens intervention quick-log modal pre-filled with task)
 
 ## Milestone 6 — Bug Fixes
 
