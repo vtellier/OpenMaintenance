@@ -61,10 +61,10 @@
 
 _Depends on Milestone 6 (quick-log must work, `hours_updated_at` must be set, dates must display correctly)._
 
-- [ ] Hour-meter freshness banner (collapsible, stale entries emphasized, "Update hours" CTA per equipment)
-- [ ] Tasks grouped by equipment, sorted by urgency (overdue/due-soon only; OK tasks hidden)
-- [ ] "Mark done" quick-log from each task row
-- [ ] Empty state: "You're all caught up. Nothing due right now." + CTA if no equipments exist
+- [x] Hour-meter freshness banner (collapsible, stale entries emphasized, "Update hours" CTA per equipment)
+- [x] Tasks grouped by equipment, sorted by urgency (overdue/due-soon only; OK tasks hidden)
+- [x] "Mark done" quick-log from each task row
+- [x] Empty state: "You're all caught up. Nothing due right now." + CTA if no equipments exist
 
 ## Milestone 8 — Interventions & Global History
 

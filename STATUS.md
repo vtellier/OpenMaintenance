@@ -146,3 +146,18 @@ storing them in reactive state. Updated all format functions to accept `Date | s
 - `safedate-shows-nan.spec.ts` — verifies intervention dates don't show NaN after fix
 - `equipment-page-title.spec.ts` — verifies equipment detail page title shows equipment name
 - `interval-display-deduplication.spec.ts` — verifies no duplicate "Every" in interval text
+
+## 2026-05-14 — Milestone 7 Dashboard
+
+Completed all 4 items in Milestone 7:
+
+1. **Hour-meter freshness banner** (collapsible, stale entries highlighted with amber/red,
+   "Update hours" CTA per equipment, fresh entries can be hidden)
+2. **Tasks grouped by equipment**, sorted by urgency (overdue first, then due-soon;
+   OK tasks hidden; equipments sorted by highest urgency)
+3. **"Mark done" quick-log** from each task row (opens modal pre-filled with date and hours)
+4. **Empty state**: friendly message + CTA to add equipment when no equipments exist
+
+Commits:
+- `13fa199` — Hour-meter freshness banner (collapsible, stale entries emphasized)
+- `ceb14a9` — Task grouping, quick-log, empty state
