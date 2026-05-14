@@ -116,3 +116,33 @@ Conducted a full manual test session of all documented user experience flows usi
 - "Every 100h or Every 6mo" has redundant "Every" prefix
 - Intervention rows have no Edit/Delete buttons in per-equipment History tab
 - Task edit via Arrow.js reactive binding doesn't update properly (property overwrite)
+
+## 2026-05-14 — Milestone 6 Bug Fixes
+
+Completed all 4 items in Milestone 6:
+
+### Critical fixes
+1. **`hours_updated_at` never set** (`backend/internal/handlers/equipment.go`): `CreateEquipment` now sets
+   `hours_updated_at = now` when `tracks_hours && hours != nil`. `UpdateEquipment` fetches existing
+   equipment and sets `hours_updated_at = now` only when hours actually increase.
+2. **Date formatting NaN** (`frontend/src/lib/format.ts` + `frontend/src/pages/EquipmentDetailPage.ts`):
+   Changed `safeDate()` from `new Date(Number(date))` to `new Date(date)`. Fixed same pattern in
+   `EquipmentDetailPage` history sort (`new Date(Number(a.date))` → `new Date(a.date)`).
+
+### Minor fixes
+3. **Page title** (`frontend/src/page.ts`): `routeToPage` now fetches equipment name via API for
+   the equipment detail route title. Falls back to `"Equipment #N"` on failure.
+4. **Redundant "Every"** (`frontend/src/pages/EquipmentDetailPage.ts`): Removed second "Every" prefix
+   from months interval display. Now shows "Every 100h or 6mo" instead of "Every 100h or Every 6mo".
+
+### Root cause investigation: Arrow.js reactive() breaks Date objects
+The NaN bug had a deeper cause: Arrow.js `reactive()` wraps all nested objects in Proxies,
+including Date instances. Date methods (getTime, toISOString, etc.) rely on the internal
+`[[DateValue]]` slot, which is NOT forwarded by Proxy — they all throw or return NaN when
+`this` is a Proxy. Fix: convert Date objects to ISO strings (`date.toISOString()`) before
+storing them in reactive state. Updated all format functions to accept `Date | string | null | undefined`.
+
+### Tests added
+- `safedate-shows-nan.spec.ts` — verifies intervention dates don't show NaN after fix
+- `equipment-page-title.spec.ts` — verifies equipment detail page title shows equipment name
+- `interval-display-deduplication.spec.ts` — verifies no duplicate "Every" in interval text

@@ -50,12 +50,12 @@
 
 ### Critical
 - [x] **Date format mismatch**: change Intervention `date` field in OpenAPI spec from `format: date` to `format: date-time`, regenerate TS client — fixes HTTP 400 on all intervention saves
-- [ ] **`hours_updated_at` never set**: backend `CreateEquipment` and `UpdateEquipment` must set `hours_updated_at = now` when `tracks_hours` is true and hours increase
-- [ ] **Date formatting shows NaN everywhere**: frontend `safeDate()` in `format.ts` uses `Number(date)` which returns `NaN` for date strings — replace with `new Date(date)`
+- [x] **`hours_updated_at` never set**: backend `CreateEquipment` and `UpdateEquipment` must set `hours_updated_at = now` when `tracks_hours` is true and hours increase
+- [x] **Date formatting shows NaN everywhere**: frontend `safeDate()` in `format.ts` uses `Number(date)` which returns `NaN` for date strings — replace with `new Date(date)`
 
 ### Minor
-- [ ] Page title shows generic "Equipment #N" instead of the actual equipment name
-- [ ] Interval display shows "Every 100h or Every 6mo" — remove the redundant second "Every"
+- [x] Page title shows generic "Equipment #N" instead of the actual equipment name
+- [x] Interval display shows "Every 100h or Every 6mo" — remove the redundant second "Every"
 
 ## Milestone 7 — Dashboard
 

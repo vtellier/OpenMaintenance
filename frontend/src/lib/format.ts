@@ -1,9 +1,15 @@
-function safeDate(date: Date | undefined): Date | undefined {
-  if (!date) return undefined
-  return new Date(Number(date))
+function safeDate(date: Date | string | undefined | null): Date | undefined {
+  if (date == null) return undefined
+  try {
+    const d = new Date(date)
+    if (isNaN(d.getTime())) return undefined
+    return d
+  } catch {
+    return undefined
+  }
 }
 
-export function relativeTime(date: Date | undefined): string {
+export function relativeTime(date: Date | string | undefined | null): string {
   const d = safeDate(date)
   if (!d) return 'never'
   const now = Date.now()
@@ -23,7 +29,7 @@ export function relativeTime(date: Date | undefined): string {
   return years + 'y ago'
 }
 
-export function formatDate(date: Date | undefined): string {
+export function formatDate(date: Date | string | undefined | null): string {
   const d = safeDate(date)
   if (!d) return ''
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
@@ -37,7 +43,7 @@ export function formatHours(hours: number | undefined): string {
 const STALE_HOURS_THRESHOLD_DAYS = 7
 const VERY_STALE_HOURS_THRESHOLD_DAYS = 30
 
-export function isHoursStale(date: Date | undefined): boolean {
+export function isHoursStale(date: Date | string | undefined | null): boolean {
   const d = safeDate(date)
   if (!d) return true
   const diff = Date.now() - d.getTime()
@@ -45,7 +51,7 @@ export function isHoursStale(date: Date | undefined): boolean {
   return days > STALE_HOURS_THRESHOLD_DAYS
 }
 
-export function dueRelative(nextDueDate: Date | undefined, nextDueHours: number | undefined): string {
+export function dueRelative(nextDueDate: Date | string | undefined | null, nextDueHours: number | undefined): string {
   const d = safeDate(nextDueDate)
   if (d) {
     const now = Date.now()
@@ -61,7 +67,7 @@ export function dueRelative(nextDueDate: Date | undefined, nextDueHours: number 
   return ''
 }
 
-export function isHoursVeryStale(date: Date | undefined): boolean {
+export function isHoursVeryStale(date: Date | string | undefined | null): boolean {
   const d = safeDate(date)
   if (!d) return true
   const diff = Date.now() - d.getTime()

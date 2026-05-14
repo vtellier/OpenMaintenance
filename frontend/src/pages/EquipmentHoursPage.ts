@@ -15,7 +15,7 @@ export function EquipmentHoursPage(idParam: string) {
       tracksHours: false,
       currentHours: 0,
       newHours: 0,
-      lastUpdated: null as Date | null,
+      lastUpdated: null as string | null,
       loaded: false,
       saving: false,
       error: null as string | null,
@@ -28,7 +28,7 @@ export function EquipmentHoursPage(idParam: string) {
         state.tracksHours = eq.tracksHours ?? false
         state.currentHours = eq.hours ?? 0
         state.newHours = eq.hours ?? 0
-        state.lastUpdated = eq.hoursUpdatedAt ?? null
+        state.lastUpdated = eq.hoursUpdatedAt?.toISOString() ?? null
       } catch {
         state.error = 'Failed to load equipment'
       } finally {

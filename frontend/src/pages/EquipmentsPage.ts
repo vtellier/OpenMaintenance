@@ -35,8 +35,18 @@ export const EquipmentsPage = component(() => {
         taskApi.listTasks(),
         interventionApi.listInterventions(),
       ])
-      state.equipments = equipments
-      state.interventions = interventions
+      state.equipments = equipments.map((eq: any) => ({
+        ...eq,
+        hoursUpdatedAt: eq.hoursUpdatedAt?.toISOString(),
+        createdAt: eq.createdAt?.toISOString(),
+        updatedAt: eq.updatedAt?.toISOString(),
+      }))
+      state.interventions = interventions.map((inv: any) => ({
+        ...inv,
+        date: inv.date?.toISOString(),
+        createdAt: inv.createdAt?.toISOString(),
+        updatedAt: inv.updatedAt?.toISOString(),
+      }))
 
       const grouped: Record<number, Task[]> = {}
       for (const t of tasks) {

@@ -10,6 +10,8 @@ import { EquipmentDeletePage } from '@/pages/EquipmentDeletePage'
 import { EquipmentHoursPage } from '@/pages/EquipmentHoursPage'
 import { HistoryPage } from '@/pages/HistoryPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { EquipmentApi } from '@generated/api'
+import { apiConfig } from '@/api/config'
 
 export interface Page {
   description: string
@@ -81,11 +83,22 @@ export async function routeToPage(url: string): Promise<Page> {
   if (match) {
     const id = match[1]
     const tab = match[2] ?? ''
+
+    let equipmentName: string | null = null
+    try {
+      const equipmentApi = new EquipmentApi(apiConfig)
+      const eq = await equipmentApi.getEquipment({ id: parseInt(id, 10) })
+      equipmentName = eq.name ?? null
+    } catch {
+      // fallback to generic title
+    }
+
     const view = await EquipmentDetailPage(id, tab)
+    const name = equipmentName ?? `Equipment #${id}`
     return {
-      description: `Equipment #${id} details`,
+      description: `${name} details`,
       status: 200,
-      title: `Equipment #${id} | OpenMaintenance`,
+      title: `${name} | OpenMaintenance`,
       view: App(pathname, view),
     }
   }

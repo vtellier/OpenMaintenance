@@ -33,3 +33,6 @@ The DB is wiped (via the REST API) before the run. See
 | Spec | Bug | Roadmap |
 |---|---|---|
 | `smoke.spec.ts` | Harness sanity check (not tied to a bug) | — |
+| `safedate-shows-nan.spec.ts` | Date formatting shows NaN (Arrow.js reactive wraps Dates in Proxy) | Milestone 6 |
+| `equipment-page-title.spec.ts` | Page title shows generic "Equipment #N" instead of equipment name | Milestone 6 |
+| `interval-display-deduplication.spec.ts` | "Every 100h or Every 6mo" has redundant "Every" | Milestone 6 |

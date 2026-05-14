@@ -60,13 +60,35 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           interventionApi.listInterventions(),
           taskApi.listTasks(),
         ])
-        state.equipment = eq
-        state.tasks = ts
-        state.allTasks = allTs
+
+        state.equipment = {
+          ...eq,
+          hoursUpdatedAt: eq.hoursUpdatedAt?.toISOString(),
+          createdAt: eq.createdAt?.toISOString(),
+          updatedAt: eq.updatedAt?.toISOString(),
+        } as Equipment
+
+        state.tasks = ts.map((t: any) => ({
+          ...t,
+          nextDueDate: t.nextDueDate?.toISOString(),
+          updatedAt: t.updatedAt?.toISOString(),
+        }))
+
+        state.allTasks = allTs.map((t: any) => ({
+          ...t,
+          nextDueDate: t.nextDueDate?.toISOString(),
+          updatedAt: t.updatedAt?.toISOString(),
+        }))
+
         const taskIds = new Set(ts.map((t: Task) => t.id))
         state.interventions = interventionsResponse.filter(
           (inv: Intervention) => inv.taskId != null && taskIds.has(inv.taskId)
-        )
+        ).map((inv: any) => ({
+          ...inv,
+          date: inv.date?.toISOString(),
+          createdAt: inv.createdAt?.toISOString(),
+          updatedAt: inv.updatedAt?.toISOString(),
+        }))
       } catch {
         state.loadError = 'Failed to load equipment'
       } finally {
@@ -331,7 +353,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               const lastInv = getLastIntervention(t.id)
               const parts: string[] = []
               if (t.hoursInterval) parts.push('Every ' + t.hoursInterval + 'h')
-              if (t.monthsInterval) parts.push('Every ' + t.monthsInterval + 'mo')
+              if (t.monthsInterval) parts.push(t.monthsInterval + 'mo')
               const trigger = parts.join(' or ')
               const lastLabel = lastInv ? formatDate(lastInv.date) + (lastInv.hoursAt != null ? ' \u2022 ' + formatHours(lastInv.hoursAt) : '') : 'never'
               const dueClass = 'due-indicator due-indicator--' + (t.dueStatus === 'overdue' ? 'overdue' : t.dueStatus === 'due_soon' ? 'due-soon' : 'ok')
@@ -358,8 +380,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
     function historyTabContent() {
       const sorted = [...state.interventions].sort((a, b) => {
-        const da = a.date ? new Date(Number(a.date)) : null
-        const db = b.date ? new Date(Number(b.date)) : null
+        const da = a.date ? new Date(a.date) : null
+        const db = b.date ? new Date(b.date) : null
         if (!da || !db) return 0
         return db.getTime() - da.getTime()
       })
