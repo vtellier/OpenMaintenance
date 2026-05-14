@@ -68,10 +68,11 @@ The following must be installed on the developer's machine for the agent to work
 - **Re-read skill pitfalls**: Before modifying any framework code (Arrow.js, Go/Echo, etc.), re-read the **Gotchas / Pitfalls** section of the relevant `.opencode/skills/*/SKILL.md` file.
 
 ### When fixing frontend bugs
+- **Load the test skill first**: Before writing any fix code, load the `non-regression-test` skill. This is mandatory — the skill contains the workflow, spec template, locator rules, and run commands. Writing a fix without having loaded the skill is not allowed.
 - **Re-read the specs before fixing**: double check the specifications from the doc/ folder to verify the bug is an actual bug.
 - **Try before fixing**: Identify the buggy use-case by using the MCP chrome-devtools.
-- **Pin frontend bugs with a Playwright test**: Whenever you fix a frontend bug, load the `non-regression-test` skill and follow it. The short version: add or update a spec under `frontend/tests/non-regression/`, run `pnpm test`, update the index README.
-- **One commit per bug**: once fixed and tested suggest a commit for both of them before doing anything else. Ask for confirmation before committing.
+- **Pin frontend bugs with a Playwright test**: Add or update a spec under `frontend/tests/non-regression/`, run `pnpm test`, update the index README.
+- **One commit per bug**: once fixed and tested suggest a commit. Ask for confirmation before committing.
 
 
 ### Critical Reminders
