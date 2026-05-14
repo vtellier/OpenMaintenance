@@ -10,7 +10,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "postinstall": "npx @arrow-js/skill",
     "generate:api": "openapi-generator-cli generate -i ../backend/api/openapi.yaml -g typescript-fetch -o generated/api",
-    "clean:api": "rm -rf generated/api/* && mkdir -p generated/api"
+    "clean:api": "rm -rf generated/api/* && mkdir -p generated/api",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui"
   },
   "dependencies": {
     "@arrow-js/core": "^1.0.6",
@@ -21,6 +23,7 @@
   "devDependencies": {
     "@arrow-js/skill": "^1.0.6",
     "@openapitools/openapi-generator-cli": "^2.32.0",
+    "@playwright/test": "^1.60.0",
     "@types/node": "^22.16.5",
     "typescript": "^5.9.3",
     "vite": "^8.0.0"

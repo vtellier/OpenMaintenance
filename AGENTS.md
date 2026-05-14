@@ -24,7 +24,8 @@ Two layers: a backend and a frontend.
 ## Workflow Notes
 - **No CI/CD**: No `.github`, `.gitlab`, or other workflow configs.
 - **Scripts / CLI / Tools**: There is no common tool, the backend and the frontend have their own, independ from each others
-- **NO TESTING**
+- **Frontend non-regression tests**: Playwright specs live in `frontend/tests/non-regression/`. Run with `pnpm test` in `frontend/` (both servers must be running). The DB is wiped via the API before each run. No CI yet — tests are run locally by the agent after a fix.
+- **No backend tests**: The Go backend has no test suite.
 - **API Client Generation**: Use `pnpm run generate:api` in the frontend directory to generate the TypeScript API client from the OpenAPI spec. Use `pnpm run clean:api` to remove generated files.
 
 ## Product Specifications
@@ -62,13 +63,14 @@ The following must be installed on the developer's machine for the agent to work
 ### When coding
 - **Always check your code**: Every time you modify **frontend** or **backend** code, validate it still compiles. Run `npm run build` for the frontend and `go build` for the backend.
 - **Use Context7 MCP**: To read the docs, especially the ones of Arrow.js.
-- **Use Chrome-DevTool MCP**: To test the frontend
-- **Test as you go**: use `curl` when modifying the backend or the API, use chrome-devtools when modifying the frontend.
+- **Use Chrome-DevTool MCP**: To explore and debug the frontend interactively.
+- **Test as you go**: use `curl` when modifying the backend or the API, use chrome-devtools when investigating frontend issues.
+- **Pin frontend bugs with a Playwright test**: Whenever you fix a frontend bug, before declaring it fixed, check `frontend/tests/non-regression/` for an existing spec. If none exists, add one named after the bug (e.g. `safedate-shows-nan.spec.ts`) that reproduces the bug and asserts the fixed behavior. Then run `pnpm test` from `frontend/` (with both servers running) and confirm it passes. Update the index in `frontend/tests/non-regression/README.md`.
 - **Re-read skill pitfalls**: Before modifying any framework code (Arrow.js, Go/Echo, etc.), re-read the **Gotchas / Pitfalls** section of the relevant `.opencode/skills/*/SKILL.md` file.
 
 ### Critical Reminders
 - **Ask questions**: When there is ambiguity, ask instead of guessing.
-- **Remind about git**: Suggest the user to `git commit` when there's a lot of uncommitted modification.
+- **Remind about git**: Suggest the user to `git commit` when there's a lot of uncommitted modification. Suggest a small git commit message.
 - **Short answers**: Avoid giving too much information that has not been asked, focus on answering what has been explicitly asked.
 - **Don't over-plan**: Offer plans that target only the given scope. If the scope isn't clear ask for more details.
 - **Always run background tasks via pty plugin**: the plugin `opencode-pty` is the only way you have to run tasks in background, NEVER bypass it.

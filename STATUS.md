@@ -1,5 +1,19 @@
 # Session Summary
 
+## 2026-05-14 14:30 — Playwright Non-Regression Test Harness
+
+Set up a minimal Playwright test harness for pinning frontend bugs.
+
+- Installed `@playwright/test` + Chromium (Ubuntu24 fallback build).
+- Created `frontend/playwright.config.ts` (single chromium project, no auto-server).
+- Created `frontend/tests/global-setup.ts` that wipes the DB via the REST API (deletes all equipments; cascade handles tasks + interventions). Requires both servers running.
+- Created `frontend/tests/non-regression/` with `README.md` (index + conventions) and `smoke.spec.ts`.
+- Added `pnpm test` and `pnpm test:ui` scripts.
+- Updated `.gitignore` (test-results, playwright-report, .playwright).
+- Updated `AGENTS.md`: new bullet under "When coding" requiring a Playwright spec per fixed frontend bug; "NO TESTING" replaced with non-regression guidance.
+- Updated `README.md` with a short "Non-regression tests" section.
+- Verified: `pnpm test` → 1 passed; `pnpm typecheck` → clean.
+
 ## 2026-05-14 — Comprehensive UX Flow Testing
 
 Conducted a full manual test session of all documented user experience flows using Chrome DevTools and curl.

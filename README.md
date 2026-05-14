@@ -231,9 +231,17 @@ OpenMaintenance/
 ├── frontend/         # Arrow.js frontend source code
 │   ├── public/       # Static assets
 │   ├── build/        # Built frontend files
+│   ├── tests/        # Playwright non-regression tests
 │   └── package-lock.json
 ├── README.md         # Project documentation
 └── LICENSE           # License file
 ```
+
+## Non-regression tests
+
+Frontend bugs are pinned with a Playwright test under `frontend/tests/non-regression/`.
+Start the backend (`go run .` in `backend/`) and frontend (`pnpm dev` in `frontend/`),
+then run `pnpm test` in `frontend/`. The test DB is wiped via the API before the run.
+See `frontend/tests/non-regression/README.md`.
 
 
