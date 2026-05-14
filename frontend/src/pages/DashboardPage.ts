@@ -18,7 +18,6 @@ export function DashboardPage() {
       interventions: [] as Intervention[],
       loaded: false,
       loadError: null as string | null,
-      bannerShowFresh: true,
       showQuickLog: false,
       quickTaskId: null as number | null,
       quickTaskName: '',
@@ -66,71 +65,12 @@ export function DashboardPage() {
 
     load()
 
-    const equipmentMap = () => {
-      const map = new Map<number, Equipment>()
-      for (const eq of state.equipments) {
-        if (eq.id != null) map.set(eq.id, eq)
-      }
-      return map
-    }
-
-    const hourTrackedEquipments = () => {
-      return [...state.equipments]
-        .filter(eq => eq.tracksHours)
-        .sort((a, b) => {
-          const timeA = a.hoursUpdatedAt ? new Date(a.hoursUpdatedAt).getTime() : 0
-          const timeB = b.hoursUpdatedAt ? new Date(b.hoursUpdatedAt).getTime() : 0
-          return timeA - timeB
-        })
-    }
-
-    const staleHourEquipments = () => {
-      return hourTrackedEquipments().filter(eq => isHoursStale(eq.hoursUpdatedAt))
-    }
-
-    const freshHourEquipments = () => {
-      return hourTrackedEquipments().filter(eq => !isHoursStale(eq.hoursUpdatedAt))
-    }
-
-    const dueTasksByEquipment = () => {
-      const dueTasks = state.tasks.filter(
-        t => t.dueStatus === 'overdue' || t.dueStatus === 'due_soon'
-      )
-
-      const grouped = new Map<number, Task[]>()
-      for (const task of dueTasks) {
-        const eqId = task.equipmentId
-        if (eqId == null) continue
-        if (!grouped.has(eqId)) grouped.set(eqId, [])
-        grouped.get(eqId)!.push(task)
-      }
-
-      const order = { overdue: 0, due_soon: 1 }
-      for (const [, tasks] of grouped) {
-        tasks.sort((a, b) => {
-          return (order[a.dueStatus as keyof typeof order] ?? 2) - (order[b.dueStatus as keyof typeof order] ?? 2)
-        })
-      }
-
-      return grouped
-    }
-
-    const sortedDueEquipmentIds = () => {
-      const grouped = dueTasksByEquipment()
-      const entries = [...grouped.entries()]
-      entries.sort(([, tasksA], [, tasksB]) => {
-        const hasOverdueA = tasksA.some(t => t.dueStatus === 'overdue') ? 0 : 1
-        const hasOverdueB = tasksB.some(t => t.dueStatus === 'overdue') ? 0 : 1
-        return hasOverdueA - hasOverdueB
-      })
-      return entries.map(([eqId]) => eqId)
-    }
-
     function getEquipmentForTask(taskId: number | undefined): Equipment | undefined {
       if (taskId == null) return undefined
       const task = state.tasks.find(t => t.id === taskId)
       if (!task || task.equipmentId == null) return undefined
-      return equipmentMap().get(task.equipmentId)
+      const eq = state.equipments.find(e => e.id === task.equipmentId)
+      return eq
     }
 
     function onQuickLog(task: Task) {
@@ -146,6 +86,10 @@ export function DashboardPage() {
 
     function onCancelQuickLog() {
       state.showQuickLog = false
+    }
+
+    function onQuickLogOverlayClick(e: Event) {
+      if ((e.target as HTMLElement).classList.contains('modal-overlay')) onCancelQuickLog()
     }
 
     async function onSaveQuickLog() {
@@ -172,10 +116,6 @@ export function DashboardPage() {
       }
     }
 
-    function toggleBannerFresh() {
-      state.bannerShowFresh = !state.bannerShowFresh
-    }
-
     return html`<section class="page">
       <h1>Dashboard</h1>
 
@@ -183,14 +123,83 @@ export function DashboardPage() {
         if (!state.loaded) return html`<p class="page__empty">Loading...</p>`
         if (state.loadError) return html`<div class="flash flash--error">${state.loadError}</div>`
 
-        const hourEqs = hourTrackedEquipments()
-        const grouped = dueTasksByEquipment()
-        const dueEqIds = sortedDueEquipmentIds()
-        const hasDueTasks = dueEqIds.length > 0
+        const hourEquipments = state.equipments
+          .filter(eq => eq.tracksHours)
+          .sort((a, b) => {
+            const timeA = a.hoursUpdatedAt ? new Date(a.hoursUpdatedAt).getTime() : 0
+            const timeB = b.hoursUpdatedAt ? new Date(b.hoursUpdatedAt).getTime() : 0
+            return timeA - timeB
+          })
+
+        const staleHourEqs = hourEquipments.filter(eq => isHoursStale(eq.hoursUpdatedAt))
+        const freshHourEqs = hourEquipments.filter(eq => !isHoursStale(eq.hoursUpdatedAt))
+
+        const dueTasks = state.tasks.filter(
+          t => t.dueStatus === 'overdue' || t.dueStatus === 'due_soon'
+        )
+
+        const grouped = new Map<number, Task[]>()
+        for (const task of dueTasks) {
+          const eqId = task.equipmentId
+          if (eqId == null) continue
+          if (!grouped.has(eqId)) grouped.set(eqId, [])
+          grouped.get(eqId)!.push(task)
+        }
+
+        const order = { overdue: 0, due_soon: 1 }
+        for (const [, tasks] of grouped) {
+          tasks.sort((a, b) => {
+            return (order[a.dueStatus as keyof typeof order] ?? 2) - (order[b.dueStatus as keyof typeof order] ?? 2)
+          })
+        }
+
+        const entries = [...grouped.entries()]
+        entries.sort(([, tasksA], [, tasksB]) => {
+          const hasOverdueA = tasksA.some(t => t.dueStatus === 'overdue') ? 0 : 1
+          const hasOverdueB = tasksB.some(t => t.dueStatus === 'overdue') ? 0 : 1
+          return hasOverdueA - hasOverdueB
+        })
+
+        const hasDueTasks = entries.length > 0
         const hasEquipments = state.equipments.length > 0
 
         return html`
-          ${hourEqs.length > 0 ? hoursBanner() : null}
+          ${hourEquipments.length > 0 ? html`<div class="hours-banner">
+            <div class="hours-banner__header">
+              <span class="hours-banner__title">Keep your hour-meters fresh</span>
+            </div>
+            <div class="hours-banner__list">
+              ${staleHourEqs.map(eq => {
+                const eqHref = '/equipments/' + eq.id
+                const updateHref = '/equipments/' + eq.id + '/edit/hours'
+                const stale = isHoursStale(eq.hoursUpdatedAt)
+                const rowClass = 'hours-banner__row' + (stale ? ' hours-banner__row--stale' : '')
+                const freshnessClass = isHoursVeryStale(eq.hoursUpdatedAt) ? ' very-stale' : stale ? ' stale' : ''
+                const updatedClass = 'hours-banner__updated' + freshnessClass
+                return html`<div class="${rowClass}">
+                  <a href="${eqHref}" class="hours-banner__eq-name">${eq.name}</a>
+                  <span class="hours-banner__hours">${formatHours(eq.hours)}</span>
+                  <span class="${updatedClass}">updated ${relativeTime(eq.hoursUpdatedAt)}</span>
+                  <a href="${updateHref}" class="btn btn--small">Update</a>
+                </div>`
+              })}
+              ${freshHourEqs.length > 0 ? html`<details class="hours-banner__fresh">
+                <summary class="hours-banner__summary">${freshHourEqs.length} fresh (show/hide)</summary>
+                ${freshHourEqs.map(eq => {
+                  const eqHref = '/equipments/' + eq.id
+                  const updateHref = '/equipments/' + eq.id + '/edit/hours'
+                  const rowClass = 'hours-banner__row'
+                  const updatedClass = 'hours-banner__updated'
+                  return html`<div class="${rowClass}">
+                    <a href="${eqHref}" class="hours-banner__eq-name">${eq.name}</a>
+                    <span class="hours-banner__hours">${formatHours(eq.hours)}</span>
+                    <span class="${updatedClass}">updated ${relativeTime(eq.hoursUpdatedAt)}</span>
+                    <a href="${updateHref}" class="btn btn--small">Update</a>
+                  </div>`
+                })}
+              </details>` : null}
+            </div>
+          </div>` : null}
 
           ${() => {
             if (!hasDueTasks) {
@@ -204,10 +213,9 @@ export function DashboardPage() {
             }
 
             return html`<div class="dashboard-tasks">
-              ${dueEqIds.map(eqId => {
-                const eq = equipmentMap().get(eqId)
+              ${entries.map(([eqId, tasks]) => {
+                const eq = state.equipments.find(e => e.id === eqId)
                 if (!eq) return null
-                const tasks = grouped.get(eqId) ?? []
                 const eqDetailHref = '/equipments/' + eqId
                 return html`<div class="equipment-block">
                   <div class="equipment-block__header">
@@ -235,75 +243,39 @@ export function DashboardPage() {
             </div>`
           }}
 
-          ${() => state.showQuickLog ? quickLogModal() : null}
+          ${() => state.showQuickLog ? html`
+            <div class="modal-overlay" @click="${onQuickLogOverlayClick}">
+              <div class="modal">
+                <h2 class="modal__title">Mark done: ${() => state.quickTaskName}</h2>
+                ${() => state.quickError ? html`<div class="flash flash--error">${state.quickError}</div>` : null}
+                <div class="form-field">
+                  <label class="form-field__label">Date *</label>
+                  <input type="date" .value="${() => state.quickDate}" @input="${(e: Event) => { state.quickDate = (e.target as HTMLInputElement).value }}" />
+                </div>
+                ${() => {
+                  const eq = getEquipmentForTask(state.quickTaskId!)
+                  const tracksHours = eq?.tracksHours ?? false
+                  return tracksHours ? html`
+                    <div class="form-field">
+                      <label class="form-field__label">Hours</label>
+                      <input type="number" min="0" .value="${() => String(state.quickHours)}" @input="${(e: Event) => { state.quickHours = Number((e.target as HTMLInputElement).value) }}" />
+                    </div>
+                  ` : null
+                }}
+                <div class="form-field">
+                  <label class="form-field__label">Notes</label>
+                  <input placeholder="Optional" .value="${() => state.quickComments}" @input="${(e: Event) => { state.quickComments = (e.target as HTMLInputElement).value }}" />
+                </div>
+                <div class="modal__actions">
+                  <button class="btn" @click="${onCancelQuickLog}">Cancel</button>
+                  <button class="btn btn--accent" @click="${onSaveQuickLog}" disabled="${() => state.quickSaving || !state.quickDate}">
+                    ${() => state.quickSaving ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            </div>` : null}
         `
       }}
     </section>`
-
-    function hoursBanner() {
-      const staleEqsList = staleHourEquipments()
-      const freshEqsList = freshHourEquipments()
-      const showFresh = state.bannerShowFresh
-
-      return html`<div class="hours-banner">
-        <div class="hours-banner__header" @click="${toggleBannerFresh}">
-          <span class="hours-banner__title">Keep your hour-meters fresh</span>
-          ${freshEqsList.length > 0 ? html`<span class="hours-banner__toggle">${showFresh ? 'Hide fresh' : 'Show fresh'}</span>` : null}
-        </div>
-        <div class="hours-banner__list">
-          ${staleEqsList.map(eq => hoursBannerRow(eq))}
-          ${showFresh ? freshEqsList.map(eq => hoursBannerRow(eq)) : null}
-        </div>
-      </div>`
-    }
-
-    function hoursBannerRow(eq: Equipment) {
-      const eqHref = '/equipments/' + eq.id
-      const updateHref = '/equipments/' + eq.id + '/edit/hours'
-      const stale = isHoursStale(eq.hoursUpdatedAt)
-      const rowClass = 'hours-banner__row' + (stale ? ' hours-banner__row--stale' : '')
-      const freshnessClass = isHoursVeryStale(eq.hoursUpdatedAt) ? ' very-stale' : stale ? ' stale' : ''
-      const updatedClass = 'hours-banner__updated' + freshnessClass
-
-      return html`<div class="${rowClass}">
-        <a href="${eqHref}" class="hours-banner__eq-name">${eq.name}</a>
-        <span class="hours-banner__hours">${formatHours(eq.hours)}</span>
-        <span class="${updatedClass}">updated ${relativeTime(eq.hoursUpdatedAt)}</span>
-        <a href="${updateHref}" class="btn btn--small">Update</a>
-      </div>`
-    }
-
-    function quickLogModal() {
-      const eq = getEquipmentForTask(state.quickTaskId!)
-      const tracksHours = eq?.tracksHours ?? false
-
-      return html`
-        <div class="modal-overlay" @click="${onCancelQuickLog}">
-          <div class="modal">
-            <h2 class="modal__title">Mark done: ${() => state.quickTaskName}</h2>
-            ${() => state.quickError ? html`<div class="flash flash--error">${state.quickError}</div>` : null}
-            <div class="form-field">
-              <label class="form-field__label">Date *</label>
-              <input type="date" .value="${() => state.quickDate}" @input="${(e: Event) => { state.quickDate = (e.target as HTMLInputElement).value }}" />
-            </div>
-            ${tracksHours ? html`
-              <div class="form-field">
-                <label class="form-field__label">Hours</label>
-                <input type="number" min="0" .value="${() => String(state.quickHours)}" @input="${(e: Event) => { state.quickHours = Number((e.target as HTMLInputElement).value) }}" />
-              </div>
-            ` : null}
-            <div class="form-field">
-              <label class="form-field__label">Notes</label>
-              <input placeholder="Optional" .value="${() => state.quickComments}" @input="${(e: Event) => { state.quickComments = (e.target as HTMLInputElement).value }}" />
-            </div>
-            <div class="modal__actions">
-              <button class="btn" @click="${onCancelQuickLog}">Cancel</button>
-              <button class="btn btn--accent" @click="${onSaveQuickLog}" disabled="${() => state.quickSaving || !state.quickDate}">
-                ${() => state.quickSaving ? 'Saving...' : 'Save'}
-              </button>
-            </div>
-          </div>
-        </div>`
-    }
   })()
 }

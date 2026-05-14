@@ -385,10 +385,8 @@ code {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  cursor: pointer;
   background: var(--card);
   border-bottom: 1px solid var(--border);
-  user-select: none;
 }
 
 .hours-banner__title {
@@ -396,10 +394,22 @@ code {
   font-weight: 600;
 }
 
-.hours-banner__toggle {
+.hours-banner__fresh {
+  border-top: 1px solid var(--border);
+}
+
+.hours-banner__summary {
   font-size: 12px;
   color: var(--accent);
   font-weight: 500;
+  cursor: pointer;
+  padding: 10px 16px;
+  list-style: none;
+  user-select: none;
+}
+
+.hours-banner__summary::-webkit-details-marker {
+  display: none;
 }
 
 .hours-banner__row {

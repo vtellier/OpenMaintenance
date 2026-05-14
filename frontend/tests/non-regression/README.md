@@ -36,3 +36,4 @@ The DB is wiped (via the REST API) before the run. See
 | `safedate-shows-nan.spec.ts` | Date formatting shows NaN (Arrow.js reactive wraps Dates in Proxy) | Milestone 6 |
 | `equipment-page-title.spec.ts` | Page title shows generic "Equipment #N" instead of equipment name | Milestone 6 |
 | `interval-display-deduplication.spec.ts` | "Every 100h or Every 6mo" has redundant "Every" | Milestone 6 |
+| `mark-done-modal-stays-open.spec.ts` | Clicking a field inside "Mark done" modal closed it (click event bubbled to overlay) | Milestone 6 |

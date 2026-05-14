@@ -147,6 +147,10 @@ storing them in reactive state. Updated all format functions to accept `Date | s
 - `equipment-page-title.spec.ts` — verifies equipment detail page title shows equipment name
 - `interval-display-deduplication.spec.ts` — verifies no duplicate "Every" in interval text
 
+## 2026-05-14 13:55 — Modal close bug fix
+
+Fixed a bug where clicking any input/field inside a modal (e.g. "Mark done") caused the modal to close immediately. Root cause: the `@click` handler on `.modal-overlay` called the cancel function unconditionally, so click events bubbling up from inner elements triggered it. Applied the guard pattern already used in `EquipmentsPage.ts` to all 5 affected modals in `DashboardPage.ts` and `EquipmentDetailPage.ts`. Added Playwright non-regression spec `mark-done-modal-stays-open.spec.ts` covering both dashboard and equipment page paths. All 6 tests pass.
+
 ## 2026-05-14 — Milestone 7 Dashboard
 
 Completed all 4 items in Milestone 7:

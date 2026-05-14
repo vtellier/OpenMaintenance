@@ -154,6 +154,10 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       state.showAddTask = false
     }
 
+    function onAddOverlayClick(e: Event) {
+      if ((e.target as HTMLElement).classList.contains('modal-overlay')) onCancelAdd()
+    }
+
     async function onSaveAdd() {
       if (!state.addName.trim()) return
       if (state.addHoursInterval <= 0 && state.addMonthsInterval <= 0) return
@@ -194,6 +198,10 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       state.showEditTask = false
     }
 
+    function onEditOverlayClick(e: Event) {
+      if ((e.target as HTMLElement).classList.contains('modal-overlay')) onCancelEdit()
+    }
+
     async function onSaveEdit() {
       if (!state.editName.trim() || state.editTaskId == null) return
       if (state.editHoursInterval <= 0 && state.editMonthsInterval <= 0) return
@@ -232,6 +240,10 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       state.showDeleteTask = false
     }
 
+    function onDeleteOverlayClick(e: Event) {
+      if ((e.target as HTMLElement).classList.contains('modal-overlay')) onCancelDelete()
+    }
+
     async function onConfirmDelete() {
       if (state.deleteTaskId == null) return
       state.deleteSaving = true
@@ -261,6 +273,10 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
     function onCancelQuickLog() {
       state.showQuickLog = false
+    }
+
+    function onQuickLogOverlayClick(e: Event) {
+      if ((e.target as HTMLElement).classList.contains('modal-overlay')) onCancelQuickLog()
     }
 
     async function onSaveQuickLog() {
@@ -437,7 +453,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
     function addTaskModal() {
       return html`
-        <div class="modal-overlay" @click="${onCancelAdd}">
+        <div class="modal-overlay" @click="${onAddOverlayClick}">
           <div class="modal">
             <h2 class="modal__title">Add task</h2>
             ${() => state.addError ? html`<div class="flash flash--error">${state.addError}</div>` : null}
@@ -471,7 +487,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
     function editTaskModal() {
       return html`
-        <div class="modal-overlay" @click="${onCancelEdit}">
+        <div class="modal-overlay" @click="${onEditOverlayClick}">
           <div class="modal">
             <h2 class="modal__title">Edit task</h2>
             ${() => state.editError ? html`<div class="flash flash--error">${state.editError}</div>` : null}
@@ -505,7 +521,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
     function deleteTaskModal() {
       return html`
-        <div class="modal-overlay" @click="${onCancelDelete}">
+        <div class="modal-overlay" @click="${onDeleteOverlayClick}">
           <div class="modal">
             <h2 class="modal__title">Delete task</h2>
             ${() => state.deleteError ? html`<div class="flash flash--error">${state.deleteError}</div>` : null}
@@ -522,7 +538,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
     function quickLogModal() {
       return html`
-        <div class="modal-overlay" @click="${onCancelQuickLog}">
+        <div class="modal-overlay" @click="${onQuickLogOverlayClick}">
           <div class="modal">
             <h2 class="modal__title">Mark done: ${() => state.quickTaskName}</h2>
             ${() => state.quickError ? html`<div class="flash flash--error">${state.quickError}</div>` : null}
