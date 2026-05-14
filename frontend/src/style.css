@@ -458,6 +458,40 @@ code {
   font-weight: 600;
 }
 
+.dashboard-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.equipment-block {
+  margin-bottom: 8px;
+}
+
+.equipment-block__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.equipment-block__name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--fg);
+  text-decoration: none;
+}
+
+.equipment-block__name:hover {
+  color: var(--accent);
+}
+
+.equipment-block__hours {
+  font-size: 13px;
+  color: var(--muted);
+}
+
 /* ── Mobile ── */
 
 /* ── Equipment Grid ── */
