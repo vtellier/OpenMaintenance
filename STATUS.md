@@ -165,3 +165,15 @@ Completed all 4 items in Milestone 7:
 Commits:
 - `13fa199` — Hour-meter freshness banner (collapsible, stale entries emphasized)
 - `ceb14a9` — Task grouping, quick-log, empty state
+
+## 2026-05-14 — Milestone 8 Interventions & Global History
+
+Completed all 5 items in Milestone 8:
+
+1. **Full intervention form**: shared `FullInterventionModal` component with equipment picker, task picker (filtered by equipment), date, hours (if applicable), location, comments. Used from both global and per-equipment history.
+2. **Global history screen**: reverse-chronological list with equipment name, task name, date, hours, location, comments. Filter by equipment (dropdown) and date range (from/to date inputs).
+3. **"+ Log intervention" CTA**: button in global History page header and per-equipment History tab header.
+4. **Edit intervention**: pre-filled full form, save calls `updateIntervention` API.
+5. **Delete intervention**: confirmation modal, equipment hours recomputed from remaining history.
+
+Commit: `93ab3b2` — Milestone 8: Full intervention form, global history with filters, edit/delete from history
