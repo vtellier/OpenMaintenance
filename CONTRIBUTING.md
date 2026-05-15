@@ -101,6 +101,18 @@ Every frontend bug fix must be accompanied by a Playwright non-regression spec i
 - Update `ROADMAP.md` when completing a milestone item
 - Append a summary to `STATUS.md` at the end of a working session
 
+### Releases and versioning
+
+Versions follow [Semantic Versioning](https://semver.org/) with a `v` prefix (`v1.2.3`). The version is derived at build time from git tags via `git describe --tags --always --dirty` — no `VERSION` file to maintain.
+
+To cut a release:
+```bash
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+CI/CD picks up the tag and produces a versioned binary. Between releases, builds show `v1.2.3-N-gSHA` (N commits after the tag). Uncommitted changes append `-dirty`.
+
 ## Coding agents
 
 See [`AGENTS.md`](./AGENTS.md) for the full agent guide, skill map, and rules.

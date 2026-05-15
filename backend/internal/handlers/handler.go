@@ -6,7 +6,8 @@ import (
 )
 
 type Handler struct {
-	DB *sql.DB
+	DB      *sql.DB
+	Version string
 }
 
 var _ generated.ServerInterface = (*Handler)(nil)

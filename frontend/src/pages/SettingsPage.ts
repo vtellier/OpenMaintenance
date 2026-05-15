@@ -35,7 +35,7 @@ export const SettingsPage = () => html`
 
     <section class="settings-section">
       <h2 class="settings-section__title">About</h2>
-      <p class="settings-about__line">OpenMaintenance v0.1.0</p>
+      <p class="settings-about__line">OpenMaintenance ${__APP_VERSION__}</p>
       <p class="settings-about__line"><a href="https://github.com/vtellier/OpenMaintenance">github.com/vtellier/OpenMaintenance</a></p>
       <p class="settings-about__line">MIT License</p>
     </section>

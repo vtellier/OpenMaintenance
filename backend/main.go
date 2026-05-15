@@ -16,6 +16,9 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// Version is injected at build time via -ldflags "-X main.Version=..."
+var Version = "dev"
+
 //go:embed static
 var staticFiles embed.FS
 
@@ -54,7 +57,7 @@ func main() {
 		return nil
 	})
 
-	h := &handlers.Handler{DB: database}
+	h := &handlers.Handler{DB: database, Version: Version}
 	generated.RegisterHandlersWithBaseURL(e, h, "/api")
 
 	log.Fatal(e.Start(fmt.Sprintf(":%d", cfg.Server.Port)))

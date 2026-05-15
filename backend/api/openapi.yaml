@@ -7,6 +7,19 @@ servers:
   - url: http://localhost:3001/api
     description: Local development server
 paths:
+  /version:
+    get:
+      operationId: getVersion
+      summary: Get application version
+      tags:
+        - System
+      responses:
+        '200':
+          description: Version information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionInfo'
   /equipments:
     get:
       operationId: listEquipments
@@ -522,6 +535,15 @@ components:
           type: string
           format: date-time
           description: When the intervention was last updated
+    VersionInfo:
+      type: object
+      required:
+        - version
+      properties:
+        version:
+          type: string
+          description: Application version derived from git tag
+          example: "v0.1.0"
     InterventionInput:
       type: object
       required:
