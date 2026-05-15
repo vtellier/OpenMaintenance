@@ -37,3 +37,6 @@ The DB is wiped (via the REST API) before the run. See
 | `equipment-page-title.spec.ts` | Page title shows generic "Equipment #N" instead of equipment name | Milestone 6 |
 | `interval-display-deduplication.spec.ts` | "Every 100h or Every 6mo" has redundant "Every" | Milestone 6 |
 | `mark-done-modal-stays-open.spec.ts` | Clicking a field inside "Mark done" modal closed it (click event bubbled to overlay) | Milestone 6 |
+| `task-list-appears-after-add.spec.ts` | Task list stays empty after adding a task — static Arrow.js expression never re-evaluated | Milestone 10 |
+| `task-last-date-updates-after-mark-done.spec.ts` | "Last: never" stays stale after logging an intervention — static `lastLabel` never re-evaluated | Milestone 10 |
+| `equipment-history-appears-after-add.spec.ts` | New intervention not shown in per-equipment History tab without page reload | Milestone 10 |

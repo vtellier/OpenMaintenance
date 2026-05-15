@@ -465,9 +465,9 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           <nav class="sub-tabs">${tabLinks}</nav>
 
           <div class="tab-content">
-            ${currentTab === '' ? taskTabContent() : null}
-            ${currentTab === 'history' ? historyTabContent() : null}
-            ${currentTab === 'info' ? infoTabContent() : null}
+            ${() => currentTab === '' ? taskTabContent() : null}
+            ${() => currentTab === 'history' ? historyTabContent() : null}
+            ${() => currentTab === 'info' ? infoTabContent() : null}
           </div>
 
           ${() => state.showAddTask ? addTaskModal() : null}
@@ -506,16 +506,18 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
     // ── Tab content renderers ──
 
     function taskTabContent() {
-      const tasks = sortedTasks()
       return html`
         <div class="tab-toolbar">
           <h2>Tasks</h2>
           <button class="btn btn--accent" @click="${onAddTask}">+ Add task</button>
         </div>
-        ${tasks.length === 0
-          ? html`<p class="page__empty">No maintenance tasks yet for this equipment. <a href="#" @click="${onAddTask}">Add the first task</a>.</p>`
-          : html`<div class="task-list-compact">
-            ${tasks.map(t => {
+        ${() => {
+          const tasks = sortedTasks()
+          if (tasks.length === 0) {
+            return html`<p class="page__empty">No maintenance tasks yet for this equipment. <a href="#" @click="${onAddTask}">Add the first task</a>.</p>`
+          }
+          return html`<div class="task-list-compact">
+            ${() => tasks.map(t => {
               const lastInv = getLastIntervention(t.id)
               const parts: string[] = []
               if (t.hoursInterval) parts.push('Every ' + t.hoursInterval + 'h')
@@ -543,26 +545,29 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
                 </div>
               </div>`
             })}
-          </div>`}
+          </div>`
+        }}
       `
     }
 
     function historyTabContent() {
-      const sorted = [...state.interventions].sort((a, b) => {
-        const da = a.date ? new Date(a.date) : null
-        const db = b.date ? new Date(b.date) : null
-        if (!da || !db) return 0
-        return db.getTime() - da.getTime()
-      })
       return html`
         <div class="tab-toolbar">
           <h2>History</h2>
           <button class="btn btn--accent" @click="${onAddFromHistory}">+ Log intervention</button>
         </div>
-        ${sorted.length === 0
-          ? html`<p class="page__empty">No history yet for this equipment.</p>`
-          : html`<div class="history-list">
-            ${sorted.map(inv => {
+        ${() => {
+          const sorted = [...state.interventions].sort((a, b) => {
+            const da = a.date ? new Date(a.date) : null
+            const db = b.date ? new Date(b.date) : null
+            if (!da || !db) return 0
+            return db.getTime() - da.getTime()
+          })
+          if (sorted.length === 0) {
+            return html`<p class="page__empty">No history yet for this equipment.</p>`
+          }
+          return html`<div class="history-list">
+            ${() => sorted.map(inv => {
               const dateStr = formatDate(inv.date)
               return html`<div class="history-item">
                 <div class="history-item__main">
@@ -579,7 +584,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
                 </div>
               </div>`
             })}
-          </div>`}
+          </div>`
+        }}
       `
     }
 

@@ -81,8 +81,8 @@ _Depends on Milestone 6 (quick-log must work, `hours_updated_at` must be set, da
 
 ## Milestone 10 — Reactivity Bug Fixes
 
-- [ ] **Task list not refreshed after add**: task list stays empty after saving a new task — requires page reload to appear
-- [ ] **Task card not updated after mark done**: "Last: never" stays stale after logging an intervention — requires page reload to reflect the new date
+- [x] **Task list not refreshed after add**: task list stays empty after saving a new task — requires page reload to appear
+- [x] **Task card not updated after mark done**: "Last: never" stays stale after logging an intervention — requires page reload to reflect the new date
 
 ## Milestone 11 — Regionalisation
 
