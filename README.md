@@ -72,6 +72,9 @@ sudo chown -R openmaintenance:openmaintenance /opt/openmaintenance
 **4. Create the systemd unit**
 
 Create `/etc/systemd/system/openmaintenance.service`:
+```bash
+sudo touch /etc/systemd/system/openmaintenance.service
+```
 
 ```ini
 [Unit]
