@@ -78,27 +78,20 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           taskApi.listTasks(),
         ])
 
-        state.equipment = {
-          ...eq,
-          hoursUpdatedAt: eq.hoursUpdatedAt?.toISOString(),
-          createdAt: eq.createdAt?.toISOString(),
-          updatedAt: eq.updatedAt?.toISOString(),
-        } as Equipment
-
-        state.tasks = ts.map((t: any) => ({
+        const newTasks = ts.map((t: any) => ({
           ...t,
           nextDueDate: t.nextDueDate?.toISOString(),
           updatedAt: t.updatedAt?.toISOString(),
         }))
 
-        state.allTasks = allTs.map((t: any) => ({
+        const newAllTasks = allTs.map((t: any) => ({
           ...t,
           nextDueDate: t.nextDueDate?.toISOString(),
           updatedAt: t.updatedAt?.toISOString(),
         }))
 
         const taskIds = new Set(ts.map((t: Task) => t.id))
-        state.interventions = interventionsResponse.filter(
+        const newInterventions = interventionsResponse.filter(
           (inv: Intervention) => inv.taskId != null && taskIds.has(inv.taskId)
         ).map((inv: any) => ({
           ...inv,
@@ -106,6 +99,18 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           createdAt: inv.createdAt?.toISOString(),
           updatedAt: inv.updatedAt?.toISOString(),
         }))
+
+        const newEquipment = {
+          ...eq,
+          hoursUpdatedAt: eq.hoursUpdatedAt?.toISOString(),
+          createdAt: eq.createdAt?.toISOString(),
+          updatedAt: eq.updatedAt?.toISOString(),
+        } as Equipment
+
+        state.tasks = newTasks
+        state.allTasks = newAllTasks
+        state.interventions = newInterventions
+        state.equipment = newEquipment
       } catch {
         state.loadError = 'Failed to load equipment'
       } finally {
@@ -494,17 +499,15 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
     // ── Tab content renderers ──
 
     function taskTabContent() {
+      const tasks = sortedTasks()
       return html`
         <div class="tab-toolbar">
           <h2>Tasks</h2>
           <button class="btn btn--accent" @click="${onAddTask}">+ Add task</button>
         </div>
-        ${() => {
-          const tasks = sortedTasks()
-          if (tasks.length === 0) {
-            return html`<p class="page__empty">No maintenance tasks yet for this equipment. <a href="#" @click="${onAddTask}">Add the first task</a>.</p>`
-          }
-          return html`<div class="task-list-compact">
+        ${tasks.length === 0
+          ? html`<p class="page__empty">No maintenance tasks yet for this equipment. <a href="#" @click="${onAddTask}">Add the first task</a>.</p>`
+          : html`<div class="task-list-compact">
             ${tasks.map(t => {
               const lastInv = getLastIntervention(t.id)
               const parts: string[] = []
@@ -512,9 +515,6 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               if (t.monthsInterval) parts.push(t.monthsInterval + 'mo')
               const trigger = parts.join(' or ')
               const lastLabel = lastInv ? formatDate(lastInv.date) + (lastInv.hoursAt != null ? ' \u2022 ' + formatHours(lastInv.hoursAt) : '') : 'never'
-              const dueClass = 'due-indicator due-indicator--' + (t.dueStatus === 'overdue' ? 'overdue' : t.dueStatus === 'due_soon' ? 'due-soon' : 'ok')
-              const dueLabel = t.dueStatus === 'overdue' ? 'Overdue' : t.dueStatus === 'due_soon' ? 'Due soon' : 'OK'
-              const dueRelativeStr = dueRelative(t.nextDueDate, t.nextDueHours)
               return html`<div class="task-row">
                 <div class="task-row__info">
                   <p class="task-row__name">${t.name}</p>
@@ -522,15 +522,21 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
                   <p class="task-row__meta">Last: ${lastLabel}</p>
                 </div>
                 <div class="task-row__actions">
-                  <span class="${dueClass}">${dueClass.indexOf('--ok') >= 0 ? dueLabel : dueLabel + ' \u2014 ' + dueRelativeStr}</span>
+                  ${() => {
+                    const task = state.tasks.find(tt => tt.id === t.id)
+                    const ds = task?.dueStatus ?? 'ok'
+                    const relStr = dueRelative(task?.nextDueDate, task?.nextDueHours)
+                    if (ds === 'overdue') return html`<span class="due-indicator due-indicator--overdue">Overdue \u2014 ${relStr}</span>`
+                    if (ds === 'due_soon') return html`<span class="due-indicator due-indicator--due-soon">Due soon \u2014 ${relStr}</span>`
+                    return html`<span class="due-indicator due-indicator--ok">OK</span>`
+                  }}
                   <button class="btn btn--small" @click="${() => onQuickLog(t)}">Done</button>
                   <button class="btn btn--small" @click="${() => onEditTask(t)}">Edit</button>
                   <button class="btn btn--small btn--danger" @click="${() => onDeleteTask(t)}">Del</button>
                 </div>
               </div>`
             })}
-          </div>`
-        }}
+          </div>`}
       `
     }
 
@@ -565,8 +571,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
                 </div>
               </div>`
             })}
-          </div>`
-        }
+          </div>`}
       `
     }
 

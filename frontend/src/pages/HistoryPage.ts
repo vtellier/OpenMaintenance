@@ -242,40 +242,45 @@ export function HistoryPage() {
       </div>
 
       ${() => {
-        if (!state.loaded) return html`<p class="page__empty">Loading...</p>`
-        if (state.loadError) return html`<div class="flash flash--error">${state.loadError}</div>`
+        const loaded = state.loaded
+        const loadError = state.loadError
+        const equipments = state.equipments
+        const filterEquipmentId = state.filterEquipmentId
+        const filterDateFrom = state.filterDateFrom
+        const filterDateTo = state.filterDateTo
+        const interventions = state.interventions
+        const tasks = state.tasks
 
-        return html`
+        let listContent = null as ReturnType<typeof html> | null
 
-          <div class="history-filters">
-            <div class="form-field">
-              <select .value="${() => state.filterEquipmentId != null ? String(state.filterEquipmentId) : ''}" @change="${onFilterEquipmentChange}">
-                <option value="">All equipments</option>
-                ${() => state.equipments.map(eq => html`<option value="${String(eq.id)}">${eq.name}</option>`)}
-              </select>
-            </div>
-            <div class="form-field">
-              <input type="date" .value="${() => state.filterDateFrom}" @input="${onFilterFromChange}" placeholder="From" />
-            </div>
-            <div class="form-field">
-              <input type="date" .value="${() => state.filterDateTo}" @input="${onFilterToChange}" placeholder="To" />
-            </div>
-          </div>
+        if (loaded && !loadError) {
+          let list = [...interventions]
+          if (filterEquipmentId != null) {
+            const taskIdsForEq = new Set(tasks.filter(t => t.equipmentId === filterEquipmentId).map(t => t.id))
+            list = list.filter(inv => inv.taskId != null && taskIdsForEq.has(inv.taskId))
+          }
+          if (filterDateFrom) {
+            const fromDate = new Date(filterDateFrom + 'T00:00:00')
+            list = list.filter(inv => inv.date && new Date(inv.date) >= fromDate)
+          }
+          if (filterDateTo) {
+            const toDate = new Date(filterDateTo + 'T23:59:59')
+            list = list.filter(inv => inv.date && new Date(inv.date) <= toDate)
+          }
+          list.sort((a, b) => {
+            const da = a.date ? new Date(a.date).getTime() : 0
+            const db = b.date ? new Date(b.date).getTime() : 0
+            return db - da
+          })
 
-          ${() => {
-            const items = sortedInterventions()
-            if (items.length === 0) {
-              const hasEquipments = state.equipments.length > 0
-              if (!hasEquipments) {
-                return html`<p class="page__empty">
-                  No interventions logged yet. Once you add equipments and mark tasks as done, they'll appear here.
-                </p>`
-              }
-              return html`<p class="page__empty">No interventions match your filters.</p>`
-            }
-
-            return html`<div class="history-list">
-              ${items.map(inv => {
+          if (list.length === 0) {
+            listContent = equipments.length === 0
+              ? html`<p class="page__empty">No interventions logged yet. Once you add equipments and mark tasks as done, they'll appear here.</p>`
+              : html`<p class="page__empty">No interventions match your filters.</p>`
+          } else {
+            const currentList = list
+            listContent = html`<div class="history-list">
+              ${() => currentList.map(inv => {
                 const eq = getEquipmentForTask(inv.taskId)
                 const task = getTask(inv.taskId)
                 const dateStr = formatDate(inv.date)
@@ -297,8 +302,32 @@ export function HistoryPage() {
                 </div>`
               })}
             </div>`
-          }}
-        `
+          }
+        }
+
+        return html`<div class="history-body">
+          <div class="history-filters">
+            <div class="form-field">
+              <select @change="${onFilterEquipmentChange}">
+                <option value="">All equipments</option>
+                ${() => equipments.map(eq => {
+                  return filterEquipmentId === eq.id
+                    ? html`<option value="${String(eq.id)}" selected="selected">${eq.name}</option>`
+                    : html`<option value="${String(eq.id)}">${eq.name}</option>`
+                })}
+              </select>
+            </div>
+            <div class="form-field">
+              <input type="date" value="${filterDateFrom}" @input="${onFilterFromChange}" placeholder="From" />
+            </div>
+            <div class="form-field">
+              <input type="date" value="${filterDateTo}" @input="${onFilterToChange}" placeholder="To" />
+            </div>
+          </div>
+          ${() => !loaded ? html`<p class="page__empty">Loading...</p>` : null}
+          ${() => loadError ? html`<div class="flash flash--error">${loadError}</div>` : null}
+          ${() => listContent}
+        </div>`
       }}
 
       ${() => state.showForm ? FullInterventionModal(state as any, {
