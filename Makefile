@@ -1,4 +1,4 @@
-.PHONY: generate-openapi build build-backend build-frontend copy-frontend install-oapi-codegen
+.PHONY: generate-openapi build build-backend build-frontend copy-frontend install-oapi-codegen dev
 
 OAPI_CODEGEN := $(shell which oapi-codegen 2>/dev/null || echo "")
 
@@ -22,3 +22,8 @@ copy-frontend:
 	cp -r frontend/dist/client backend/static
 
 build: build-frontend copy-frontend build-backend
+
+dev:
+	@echo "Starting backend on :3001 and frontend on :5173 ..."
+	cd backend && go run . &
+	cd frontend && pnpm dev

@@ -1,95 +1,103 @@
 # OpenMaintenance Agent Guide
 
-## Key Facts
+## Project Overview
+
 - **Purpose**: Free, open-source web app for tracking maintenance tasks (boats, cars, homes, etc.).
-- **Self hostable**: The project is meant to be easily self-hostable.
-- **Minimalist**: This is and must stay  a very lightweight application. No fancy framework, just robust bare minimum technologies.
+- **Self-hostable**: Designed to be easily self-hosted.
+- **Minimalist**: Lightweight by design — no heavy frameworks.
 
 ## Architecture
-Two layers: a backend and a frontend.
 
-### Backend
-- **Source code**: located in the `backend/` folder
-- **Stack**: Go + Echo + SQLite
-- **API**: A REST API which is defined with an OpenAPI spec located at `backend/api/`
+| Layer | Location | Stack |
+|-------|----------|-------|
+| Backend | `backend/` | Go + Echo + SQLite |
+| Frontend | `frontend/` | Arrow.js + Vite |
+| API spec | `backend/api/openapi.yaml` | OpenAPI (single source of truth) |
 
-### Frontend
-- **Source code**: located in the folder `frontend/`
-- **Framework**: [Arrow.js](https://arrow-js.com/)
-- **API**:
-  - The OpenAPI spec of the backend IS THE SINGLE SOURCE OF TRUTH
-  - The client code of the API is generated using OpenAPI Generator
-  - The client is used in Arrow.js components
+The backend serves the frontend as embedded static files. The frontend TypeScript client is generated from the OpenAPI spec.
 
-## Workflow Notes
-- **No CI/CD**: No `.github`, `.gitlab`, or other workflow configs.
-- **Scripts / CLI / Tools**: There is no common tool, the backend and the frontend have their own, independ from each others
-- **Frontend non-regression tests**: Playwright specs live in `frontend/tests/non-regression/`. Run with `pnpm test` in `frontend/` (both servers must be running). The DB is wiped via the API before each run. No CI yet — tests are run locally by the agent after a fix.
-- **No backend tests**: The Go backend has no test suite.
-- **API Client Generation**: Use `pnpm run generate:api` in the frontend directory to generate the TypeScript API client from the OpenAPI spec. Use `pnpm run clean:api` to remove generated files.
+## Agent Map
 
-## Product Specifications
+### Starting a new feature
+1. Read [`doc/overview.md`](./doc/overview.md) — product vision and principles
+2. Read [`doc/data-model.md`](./doc/data-model.md) — Equipment, Task, Intervention, hour-meter rules
+3. Read the relevant GUI spec in [`doc/gui/`](./doc/gui/) — navigation, dashboard, equipments, tasks, interventions, history, settings
+4. Read `backend/api/openapi.yaml` — API contract
+5. Load the Arrow.js skill: `.agents/skills/arrow-js/SKILL.md`
 
-**All features, data model, and GUI specifications are documented in the `doc/` folder.** Before coding any feature, review the relevant spec file:
+### Fixing a frontend bug
+1. Read the GUI spec for the affected screen
+2. Load the non-regression test skill: `.agents/skills/non-regression-test/SKILL.md`
+3. Reproduce with Chrome DevTools MCP before touching code
 
-- **Product vision & principles**: [`doc/overview.md`](./doc/overview.md)
-- **Data model** (Equipment, Task, Intervention, hour-meter rules): [`doc/data-model.md`](./doc/data-model.md)
-- **GUI specifications**:
-  - [Navigation & app shell](./doc/gui/navigation.md)
-  - [Dashboard (landing screen)](./doc/gui/dashboard.md)
-  - [Equipments (list & detail)](./doc/gui/equipments.md)
-  - [Tasks (maintenance program)](./doc/gui/tasks.md)
-  - [Interventions (logging actions)](./doc/gui/interventions.md)
-  - [History (global view)](./doc/gui/history.md)
-  - [Settings](./doc/gui/settings.md)
+### Modifying the API
+1. Edit `backend/api/openapi.yaml` first
+2. Run `make generate-openapi` to regenerate the Go server stubs
+3. Run `pnpm run generate:api` in `frontend/` to regenerate the TS client
 
-**Key rule**: The OpenAPI spec is the single source of truth for the backend. The frontend GUI specs in `doc/gui/` define the target user experience. Keep both aligned.
+### Do not touch (generated files)
+- `backend/internal/generated/openapi.gen.go` — regenerate via `make generate-openapi`
+- `frontend/generated/` — regenerate via `pnpm run generate:api` in `frontend/`
+- `backend/static/` — regenerate via `make build`
 
-## Agent instructions
+## Commands
 
-### The README.md
-- **Always up to date**: Everytime you do something in the repository, update the README.md
-- **Small as possible**: Only the necessary information to understand the project. Use short and straightforward sentences.
-- **No code example**: unless in the instructions for installation, otherwise the reader will open the source code themselves
+| Task | Command | Working dir |
+|------|---------|-------------|
+| Start both servers | `make dev` | repo root |
+| Start backend | `go run .` | `backend/` |
+| Start frontend (dev) | `pnpm dev` | `frontend/` |
+| Build everything | `make build` | repo root |
+| Build backend only | `make build-backend` | repo root |
+| Build frontend only | `make build-frontend` | repo root |
+| Regen OpenAPI (Go) | `make generate-openapi` | repo root |
+| Regen API client (TS) | `pnpm run generate:api` | `frontend/` |
+| Run frontend tests | `pnpm test` | `frontend/` |
 
-### Development Prerequisites
-The following must be installed on the developer's machine for the agent to work correctly:
+Servers run on:
+- Backend: `http://localhost:3001`
+- Frontend (dev): `http://localhost:5173`
 
-- **chrome-devtools-mcp** (global): Required for the Chrome DevTools MCP to work.
-  ```bash
-  npm install -g chrome-devtools-mcp
-  ```
+## Skills
 
-### When coding
-- **Always check your code**: Every time you modify **frontend** or **backend** code, validate it still compiles. Run `npm run build` for the frontend and `go build` for the backend.
-- **Use Context7 MCP**: To read the docs, especially the ones of Arrow.js.
-- **Use Chrome-DevTool MCP**: To explore and debug the frontend interactively.
-- **Test as you go**: use `curl` when modifying the backend or the API, use chrome-devtools when investigating frontend issues.
-- **Re-read skill pitfalls**: Before modifying any framework code (Arrow.js, Go/Echo, etc.), re-read the **Gotchas / Pitfalls** section of the relevant `.opencode/skills/*/SKILL.md` file.
+| Skill | File | When to use |
+|-------|------|-------------|
+| Arrow.js | `.agents/skills/arrow-js/SKILL.md` | Any frontend code change |
+| Non-regression tests | `.agents/skills/non-regression-test/SKILL.md` | Fixing or testing frontend bugs |
 
-### When fixing frontend bugs
-- **Load the test skill first**: Before writing any fix code, load the `non-regression-test` skill. This is mandatory — the skill contains the workflow, spec template, locator rules, and run commands. Writing a fix without having loaded the skill is not allowed.
-- **Re-read the specs before fixing**: double check the specifications from the doc/ folder to verify the bug is an actual bug.
-- **Try before fixing**: Identify the buggy use-case by using the MCP chrome-devtools.
-- **Pin frontend bugs with a Playwright test**: Add or update a spec under `frontend/tests/non-regression/`, run `pnpm test`, update the index README.
-- **One commit per bug**: once fixed and tested suggest a commit. Ask for confirmation before committing.
+## Rules
 
+### Code quality
+- After every frontend change: `pnpm run build` in `frontend/`
+- After every backend change: `go build` in `backend/`
+- Before modifying Arrow.js or Go/Echo code: re-read the **Gotchas / Pitfalls** section in the relevant skill file
+- Use `curl` to test backend changes; use Chrome DevTools MCP for frontend
 
-### Critical Reminders
-- **Ask questions**: When there is ambiguity, ask instead of guessing.
-- **Remind about git**: Suggest the user to `git commit` when there's a lot of uncommitted modification. Suggest a small git commit message.
-- **Short answers**: Avoid giving too much information that has not been asked, focus on answering what has been explicitly asked.
-- **Don't over-plan**: Offer plans that target only the given scope. If the scope isn't clear ask for more details.
-- **Always run background tasks via pty plugin**: the plugin `opencode-pty` is the only way you have to run tasks in background, NEVER bypass it.
-- **Figure out why a TCP port is busy**: when you try to run a server on a specific port and this port appears to already be in use, figure out what process uses it and offer to kill it instead of picking up another port.
-- **Never run `pkill` blindly**: always check `ps aux | grep ...` first to confirm the process actually exists before attempting to kill it.
-- **Don't delete files you didn't create**: if you see an untracked file you don't recognize, just leave it alone (don't commit it, don't delete it — it's not your place).
-- **Don't /compact yourself**: When running out of context, do not compact automatically, ask the user for confirmation
+### Frontend bugs
+- Load the non-regression-test skill before writing any fix
+- Verify the bug against `doc/` specs — confirm it is actually a bug
+- Reproduce with Chrome DevTools MCP first
+- Pin every bug with a Playwright spec in `frontend/tests/non-regression/`
+- Run `pnpm test` after fixing; all specs must pass
+- One commit per bug
 
-### Session rituals
-- **Session summary**: **Always** append a 1-10 lines session summary to STATUS.md before exiting the session. It shall include date and time.
-- **Update ROADMAP.md**: After completing any work, update ROADMAP.md to reflect progress. Use `/update-roadmap` to run the dedicated update command, or manually check off completed items in the appropriate milestone.
-- **Re-read skill pitfalls**: Before modifying any framework code (Arrow.js, Go/Echo, etc.), re-read the **Gotchas / Pitfalls** section of the relevant `.opencode/skills/*/SKILL.md` file. These are hard-won lessons that the agent has already added — don't re-learn them.
+### Git and documentation
+- Update `README.md` after every change (keep it short, no code examples)
+- Append a session summary to `STATUS.md` before ending a session
+- Update `ROADMAP.md` after completing work (`/update-roadmap` command or manual)
+- One commit per logical change; ask for confirmation before committing
 
-See `.opencode/skills/arrow-js/SKILL.md` for Arrow.js guidance.
+### Behavior
+- Ask when there is ambiguity — do not guess
+- Short answers — answer only what was asked
+- Do not over-plan — match scope to the request
+- Do not delete unrecognized files
+- Do not compact context without asking for confirmation
+- When a port is busy, identify the process and offer to kill it — do not switch ports
 
+### Background tasks (OpenCode only)
+- Use the `opencode-pty` plugin to run background tasks — never bypass it
+
+## Prerequisites
+
+- **chrome-devtools-mcp** (global npm): `npm install -g chrome-devtools-mcp`

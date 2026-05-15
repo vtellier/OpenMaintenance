@@ -11,9 +11,9 @@ Use this skill when the project uses Arrow packages such as `@arrow-js/core`, `@
 
 1. Confirm whether the task is core-only Arrow or full-framework Arrow.
 2. Read the smallest relevant reference:
-   - Getting started / scaffold shape: `.arrow-js/skill/getting-started.md`
-   - API surface and package split: `.arrow-js/skill/api.md`
-   - Common patterns and examples: `.arrow-js/skill/examples.md`
+   - Getting started / scaffold shape: `.agents/skills/arrow-js/getting-started.md`
+   - API surface and package split: `.agents/skills/arrow-js/api.md`
+   - Common patterns and examples: `.agents/skills/arrow-js/examples.md`
 3. Prefer idiomatic Arrow:
    - `reactive()` for state
    - `html` tagged templates for DOM
@@ -203,6 +203,6 @@ The closures capture the **local variable** from the current outer slot run. Whe
 
 ## References
 
-- `.arrow-js/skill/getting-started.md`
-- `.arrow-js/skill/api.md`
-- `.arrow-js/skill/examples.md`
+- `.agents/skills/arrow-js/getting-started.md`
+- `.agents/skills/arrow-js/api.md`
+- `.agents/skills/arrow-js/examples.md`
