@@ -2,12 +2,14 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/vtellier/OpenMaintenance/internal/config"
 	"github.com/vtellier/OpenMaintenance/internal/db"
 	"github.com/vtellier/OpenMaintenance/internal/generated"
 	"github.com/vtellier/OpenMaintenance/internal/handlers"
@@ -18,7 +20,12 @@ import (
 var staticFiles embed.FS
 
 func main() {
-	database, err := db.InitDB()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	database, err := db.InitDB(cfg.Database.Path)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -50,5 +57,5 @@ func main() {
 	h := &handlers.Handler{DB: database}
 	generated.RegisterHandlersWithBaseURL(e, h, "/api")
 
-	log.Fatal(e.Start(":3001"))
+	log.Fatal(e.Start(fmt.Sprintf(":%d", cfg.Server.Port)))
 }

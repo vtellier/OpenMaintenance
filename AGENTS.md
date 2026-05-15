@@ -25,6 +25,8 @@ The backend serves the frontend as embedded static files. The frontend TypeScrip
 4. Read `backend/api/openapi.yaml` — API contract
 5. Load the Arrow.js skill: `.agents/skills/arrow-js/SKILL.md`
 
+**Spec first, code second**: before writing any implementation, update the relevant files in `doc/` to reflect the new behaviour. Present the spec to the user and wait for approval before touching any code.
+
 ### Fixing a frontend bug
 1. Read the GUI spec for the affected screen
 2. Load the non-regression test skill: `.agents/skills/non-regression-test/SKILL.md`

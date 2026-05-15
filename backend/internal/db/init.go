@@ -8,12 +8,14 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func InitDB() (*sql.DB, error) {
-	exe, err := os.Executable()
-	if err != nil {
-		return nil, err
+func InitDB(dbPath string) (*sql.DB, error) {
+	if !filepath.IsAbs(dbPath) {
+		exe, err := os.Executable()
+		if err != nil {
+			return nil, err
+		}
+		dbPath = filepath.Join(filepath.Dir(exe), dbPath)
 	}
-	dbPath := filepath.Join(filepath.Dir(exe), "maintenance.db")
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, err

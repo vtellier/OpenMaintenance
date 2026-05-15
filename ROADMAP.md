@@ -105,6 +105,12 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [ ] Settings UI: Number format picker (3 options)
 - [ ] Update `document.documentElement.lang` when language changes
 
+## Milestone 12 — Deployment Configuration
+
+- [x] `config.yaml` auto-created next to binary with defaults on first run
+- [x] Configurable server port (default: `3001`)
+- [x] Configurable database path (default: `./maintenance.db`, relative to binary)
+
 ## Future (post-V1)
 
 - Configurable "due soon" window
