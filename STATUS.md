@@ -189,3 +189,15 @@ Added a `meta` key/value table to SQLite storing:
 Migrations list is currently empty — v1 is the bootstrap schema. New schema changes append `{Version: N, SQL: …}` and bump `CurrentSchemaVersion`.
 
 Spec: `doc/db-migration.md`.
+
+## 2026-05-15 — performed_by field + dev tooling fixes
+
+Added optional "Done by" field to interventions (person or company who performed the work).
+
+- DB migration v2: `ALTER TABLE interventions ADD COLUMN performed_by TEXT`
+- OpenAPI spec, Go model, and all DB queries updated
+- Frontend: field appears between Location and Comments in the full form, and between Hours and Notes in quick log modals (Dashboard and Equipment detail); displayed in history lists when set
+
+Also fixed two dev tooling issues:
+- `make generate-openapi` was failing because `oapi-codegen` was installed in `~/go/bin` but not on PATH — Makefile now uses `$(GOBIN)/oapi-codegen`
+- Vite dev server had no `/api` proxy configured — API calls were returning the HTML shell instead of hitting the backend; added `proxy: { '/api': 'http://localhost:3001' }` to `vite.config.ts`
