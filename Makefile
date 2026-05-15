@@ -11,6 +11,7 @@ install-oapi-codegen:
 	fi
 
 generate-openapi: install-oapi-codegen
+	mkdir -p backend/internal/generated
 	oapi-codegen -generate types,server -package generated backend/api/openapi.yaml > backend/internal/generated/openapi.gen.go
 
 build-backend:
