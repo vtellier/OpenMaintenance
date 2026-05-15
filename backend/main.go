@@ -35,7 +35,17 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	e.GET("/*", echo.WrapHandler(http.FileServer(http.FS(sub))))
+	fileServer := http.FileServer(http.FS(sub))
+	e.GET("/*", func(c echo.Context) error {
+		path := c.Request().URL.Path
+		// Check if the file exists in the embedded FS
+		if _, err := fs.Stat(sub, path[1:]); err != nil {
+			// Serve index.html for SPA client-side routing
+			c.Request().URL.Path = "/"
+		}
+		echo.WrapHandler(fileServer)(c)
+		return nil
+	})
 
 	h := &handlers.Handler{DB: database}
 	generated.RegisterHandlersWithBaseURL(e, h, "/api")
