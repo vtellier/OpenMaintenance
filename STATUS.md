@@ -1,5 +1,16 @@
 # Session Summary
 
+## 2026-05-15 — Milestone 10 Reactivity Bug Fixes (v0.1.2)
+
+Fixed three stale-render bugs in `EquipmentDetailPage.ts` caused by static Arrow.js expressions inside `taskTabContent()` and `historyTabContent()`. Arrow.js only re-evaluates function (case-2) expressions when syncing a template; static ternaries and `array.map()` calls are initialised once and never updated. Wrapping all dynamic content in `() =>` makes Arrow track reactive state and re-render on change.
+
+Bugs fixed:
+- **Task list not refreshed after add** — empty state persisted after saving a new task
+- **"Last: never" stays stale after mark done** — last intervention date never updated in the task row
+- **History tab not refreshed after add** — new intervention did not appear without a page reload
+
+Three non-regression Playwright specs added. All 12 specs pass. Tagged as **v0.1.2**.
+
 ## 2026-05-14 14:50 — Non-Regression Test Skill
 
 Added `.opencode/skills/non-regression-test/SKILL.md` so the agent can load
