@@ -15,7 +15,6 @@ import { apiConfig } from '@/api/config'
 
 export interface Page {
   description: string
-  status: number
   title: string
   view: unknown
 }
@@ -31,7 +30,7 @@ export async function routeToPage(url: string): Promise<Page> {
   if (pathname === '/' || pathname === '') {
     return {
       description: 'Dashboard — upcoming and overdue maintenance tasks',
-      status: 200,
+
       title: 'Dashboard | OpenMaintenance',
       view: App(pathname, DashboardPage()),
     }
@@ -40,7 +39,7 @@ export async function routeToPage(url: string): Promise<Page> {
   if (pathname === '/equipments') {
     return {
       description: 'All equipments',
-      status: 200,
+
       title: 'Equipments | OpenMaintenance',
       view: App(pathname, EquipmentsPage()),
     }
@@ -51,7 +50,7 @@ export async function routeToPage(url: string): Promise<Page> {
     const view = EquipmentHoursPage(hoursMatch[1])
     return {
       description: 'Update hour-meter reading',
-      status: 200,
+
       title: 'Update hours | OpenMaintenance',
       view: App(pathname, view),
     }
@@ -62,7 +61,7 @@ export async function routeToPage(url: string): Promise<Page> {
     const view = EquipmentEditPage(editMatch[1])
     return {
       description: 'Edit equipment',
-      status: 200,
+
       title: 'Edit equipment | OpenMaintenance',
       view: App(pathname, view),
     }
@@ -73,7 +72,7 @@ export async function routeToPage(url: string): Promise<Page> {
     const view = EquipmentDeletePage(deleteMatch[1])
     return {
       description: 'Delete equipment',
-      status: 200,
+
       title: 'Delete equipment | OpenMaintenance',
       view: App(pathname, view),
     }
@@ -97,7 +96,7 @@ export async function routeToPage(url: string): Promise<Page> {
     const name = equipmentName ?? `Equipment #${id}`
     return {
       description: `${name} details`,
-      status: 200,
+
       title: `${name} | OpenMaintenance`,
       view: App(pathname, view),
     }
@@ -106,7 +105,7 @@ export async function routeToPage(url: string): Promise<Page> {
   if (pathname === '/history') {
     return {
       description: 'Global intervention history',
-      status: 200,
+
       title: 'History | OpenMaintenance',
       view: App(pathname, HistoryPage()),
     }
@@ -115,7 +114,7 @@ export async function routeToPage(url: string): Promise<Page> {
   if (pathname === '/settings') {
     return {
       description: 'App settings',
-      status: 200,
+
       title: 'Settings | OpenMaintenance',
       view: App(pathname, SettingsPage()),
     }
@@ -123,7 +122,6 @@ export async function routeToPage(url: string): Promise<Page> {
 
   return {
     description: `There is no route for ${pathname}.`,
-    status: 404,
     title: 'Not Found | OpenMaintenance',
     view: NotFound({ path: pathname }),
   }

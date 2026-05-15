@@ -4,9 +4,9 @@
   "type": "module",
   "packageManager": "pnpm@10.14.0",
   "scripts": {
-    "dev": "node server.mjs",
-    "build": "vite build && vite build --ssr src/entry-server.ts",
-    "preview": "NODE_ENV=production node server.mjs",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "postinstall": "npx @arrow-js/skill",
     "generate:api": "openapi-generator-cli generate -i ../backend/api/openapi.yaml -g typescript-fetch -o generated/api",
@@ -16,9 +16,7 @@
   },
   "dependencies": {
     "@arrow-js/core": "^1.0.6",
-    "@arrow-js/framework": "^1.0.6",
-    "@arrow-js/hydrate": "^1.0.6",
-    "@arrow-js/ssr": "^1.0.6"
+    "@arrow-js/framework": "^1.0.6"
   },
   "devDependencies": {
     "@arrow-js/skill": "^1.0.6",

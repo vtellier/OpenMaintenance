@@ -14,12 +14,6 @@ importers:
       '@arrow-js/framework':
         specifier: ^1.0.6
         version: 1.0.6
-      '@arrow-js/hydrate':
-        specifier: ^1.0.6
-        version: 1.0.6
-      '@arrow-js/ssr':
-        specifier: ^1.0.6
-        version: 1.0.6
     devDependencies:
       '@arrow-js/skill':
         specifier: ^1.0.6
@@ -49,15 +43,9 @@ packages:
   '@arrow-js/framework@1.0.6':
     resolution: {integrity: sha512-Je8038l/exez9fD0OuCUt/WTsQ8a6xWzOdNLj80WXtmtCBsZPzHYsaW3BC5IYIYakwEGtalYQRd3m0QaaALYUg==}
 
-  '@arrow-js/hydrate@1.0.6':
-    resolution: {integrity: sha512-uGjECDD4IeFZuVhQaNVWYZlx7JAEQr0wPMccnwBJbcyP37TMAghuS/UYzzZ9PWjZH38y0rYsCEvA95NkZbvhwg==}
-
   '@arrow-js/skill@1.0.6':
     resolution: {integrity: sha512-HKajo/QyK3yooE6+Io4BwWCZfmZLvIvtlchsFMWmbfRRF02WEoTLaJu/lTaecOMwfXgRwpFQoXOhkquIOsOSig==}
     hasBin: true
-
-  '@arrow-js/ssr@1.0.6':
-    resolution: {integrity: sha512-4mSGGWaJWeiaaRTikY/fKvmz7dsWltFCeY0B5cCCscgooqw0QxgAp0CoHHGCVpaVbkki35D5wN4yYGAayRVldQ==}
 
   '@asamuzakjp/css-color@3.2.0':
     resolution: {integrity: sha512-K1A6z8tS3XsmCMM86xoWdn7Fkdn9m6RSVtocUrJYIwZnFVkng/PvkEoWtOWmP+Scc6saYWHWZYbndEEXxl24jw==}
@@ -1092,26 +1080,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@arrow-js/hydrate@1.0.6':
-    dependencies:
-      '@arrow-js/core': 1.0.6
-      '@arrow-js/framework': 1.0.6
-    transitivePeerDependencies:
-      - bufferutil
-      - canvas
-      - supports-color
-      - utf-8-validate
-
   '@arrow-js/skill@1.0.6': {}
-
-  '@arrow-js/ssr@1.0.6':
-    dependencies:
-      '@arrow-js/framework': 1.0.6
-    transitivePeerDependencies:
-      - bufferutil
-      - canvas
-      - supports-color
-      - utf-8-validate
 
   '@asamuzakjp/css-color@3.2.0':
     dependencies:

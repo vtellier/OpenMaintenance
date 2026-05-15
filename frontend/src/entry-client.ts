@@ -1,29 +1,13 @@
-import { hydrate, readPayload } from '@arrow-js/hydrate'
 import { routeToPage } from '@/page'
 import { getStoredTheme, applyTheme } from '@/theme'
 import '@/style.css'
 
-const payload = readPayload()
 const page = await routeToPage(window.location.pathname)
-const root = document.getElementById(payload.rootId ?? 'app')
-
-if (!root) {
-  throw new Error(`Unable to find hydration root "${payload.rootId ?? 'app'}".`)
-}
-
-await hydrate(root, page.view, payload, {
-  onMismatch(details) {
-    if (!details.repaired || details.boundaryFallbacks > 0) {
-      console.warn(
-        'Arrow hydration mismatch detected, falling back to client render.',
-        details
-      )
-    }
-  },
-})
+document.title = page.title
+const root = document.getElementById('app')!
+;(page.view as (el: Element) => void)(root)
 
 applyTheme(getStoredTheme())
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-  const theme = getStoredTheme()
-  if (theme === 'auto') applyTheme('auto')
+  if (getStoredTheme() === 'auto') applyTheme('auto')
 })
