@@ -41,6 +41,9 @@ jobs:
       - name: Install oapi-codegen
         run: go install github.com/deepmap/oapi-codegen/cmd/oapi-codegen@v1.16.3
 
+      - name: Generate OpenAPI clients
+        run: make generate-openapi && cd frontend && pnpm run generate:api
+
       - name: Build
         run: make build
 
