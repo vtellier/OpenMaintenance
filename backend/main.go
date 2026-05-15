@@ -1,7 +1,10 @@
 package main
 
 import (
+	"embed"
+	"io/fs"
 	"log"
+	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -10,6 +13,9 @@ import (
 	"github.com/vtellier/OpenMaintenance/internal/handlers"
 	_ "github.com/mattn/go-sqlite3"
 )
+
+//go:embed static
+var staticFiles embed.FS
 
 func main() {
 	database, err := db.InitDB()
@@ -25,7 +31,11 @@ func main() {
 		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
 	}))
 
-	e.Static("/", "./static")
+	sub, err := fs.Sub(staticFiles, "static")
+	if err != nil {
+		log.Fatal(err)
+	}
+	e.GET("/*", echo.WrapHandler(http.FileServer(http.FS(sub))))
 
 	h := &handlers.Handler{DB: database}
 	generated.RegisterHandlersWithBaseURL(e, h, "/api")

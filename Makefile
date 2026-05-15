@@ -1,4 +1,4 @@
-.PHONY: generate-openapi build build-backend build-frontend install-oapi-codegen
+.PHONY: generate-openapi build build-backend build-frontend copy-frontend install-oapi-codegen
 
 OAPI_CODEGEN := $(shell which oapi-codegen 2>/dev/null || echo "")
 
@@ -12,9 +12,13 @@ generate-openapi: install-oapi-codegen
 	oapi-codegen -generate types,server -package generated backend/api/openapi.yaml > backend/internal/generated/openapi.gen.go
 
 build-backend:
-	go build -o backend/bin/openmaintenance ./backend
+	cd backend && go build -o bin/openmaintenance .
 
 build-frontend:
 	cd frontend && pnpm run build
 
-build: build-backend build-frontend
+copy-frontend:
+	rm -rf backend/static
+	cp -r frontend/dist/client backend/static
+
+build: build-frontend copy-frontend build-backend

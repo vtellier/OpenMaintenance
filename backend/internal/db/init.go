@@ -2,11 +2,19 @@ package db
 
 import (
 	"database/sql"
+	"os"
+	"path/filepath"
+
 	_ "github.com/mattn/go-sqlite3"
 )
 
 func InitDB() (*sql.DB, error) {
- db, err := sql.Open("sqlite3", "./bin/maintenance.db")
+	exe, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+	dbPath := filepath.Join(filepath.Dir(exe), "maintenance.db")
+	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, err
 	}
