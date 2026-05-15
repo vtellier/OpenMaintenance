@@ -28,7 +28,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	database, err := db.InitDB(cfg.Database.Path)
+	database, err := db.InitDB(cfg.Database.Path, Version)
 	if err != nil {
 		log.Fatal(err)
 	}

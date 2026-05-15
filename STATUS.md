@@ -177,3 +177,15 @@ Completed all 5 items in Milestone 8:
 5. **Delete intervention**: confirmation modal, equipment hours recomputed from remaining history.
 
 Commit: `93ab3b2` — Milestone 8: Full intervention form, global history with filters, edit/delete from history
+
+## 2026-05-15 — Milestone 13 Database Versioning
+
+Added a `meta` key/value table to SQLite storing:
+- `schema_version` (integer) — drives future schema migrations
+- `app_version` (string) — last binary that opened the DB
+
+`InitDB` now: (1) creates `meta` if missing, (2) refuses to start if the DB schema_version exceeds what the binary supports, (3) bootstraps existing pre-meta DBs as v1 by replaying the legacy ALTER TABLE list, fresh installs jump straight to v1, (4) applies numbered migrations forward-only in transactions, (5) rewrites `app_version` on every startup.
+
+Migrations list is currently empty — v1 is the bootstrap schema. New schema changes append `{Version: N, SQL: …}` and bump `CurrentSchemaVersion`.
+
+Spec: `doc/db-migration.md`.

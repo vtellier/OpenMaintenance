@@ -101,6 +101,10 @@ Every frontend bug fix must be accompanied by a Playwright non-regression spec i
 - Update `ROADMAP.md` when completing a milestone item
 - Append a summary to `STATUS.md` at the end of a working session
 
+### Schema migrations
+
+The SQLite database carries its own `schema_version` in a `meta` table. When you change the schema, append a numbered migration in `backend/internal/db/migrations.go` and bump `CurrentSchemaVersion`. See [`doc/db-migration.md`](./doc/db-migration.md) for the bootstrap rules and startup flow.
+
 ### Releases and versioning
 
 Versions follow [Semantic Versioning](https://semver.org/) with a `v` prefix (`v1.2.3`). The version is derived at build time from git tags via `git describe --tags --always --dirty` — no `VERSION` file to maintain.

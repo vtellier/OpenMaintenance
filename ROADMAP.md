@@ -111,6 +111,12 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] Configurable server port (default: `3001`)
 - [x] Configurable database path (default: `./maintenance.db`, relative to binary)
 
+## Milestone 13 — Database Versioning
+
+- [x] `meta` key/value table storing `schema_version` and `app_version`
+- [x] Migration runner: bootstrap pre-meta DBs as v1, refuse future DBs, apply numbered migrations forward-only
+- [x] Spec: `doc/db-migration.md`
+
 ## Future (post-V1)
 
 - Configurable "due soon" window
