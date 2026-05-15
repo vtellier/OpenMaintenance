@@ -100,6 +100,27 @@ sudo systemctl enable --now openmaintenance
 
 The app is now running at `http://localhost:3001`. The database and config file are created in `/opt/openmaintenance/` on first start.
 
+### Add a desktop icon on Ubuntu
+
+Create a `.desktop` launcher so OpenMaintenance appears in your app grid:
+
+```bash
+cat > ~/.local/share/applications/openmaintenance.desktop << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=OpenMaintenance
+Comment=Track maintenance tasks
+Exec=xdg-open http://localhost:3001
+Icon=preferences-system
+Terminal=false
+Categories=Utility;
+EOF
+```
+
+The icon will appear in the GNOME Activities overview after the next login (or run `update-desktop-database ~/.local/share/applications` to apply immediately).
+
+To use a custom icon, replace `preferences-system` with the absolute path to a `.png` or `.svg` file.
+
 ### Supported platforms
 
 - Linux (x86-64, ARM64 — Raspberry Pi compatible)
