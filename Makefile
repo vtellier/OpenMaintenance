@@ -2,17 +2,18 @@
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 
-OAPI_CODEGEN := $(shell which oapi-codegen 2>/dev/null || echo "")
+GOBIN := $(shell go env GOPATH)/bin
+OAPI_CODEGEN := $(GOBIN)/oapi-codegen
 
 install-oapi-codegen:
-	@if [ -z "$(OAPI_CODEGEN)" ]; then \
+	@if [ ! -f "$(OAPI_CODEGEN)" ]; then \
 		echo "Installing oapi-codegen v1.16.3..."; \
 		go install github.com/deepmap/oapi-codegen/cmd/oapi-codegen@v1.16.3; \
 	fi
 
 generate-openapi: install-oapi-codegen
 	mkdir -p backend/internal/generated
-	oapi-codegen -generate types,server -package generated backend/api/openapi.yaml > backend/internal/generated/openapi.gen.go
+	$(OAPI_CODEGEN) -generate types,server -package generated backend/api/openapi.yaml > backend/internal/generated/openapi.gen.go
 
 build-backend:
 	cd backend && go build -ldflags "-X main.Version=$(VERSION)" -o bin/openmaintenance .
