@@ -79,6 +79,27 @@ _Depends on Milestone 6 (quick-log must work, `hours_updated_at` must be set, da
 - [x] Theme toggle (Auto / Light / Dark)
 - [x] About section (version, repo link, license)
 
+## Milestone 10 — Regionalisation
+
+_Depends on Milestones 1–9 (all UI text must exist before it can be translated)._
+
+- [ ] Locale detection: read `navigator.language` on first launch, map to supported language, seed format defaults
+- [ ] Persist all five locale settings in localStorage (`openmaintenance:locale:*`)
+- [ ] i18n infrastructure: translation file structure and loading mechanism
+- [ ] English translations (baseline)
+- [ ] French translations
+- [ ] Spanish translations
+- [ ] German translations
+- [ ] Make `formatDate()` locale-aware (DD/MM/YYYY · MM/DD/YYYY · YYYY-MM-DD)
+- [ ] Make `relativeTime()` and `dueRelative()` locale-aware (translated strings)
+- [ ] Make `formatHours()` use the user-chosen number format (1,234.5 · 1.234,5 · 1 234,5)
+- [ ] Settings UI: Language picker (English / French / Spanish / German)
+- [ ] Settings UI: Date format picker (3 options)
+- [ ] Settings UI: Time format picker (24-hour · 12-hour)
+- [ ] Settings UI: First day of week picker (Monday · Sunday)
+- [ ] Settings UI: Number format picker (3 options)
+- [ ] Update `document.documentElement.lang` when language changes
+
 ## Future (post-V1)
 
 - Configurable "due soon" window

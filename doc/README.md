@@ -8,6 +8,7 @@ This folder contains the **features and specifications** of OpenMaintenance. It 
 
 - [overview.md](./overview.md) — Vision, principles, scope
 - [data-model.md](./data-model.md) — Domain entities and their relationships
+- [localisation.md](./localisation.md) — Locale and format settings (language, date, time, number)
 - **GUI specs** ([./gui](./gui))
   - [navigation.md](./gui/navigation.md) — App shell, navigation pattern, responsive layout
   - [dashboard.md](./gui/dashboard.md) — Landing screen: upcoming tasks across equipments
