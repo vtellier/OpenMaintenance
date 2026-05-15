@@ -190,6 +190,40 @@ The same applies to any expression that switches between a plain value and a tem
 
 ---
 
+### 9. Static child expressions in a reactive slot's returned template never update
+
+When a `${() => { ... return html\`...\` }}` reactive slot re-runs, Arrow.js calls `syncTemplateToChunk` → `writeExpressions` on the returned template. This only triggers DOM updates for **case-2 (function) expressions** — those with a watcher observer registered via `onExpressionUpdate`. Case-1 (static template / array) and case-3 (static primitive ternary) expressions have **no observer** and are silently skipped.
+
+This means that even though the outer slot re-runs correctly, its returned template's child expressions won't update unless they are also wrapped in `() =>`.
+
+**The rule**: Every dynamic expression inside a template returned from a reactive slot must be a function:
+
+```ts
+// ❌ Wrong — listItems (array) and loadingTpl (template) are case-1; never update after first render
+${() => {
+  const items = state.items
+  const loading = !state.loaded
+  return html`<div>
+    ${loading ? html`<p>Loading...</p>` : null}
+    ${items.map(i => html`<li>${i.name}</li>`)}
+  </div>`
+}}
+
+// ✅ Correct — all dynamic children are functions (case-2)
+${() => {
+  const items = state.items
+  const loading = !state.loaded
+  return html`<div>
+    ${() => loading ? html`<p>Loading...</p>` : null}
+    ${() => items.map(i => html`<li>${i.name}</li>`)}
+  </div>`
+}}
+```
+
+The closures capture the **local variable** from the current outer slot run. When `writeExpressions` updates the expression pool with the new function, the watcher fires it immediately, picking up the fresh value. This is safe — no stale-closure problem — because the outer slot is the one driving re-runs.
+
+---
+
 ## References
 
 - `.arrow-js/skill/getting-started.md`

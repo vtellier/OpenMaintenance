@@ -112,7 +112,29 @@ If `pnpm dev` falls back from `:5173` to `:5174` (port already in use), the test
 
 Specs hit the live API through the browser. Regenerating `frontend/generated/api` doesn't affect specs unless types in the spec broke — in which case fix the spec, don't pin to a stale type.
 
-### 6. Trace files are kept on failure only
+### 6. Tests share DB state within the same run — use unique names and scoped selectors
+
+Global setup wipes the DB once per `pnpm test` invocation. Tests run sequentially after that, and every piece of data a test creates **persists for all later tests** in the same run.
+
+Two failure patterns this causes:
+
+**Wrong row selected** — `.first()` or `.nth(0)` on a list grabs a row left by an earlier test instead of the current test's row. Use a row-scoped selector instead:
+```ts
+// ❌ Grabs the first Del button on the page — may belong to a previous test's item
+await page.getByRole('button', { name: 'Del' }).first().click()
+
+// ✅ Scopes to the specific row this test owns
+await page.locator('.history-item')
+  .filter({ hasText: 'My Task' })
+  .getByRole('button', { name: 'Del' })
+  .click()
+```
+
+**Misleading retry count** — `14 × locator resolved to <p>My Task</p>` in a failure message does **not** mean 14 DOM elements. It means Playwright retried the assertion 14 times within the 5-second timeout. Don't assume duplicate data — check whether the right row was targeted.
+
+**Rule**: Give each test file unique, descriptive data names (e.g., `"Delete Test Equipment"` instead of `"Test Equipment"` which another test also creates). Never rely on `.first()` to find a specific item in a shared list.
+
+### 7. Trace files are kept on failure only
 
 `playwright.config.ts` uses `trace: 'retain-on-failure'`. To debug a failing spec, run `npx playwright show-trace test-results/.../trace.zip`. Don't commit `test-results/` (already in `.gitignore`).
 
