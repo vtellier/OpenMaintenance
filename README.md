@@ -43,6 +43,60 @@ database:
   path: ./maintenance.db  # Path to the SQLite file (relative to binary or absolute)
 ```
 
+### Deploy as a systemd service on Ubuntu
+
+**1. Install build dependencies**
+
+```bash
+sudo apt install golang-go nodejs
+sudo npm install -g pnpm
+```
+
+**2. Build**
+
+```bash
+git clone https://github.com/vtellier/OpenMaintenance.git
+cd OpenMaintenance
+make build
+```
+
+**3. Install**
+
+```bash
+sudo mkdir -p /opt/openmaintenance
+sudo cp backend/bin/openmaintenance /opt/openmaintenance/
+sudo useradd --system --no-create-home --home /opt/openmaintenance openmaintenance
+sudo chown -R openmaintenance:openmaintenance /opt/openmaintenance
+```
+
+**4. Create the systemd unit**
+
+Create `/etc/systemd/system/openmaintenance.service`:
+
+```ini
+[Unit]
+Description=OpenMaintenance
+After=network.target
+
+[Service]
+User=openmaintenance
+WorkingDirectory=/opt/openmaintenance
+ExecStart=/opt/openmaintenance/openmaintenance
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**5. Enable and start**
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now openmaintenance
+```
+
+The app is now running at `http://localhost:3001`. The database and config file are created in `/opt/openmaintenance/` on first start.
+
 ### Supported platforms
 
 - Linux (x86-64, ARM64 — Raspberry Pi compatible)
