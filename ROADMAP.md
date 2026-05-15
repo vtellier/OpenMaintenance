@@ -79,9 +79,14 @@ _Depends on Milestone 6 (quick-log must work, `hours_updated_at` must be set, da
 - [x] Theme toggle (Auto / Light / Dark)
 - [x] About section (version, repo link, license)
 
-## Milestone 10 — Regionalisation
+## Milestone 10 — Reactivity Bug Fixes
 
-_Depends on Milestones 1–9 (all UI text must exist before it can be translated)._
+- [ ] **Task list not refreshed after add**: task list stays empty after saving a new task — requires page reload to appear
+- [ ] **Task card not updated after mark done**: "Last: never" stays stale after logging an intervention — requires page reload to reflect the new date
+
+## Milestone 11 — Regionalisation
+
+_Depends on Milestones 1–10 (all UI text must exist before it can be translated)._
 
 - [ ] Locale detection: read `navigator.language` on first launch, map to supported language, seed format defaults
 - [ ] Persist all five locale settings in localStorage (`openmaintenance:locale:*`)
