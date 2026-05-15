@@ -63,6 +63,7 @@ A single recorded execution of a Task. Forms the history.
 | `date`        | date      | yes      | When the work was performed                                      |
 | `hours_at`    | number    | no       | Equipment hour-meter reading at the time. Only if equipment tracks hours. |
 | `location`    | string    | no       | e.g. "Marina X", "Home garage"                                   |
+| `performed_by`| string    | no       | Person or company who did the work (e.g. "Self", "Garage du Port") |
 | `comments`    | string    | no       | Free-form notes                                                  |
 | `created_at`  | timestamp | yes      |                                                                  |
 | `updated_at`  | timestamp | yes      |                                                                  |

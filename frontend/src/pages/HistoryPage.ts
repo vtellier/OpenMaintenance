@@ -31,6 +31,7 @@ export function HistoryPage() {
       date: '',
       hours: 0,
       location: '',
+      performedBy: '',
       comments: '',
       saving: false,
       error: null as string | null,
@@ -129,6 +130,7 @@ export function HistoryPage() {
       state.date = new Date().toISOString().substring(0, 10)
       state.hours = 0
       state.location = ''
+      state.performedBy = ''
       state.comments = ''
       state.saving = false
       state.error = null
@@ -146,6 +148,7 @@ export function HistoryPage() {
       state.date = inv.date ? formatDate(inv.date) : ''
       state.hours = inv.hoursAt ?? 0
       state.location = inv.location ?? ''
+      state.performedBy = inv.performedBy ?? ''
       state.comments = inv.comments ?? ''
       state.saving = false
       state.error = null
@@ -170,6 +173,7 @@ export function HistoryPage() {
         date: new Date(state.date + 'T00:00:00'),
         hoursAt: state.hours > 0 ? state.hours : undefined,
         location: state.location.trim() || undefined,
+        performedBy: state.performedBy.trim() || undefined,
         comments: state.comments.trim() || undefined,
       }
 
@@ -293,6 +297,7 @@ export function HistoryPage() {
                     <p class="history-item__task">${parts.join(' / ')}</p>
                     ${inv.hoursAt != null ? html`<p class="history-item__details">${formatHours(inv.hoursAt)}</p>` : null}
                     ${inv.location ? html`<p class="history-item__details">${inv.location}</p>` : null}
+                    ${inv.performedBy ? html`<p class="history-item__details">${inv.performedBy}</p>` : null}
                     ${inv.comments ? html`<p class="history-item__details history-item__comments">${inv.comments}</p>` : null}
                   </div>
                   <div class="history-item__actions">

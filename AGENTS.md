@@ -93,7 +93,7 @@ Servers run on:
 
 ### Behavior
 - Ask when there is ambiguity — do not guess
-- Short answers — answer only what was asked
+- Medium sized answers — answer only what was asked
 - Do not over-plan — match scope to the request
 - Do not delete unrecognized files
 - Do not compact context without asking for confirmation

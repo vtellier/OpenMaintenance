@@ -11,10 +11,11 @@ func CreateIntervention(db *sql.DB, intervention *models.Intervention) error {
 	intervention.UpdatedAt = time.Now()
 
 	result, err := db.Exec(
-		"INSERT INTO interventions (task_id, date, location, comments, hours_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO interventions (task_id, date, location, performed_by, comments, hours_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
 		intervention.TaskID,
 		intervention.Date,
 		intervention.Location,
+		intervention.PerformedBy,
 		intervention.Comments,
 		intervention.HoursAt,
 		intervention.CreatedAt,
@@ -31,7 +32,7 @@ func CreateIntervention(db *sql.DB, intervention *models.Intervention) error {
 
 func GetIntervention(db *sql.DB, id int) (*models.Intervention, error) {
 	row := db.QueryRow(
-		"SELECT id, task_id, date, location, comments, hours_at, created_at, updated_at FROM interventions WHERE id = ?", id,
+		"SELECT id, task_id, date, location, performed_by, comments, hours_at, created_at, updated_at FROM interventions WHERE id = ?", id,
 	)
 
 	intervention := &models.Intervention{}
@@ -41,6 +42,7 @@ func GetIntervention(db *sql.DB, id int) (*models.Intervention, error) {
 		&intervention.TaskID,
 		&intervention.Date,
 		&intervention.Location,
+		&intervention.PerformedBy,
 		&intervention.Comments,
 		&hoursAt,
 		&intervention.CreatedAt,
@@ -60,10 +62,11 @@ func UpdateIntervention(db *sql.DB, intervention *models.Intervention) error {
 	intervention.UpdatedAt = time.Now()
 
 	_, err := db.Exec(
-		"UPDATE interventions SET task_id = ?, date = ?, location = ?, comments = ?, hours_at = ?, updated_at = ? WHERE id = ?",
+		"UPDATE interventions SET task_id = ?, date = ?, location = ?, performed_by = ?, comments = ?, hours_at = ?, updated_at = ? WHERE id = ?",
 		intervention.TaskID,
 		intervention.Date,
 		intervention.Location,
+		intervention.PerformedBy,
 		intervention.Comments,
 		intervention.HoursAt,
 		intervention.UpdatedAt,
@@ -79,7 +82,7 @@ func DeleteIntervention(db *sql.DB, id int) error {
 
 func ListInterventions(db *sql.DB) ([]models.Intervention, error) {
 	rows, err := db.Query(
-		"SELECT id, task_id, date, location, comments, hours_at, created_at, updated_at FROM interventions",
+		"SELECT id, task_id, date, location, performed_by, comments, hours_at, created_at, updated_at FROM interventions",
 	)
 	if err != nil {
 		return nil, err
@@ -95,6 +98,7 @@ func ListInterventions(db *sql.DB) ([]models.Intervention, error) {
 			&intervention.TaskID,
 			&intervention.Date,
 			&intervention.Location,
+			&intervention.PerformedBy,
 			&intervention.Comments,
 			&hoursAt,
 			&intervention.CreatedAt,
@@ -114,7 +118,7 @@ func ListInterventions(db *sql.DB) ([]models.Intervention, error) {
 
 func GetLastInterventionByTask(db *sql.DB, taskID int) (*models.Intervention, error) {
 	row := db.QueryRow(
-		"SELECT id, task_id, date, location, comments, hours_at, created_at, updated_at FROM interventions WHERE task_id = ? ORDER BY date DESC LIMIT 1", taskID,
+		"SELECT id, task_id, date, location, performed_by, comments, hours_at, created_at, updated_at FROM interventions WHERE task_id = ? ORDER BY date DESC LIMIT 1", taskID,
 	)
 
 	intervention := &models.Intervention{}
@@ -124,6 +128,7 @@ func GetLastInterventionByTask(db *sql.DB, taskID int) (*models.Intervention, er
 		&intervention.TaskID,
 		&intervention.Date,
 		&intervention.Location,
+		&intervention.PerformedBy,
 		&intervention.Comments,
 		&hoursAt,
 		&intervention.CreatedAt,
@@ -146,7 +151,7 @@ func DeleteInterventionsByTask(db *sql.DB, taskID int) error {
 
 func ListInterventionsByTask(db *sql.DB, taskID int) ([]models.Intervention, error) {
 	rows, err := db.Query(
-		"SELECT id, task_id, date, location, comments, hours_at, created_at, updated_at FROM interventions WHERE task_id = ?", taskID,
+		"SELECT id, task_id, date, location, performed_by, comments, hours_at, created_at, updated_at FROM interventions WHERE task_id = ?", taskID,
 	)
 	if err != nil {
 		return nil, err
@@ -162,6 +167,7 @@ func ListInterventionsByTask(db *sql.DB, taskID int) ([]models.Intervention, err
 			&intervention.TaskID,
 			&intervention.Date,
 			&intervention.Location,
+			&intervention.PerformedBy,
 			&intervention.Comments,
 			&hoursAt,
 			&intervention.CreatedAt,

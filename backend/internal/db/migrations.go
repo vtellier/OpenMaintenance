@@ -7,7 +7,7 @@ import (
 
 // CurrentSchemaVersion is the schema version the running binary expects.
 // Bump this and append to `migrations` whenever a schema change is added.
-const CurrentSchemaVersion = 1
+const CurrentSchemaVersion = 2
 
 type migration struct {
 	Version int
@@ -16,7 +16,12 @@ type migration struct {
 
 // Numbered migrations applied in order. Version 1 is the bootstrap schema;
 // real migrations start at 2.
-var migrations = []migration{}
+var migrations = []migration{
+	{
+		Version: 2,
+		SQL:     []string{"ALTER TABLE interventions ADD COLUMN performed_by TEXT"},
+	},
+}
 
 // schemaV1Tables defines the schema as of version 1. Used when creating a
 // fresh database.

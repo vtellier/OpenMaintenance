@@ -521,6 +521,9 @@ components:
         location:
           type: string
           description: Location where the intervention was performed
+        performed_by:
+          type: string
+          description: Person or company who performed the intervention
         comments:
           type: string
           description: Additional comments about the intervention
@@ -560,6 +563,9 @@ components:
         location:
           type: string
           description: Location where the intervention was performed
+        performed_by:
+          type: string
+          description: Person or company who performed the intervention
         comments:
           type: string
           description: Additional comments about the intervention

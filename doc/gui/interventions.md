@@ -13,6 +13,7 @@ Triggered by the **"Mark done"** button available on:
 Opens a small modal/sheet with a minimal form:
 - **Date** (defaults to today, editable).
 - **Hours** (only if equipment tracks hours; pre-filled with current equipment hours, editable).
+- **Done by** (optional, single-line text, placeholder "e.g. Self, Garage du Port").
 - **Comments** (optional, single line).
 - Two buttons: **Save** / **Cancel**.
 
@@ -31,6 +32,7 @@ The user must first pick the equipment and the task (or these are pre-selected w
 - **Date** (required, defaults to today)
 - **Hours** (if equipment tracks hours, pre-filled with current value)
 - **Location** (optional, free text)
+- **Done by** (optional, free text, placeholder "e.g. Self, Garage du Port")
 - **Comments** (optional, multi-line)
 - **Save** / **Cancel**.
 
@@ -70,6 +72,7 @@ The user must first pick the equipment and the task (or these are pre-selected w
 +-----------------------------+
 |  Date    [ 2026-05-13   ▾ ] |
 |  Hours   [ 1245           ] |   (only if applicable)
+|  Done by [                ] |
 |  Notes   [                ] |
 |                             |
 |        [ Cancel ]  [ Save ] |

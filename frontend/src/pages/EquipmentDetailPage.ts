@@ -48,6 +48,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       quickTaskName: '',
       quickDate: '',
       quickHours: 0,
+      quickPerformedBy: '',
       quickComments: '',
       quickSaving: false,
       quickError: null as string | null,
@@ -59,6 +60,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       date: '',
       hours: 0,
       location: '',
+      performedBy: '',
       comments: '',
       saving: false,
       error: null as string | null,
@@ -289,6 +291,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       state.quickTaskName = task.name ?? ''
       state.quickDate = new Date().toISOString().substring(0, 10)
       state.quickHours = state.equipment?.hours ?? 0
+      state.quickPerformedBy = ''
       state.quickComments = ''
       state.quickError = null
     }
@@ -311,6 +314,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
             taskId: state.quickTaskId,
             date: new Date(state.quickDate + 'T00:00:00'),
             hoursAt: tracksHours() ? state.quickHours : undefined,
+            performedBy: state.quickPerformedBy.trim() || undefined,
             comments: state.quickComments.trim() || undefined,
           },
         })
@@ -333,6 +337,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       state.date = new Date().toISOString().substring(0, 10)
       state.hours = state.equipment?.hours ?? 0
       state.location = ''
+      state.performedBy = ''
       state.comments = ''
       state.saving = false
       state.error = null
@@ -346,6 +351,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       state.date = inv.date ? formatDate(inv.date) : ''
       state.hours = inv.hoursAt ?? 0
       state.location = inv.location ?? ''
+      state.performedBy = inv.performedBy ?? ''
       state.comments = inv.comments ?? ''
       state.saving = false
       state.error = null
@@ -369,6 +375,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
         date: new Date(state.date + 'T00:00:00'),
         hoursAt: tracksHours() ? state.hours : undefined,
         location: state.location.trim() || undefined,
+        performedBy: state.performedBy.trim() || undefined,
         comments: state.comments.trim() || undefined,
       }
 
@@ -563,6 +570,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
                   <p class="history-item__date">${dateStr}</p>
                   ${inv.hoursAt != null ? html`<p class="history-item__details">${formatHours(inv.hoursAt)}</p>` : null}
                   ${inv.location ? html`<p class="history-item__details">${inv.location}</p>` : null}
+                  ${inv.performedBy ? html`<p class="history-item__details">${inv.performedBy}</p>` : null}
                   ${inv.comments ? html`<p class="history-item__details history-item__comments">${inv.comments}</p>` : null}
                 </div>
                 <div class="history-item__actions">
@@ -707,6 +715,10 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
                 <input type="number" min="0" .value="${() => String(state.quickHours)}" @input="${(e: Event) => { state.quickHours = Number((e.target as HTMLInputElement).value) }}" />
               </div>
             ` : null}
+            <div class="form-field">
+              <label class="form-field__label">Done by</label>
+              <input placeholder="e.g. Self, Garage du Port" .value="${() => state.quickPerformedBy}" @input="${(e: Event) => { state.quickPerformedBy = (e.target as HTMLInputElement).value }}" />
+            </div>
             <div class="form-field">
               <label class="form-field__label">Notes</label>
               <input placeholder="Optional" .value="${() => state.quickComments}" @input="${(e: Event) => { state.quickComments = (e.target as HTMLInputElement).value }}" />

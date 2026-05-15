@@ -23,6 +23,7 @@ export function DashboardPage() {
       quickTaskName: '',
       quickDate: '',
       quickHours: 0,
+      quickPerformedBy: '',
       quickComments: '',
       quickSaving: false,
       quickError: null as string | null,
@@ -80,6 +81,7 @@ export function DashboardPage() {
       state.quickDate = new Date().toISOString().substring(0, 10)
       const eq = getEquipmentForTask(task.id)
       state.quickHours = eq?.hours ?? 0
+      state.quickPerformedBy = ''
       state.quickComments = ''
       state.quickError = null
     }
@@ -104,6 +106,7 @@ export function DashboardPage() {
             taskId: state.quickTaskId,
             date: new Date(state.quickDate + 'T00:00:00'),
             hoursAt: tracksHours ? state.quickHours : undefined,
+            performedBy: state.quickPerformedBy.trim() || undefined,
             comments: state.quickComments.trim() || undefined,
           },
         })
@@ -262,6 +265,10 @@ export function DashboardPage() {
                     </div>
                   ` : null
                 }}
+                <div class="form-field">
+                  <label class="form-field__label">Done by</label>
+                  <input placeholder="e.g. Self, Garage du Port" .value="${() => state.quickPerformedBy}" @input="${(e: Event) => { state.quickPerformedBy = (e.target as HTMLInputElement).value }}" />
+                </div>
                 <div class="form-field">
                   <label class="form-field__label">Notes</label>
                   <input placeholder="Optional" .value="${() => state.quickComments}" @input="${(e: Event) => { state.quickComments = (e.target as HTMLInputElement).value }}" />

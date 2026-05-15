@@ -9,6 +9,7 @@ export interface InterventionFormState {
   date: string
   hours: number
   location: string
+  performedBy: string
   comments: string
   saving: boolean
   error: string | null
@@ -68,6 +69,10 @@ export function FullInterventionModal(
     state.location = (e.target as HTMLInputElement).value
   }
 
+  function onPerformedByChange(e: Event) {
+    state.performedBy = (e.target as HTMLInputElement).value
+  }
+
   function onCommentsChange(e: Event) {
     state.comments = (e.target as HTMLTextAreaElement).value
   }
@@ -113,6 +118,11 @@ export function FullInterventionModal(
         <div class="form-field">
           <label class="form-field__label">Location</label>
           <input placeholder="e.g. Marina X, Home garage" .value="${() => state.location}" @input="${onLocationChange}" />
+        </div>
+
+        <div class="form-field">
+          <label class="form-field__label">Done by</label>
+          <input placeholder="e.g. Self, Garage du Port" .value="${() => state.performedBy}" @input="${onPerformedByChange}" />
         </div>
 
         <div class="form-field">
