@@ -18,12 +18,41 @@ Future features:
 - **Notifications**: Get notified when it's already too late.
 
 ## Self-Hosting
-OpenMaintenance is designed to be **easy to deploy anywhere**, including:
-- **Low-end VPS** (minimal resource usage)
-- **Local machines** (Windows, macOS, Linux)
-- **Raspberry Pi Support**: The project is designed to be **Raspberry Pi-compatible** (ARM support), though not actively tested.
 
-No complex setup required, just **download the binaries and run**.
+OpenMaintenance ships as a **single binary** — no runtime, no database server, no reverse proxy required.
+
+### Quick start
+
+1. Download the binary for your platform from the [releases page](https://github.com/vtellier/OpenMaintenance/releases).
+2. Run it:
+   ```bash
+   ./openmaintenance
+   ```
+3. Open your browser at `http://localhost:3001`.
+
+On first run, the binary creates two files next to itself:
+- `maintenance.db` — your SQLite database
+- `config.yaml` — configuration file with default values
+
+### Configuration
+
+Edit `config.yaml` to change the port or database path:
+
+```yaml
+server:
+  port: 3001            # TCP port the HTTP server listens on
+
+database:
+  path: ./maintenance.db  # Path to the SQLite file (relative to binary or absolute)
+```
+
+Restart the binary after editing.
+
+### Supported platforms
+
+- Linux (x86-64, ARM64 — Raspberry Pi compatible)
+- macOS
+- Windows
 
 ## Tech Stack
 - **Backend**: Go (Echo) – Single binary, cross-platform, and lightweight.
