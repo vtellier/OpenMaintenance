@@ -60,6 +60,8 @@ Servers run on:
 - Backend: `http://localhost:3001`
 - Frontend (dev): `http://localhost:5173`
 
+> See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for repo structure, workflow, and setup instructions.
+
 ## Skills
 
 | Skill | File | When to use |
