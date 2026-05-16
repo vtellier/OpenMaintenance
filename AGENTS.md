@@ -90,6 +90,7 @@ Servers run on:
 - Append a session summary to `STATUS.md` before ending a session
 - Update `ROADMAP.md` after completing work (`/update-roadmap` command or manual)
 - One commit per logical change; ask for confirmation before committing
+- **Always ask** before executing a sequence of `gh` commands
 
 ### Behavior
 - Ask when there is ambiguity — do not guess
