@@ -8,7 +8,6 @@ const API = 'http://127.0.0.1:3001/api'
  *      on an equipment that already has hour-meter tracking and tasks with hour intervals.
  * Cause: onSubmit() re-checked tasks on every call; after the modal set
  *        showConfirmTracks=false and called onSubmit() again, the check fired again.
- * Fixed by: passing skipConfirmCheck=true from the "Enable" button.
  */
 test('confirm-tracks modal does not reopen after clicking Enable', async ({ page }) => {
   const eqRes = await page.request.post(`${API}/equipments`, {

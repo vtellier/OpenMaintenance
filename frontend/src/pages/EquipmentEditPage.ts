@@ -39,12 +39,12 @@ export function EquipmentEditPage(idParam: string) {
 
     load()
 
-    async function onSubmit(skipConfirmCheck = false) {
+    async function onSubmit() {
       if (!state.name.trim()) return
       state.saving = true
       state.error = null
 
-      if (state.tracksHours && !skipConfirmCheck) {
+      if (state.tracksHours && !state.showConfirmTracks) {
         try {
           const tasks = await taskApi.listTasksByEquipment({ equipmentId })
           const hasHoursInterval = tasks.some(t => t.hoursInterval != null && t.hoursInterval > 0)
@@ -116,7 +116,7 @@ export function EquipmentEditPage(idParam: string) {
             ` : null}
             <div class="form__actions">
               <a href="${backHref}" class="btn">Cancel</a>
-              <button class="btn btn--accent" @click="${() => onSubmit()}" disabled="${() => state.saving || !state.name.trim()}">
+              <button class="btn btn--accent" @click="${onSubmit}" disabled="${() => state.saving || !state.name.trim()}">
                 ${() => state.saving ? 'Saving...' : 'Save'}
               </button>
             </div>
@@ -129,7 +129,7 @@ export function EquipmentEditPage(idParam: string) {
                 <p class="confirm-text">This equipment has tasks with hour-based intervals. Enabling hour-meter tracking will link those intervals to the equipment's hour-meter.</p>
                 <div class="modal__actions">
                   <button class="btn" @click="${() => { state.showConfirmTracks = false }}">Cancel</button>
-                  <button class="btn btn--accent" @click="${() => { state.showConfirmTracks = false; onSubmit(true) }}">Enable</button>
+                  <button class="btn btn--accent" @click="${() => { state.showConfirmTracks = false; onSubmit() }}">Enable</button>
                 </div>
               </div>
             </div>
