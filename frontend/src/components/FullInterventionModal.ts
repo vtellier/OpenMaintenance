@@ -124,7 +124,7 @@ export function FullInterventionModal(
             <input type="checkbox" .checked="${() => state.isExceptional}" @change="${onExceptionalChange}" />
             Exceptional intervention
           </label>
-          <span class="info-icon" title="Exceptional interventions are one-off operations not part of your maintenance plan (e.g. replacing a broken part). They appear in the history but do not affect task due dates.">ⓘ</span>
+          <span class="info-icon" data-tooltip="Exceptional interventions are one-off operations not part of your maintenance plan (e.g. replacing a broken part). They appear in the history but do not affect task due dates.">ⓘ</span>
         </div>
 
         <div class="form-field">
