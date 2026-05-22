@@ -7,7 +7,7 @@ import (
 
 // CurrentSchemaVersion is the schema version the running binary expects.
 // Bump this and append to `migrations` whenever a schema change is added.
-const CurrentSchemaVersion = 2
+const CurrentSchemaVersion = 3
 
 type migration struct {
 	Version int
@@ -20,6 +20,33 @@ var migrations = []migration{
 	{
 		Version: 2,
 		SQL:     []string{"ALTER TABLE interventions ADD COLUMN performed_by TEXT"},
+	},
+	{
+		Version: 3,
+		// SQLite does not support DROP NOT NULL, so we recreate the table.
+		// task_id becomes nullable; equipment_id and exceptional_label are added.
+		SQL: []string{
+			`CREATE TABLE interventions_new (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				task_id INTEGER,
+				equipment_id INTEGER,
+				exceptional_label TEXT,
+				date TIMESTAMP NOT NULL,
+				location TEXT,
+				performed_by TEXT,
+				comments TEXT,
+				hours_at REAL,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				FOREIGN KEY (task_id) REFERENCES tasks(id),
+				FOREIGN KEY (equipment_id) REFERENCES equipments(id)
+			)`,
+			`INSERT INTO interventions_new
+				SELECT id, task_id, NULL, NULL, date, location, performed_by, comments, hours_at, created_at, updated_at
+				FROM interventions`,
+			`DROP TABLE interventions`,
+			`ALTER TABLE interventions_new RENAME TO interventions`,
+		},
 	},
 }
 

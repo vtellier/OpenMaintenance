@@ -28,6 +28,8 @@ export function HistoryPage() {
       editId: null as number | null,
       equipmentId: null as number | null,
       taskId: null as number | null,
+      isExceptional: false,
+      exceptionalLabel: '',
       date: '',
       hours: 0,
       location: '',
@@ -101,7 +103,10 @@ export function HistoryPage() {
         const taskIdsForEq = new Set(
           state.tasks.filter(t => t.equipmentId === filterEqId).map(t => t.id)
         )
-        list = list.filter(inv => inv.taskId != null && taskIdsForEq.has(inv.taskId))
+        list = list.filter(inv =>
+          (inv.taskId != null && taskIdsForEq.has(inv.taskId)) ||
+          (inv.taskId == null && inv.equipmentId === filterEqId)
+        )
       }
 
       if (filterFrom) {
@@ -127,6 +132,8 @@ export function HistoryPage() {
       state.editId = null
       state.equipmentId = null
       state.taskId = null
+      state.isExceptional = false
+      state.exceptionalLabel = ''
       state.date = new Date().toISOString().substring(0, 10)
       state.hours = 0
       state.location = ''
@@ -145,6 +152,8 @@ export function HistoryPage() {
       state.editId = inv.id ?? null
       state.equipmentId = null
       state.taskId = inv.taskId ?? null
+      state.isExceptional = inv.taskId == null
+      state.exceptionalLabel = inv.exceptionalLabel ?? ''
       state.date = inv.date ? formatDate(inv.date) : ''
       state.hours = inv.hoursAt ?? 0
       state.location = inv.location ?? ''
@@ -164,12 +173,22 @@ export function HistoryPage() {
     }
 
     async function onSaveForm() {
-      if (state.taskId == null || !state.date) return
+      if (!state.date) return
+      if (state.isExceptional && !state.exceptionalLabel.trim()) return
+      if (!state.isExceptional && state.taskId == null) return
       state.saving = true
       state.error = null
 
-      const body = {
-        taskId: state.taskId,
+      const body = state.isExceptional ? {
+        equipmentId: state.equipmentId ?? undefined,
+        exceptionalLabel: state.exceptionalLabel.trim(),
+        date: new Date(state.date + 'T00:00:00'),
+        hoursAt: state.hours > 0 ? state.hours : undefined,
+        location: state.location.trim() || undefined,
+        performedBy: state.performedBy.trim() || undefined,
+        comments: state.comments.trim() || undefined,
+      } : {
+        taskId: state.taskId!,
         date: new Date(state.date + 'T00:00:00'),
         hoursAt: state.hours > 0 ? state.hours : undefined,
         location: state.location.trim() || undefined,
@@ -261,7 +280,10 @@ export function HistoryPage() {
           let list = [...interventions]
           if (filterEquipmentId != null) {
             const taskIdsForEq = new Set(tasks.filter(t => t.equipmentId === filterEquipmentId).map(t => t.id))
-            list = list.filter(inv => inv.taskId != null && taskIdsForEq.has(inv.taskId))
+            list = list.filter(inv =>
+              (inv.taskId != null && taskIdsForEq.has(inv.taskId)) ||
+              (inv.taskId == null && inv.equipmentId === filterEquipmentId)
+            )
           }
           if (filterDateFrom) {
             const fromDate = new Date(filterDateFrom + 'T00:00:00')
@@ -285,13 +307,20 @@ export function HistoryPage() {
             const currentList = list
             listContent = html`<div class="history-list">
               ${() => currentList.map(inv => {
-                const eq = getEquipmentForTask(inv.taskId)
-                const task = getTask(inv.taskId)
                 const dateStr = formatDate(inv.date)
                 const parts: string[] = []
-                if (eq?.name) parts.push(eq.name)
-                if (task?.name) parts.push(task.name)
-                return html`<div class="history-item">
+                if (inv.taskId == null) {
+                  const eq = equipments.find((e: Equipment) => e.id === inv.equipmentId)
+                  if (eq?.name) parts.push(eq.name)
+                  if (inv.exceptionalLabel) parts.push(inv.exceptionalLabel)
+                } else {
+                  const eq = getEquipmentForTask(inv.taskId)
+                  const task = getTask(inv.taskId)
+                  if (eq?.name) parts.push(eq.name)
+                  if (task?.name) parts.push(task.name)
+                }
+                const itemClass = 'history-item' + (inv.taskId == null ? ' history-item--exceptional' : '')
+                return html`<div class="${itemClass}">
                   <div class="history-item__main">
                     <p class="history-item__date">${dateStr}</p>
                     <p class="history-item__task">${parts.join(' / ')}</p>
