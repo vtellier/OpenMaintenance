@@ -1,5 +1,21 @@
 # Session Summary
 
+## 2026-05-21 — Exceptional Interventions (issue #4, PR #6)
+
+Added support for interventions that are not bound to a task. When logging an intervention, the user can check an "Exceptional intervention" checkbox; the task selector is greyed out and a mandatory free-text label field appears in its place. An `ⓘ` icon next to the checkbox shows a tooltip explaining the distinction. Exceptional entries appear in the history with a left-border accent and do not affect task due dates.
+
+**Backend**
+- DB schema v3: recreates `interventions` table with nullable `task_id`; adds `equipment_id` (auto-populated from task for standard interventions, set directly for exceptional) and `exceptional_label` columns
+- Handler validates that either `task_id` or (`equipment_id` + `exceptional_label`) is present
+- `updateEquipmentHoursFromIntervention` now uses `equipment_id` directly (no task lookup needed)
+
+**Frontend**
+- `FullInterventionModal`: new checkbox + tooltip, conditional label field, updated save-disabled logic
+- `HistoryPage` and `EquipmentDetailPage`: equipment filter covers both kinds; history rows show the exceptional label and a visual accent border
+- New CSS classes: `.form-field--inline`, `.form-field__checkbox-label`, `.info-icon`, `.history-item--exceptional`
+
+Branch: `feat/issue-4-exceptional-interventions` — PR #6
+
 ## 2026-05-15 — Milestone 10 Reactivity Bug Fixes (v0.1.2)
 
 Fixed three stale-render bugs in `EquipmentDetailPage.ts` caused by static Arrow.js expressions inside `taskTabContent()` and `historyTabContent()`. Arrow.js only re-evaluates function (case-2) expressions when syncing a template; static ternaries and `array.map()` calls are initialised once and never updated. Wrapping all dynamic content in `() =>` makes Arrow track reactive state and re-render on change.
