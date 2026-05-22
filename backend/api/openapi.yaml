@@ -404,6 +404,10 @@ components:
         description:
           type: string
           description: Detailed description of the equipment
+        commissioned_at:
+          type: string
+          format: date
+          description: Date the equipment was put into service (YYYY-MM-DD). Optional.
         tracks_hours:
           type: boolean
           description: Whether this equipment uses an hour-meter
@@ -434,6 +438,10 @@ components:
         description:
           type: string
           description: Detailed description of the equipment
+        commissioned_at:
+          type: string
+          format: date
+          description: Date the equipment was put into service (YYYY-MM-DD). Optional.
         tracks_hours:
           type: boolean
           description: Whether this equipment uses an hour-meter
