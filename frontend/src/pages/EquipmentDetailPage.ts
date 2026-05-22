@@ -479,6 +479,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               <span>${formatHours(eq.hours)}</span>
               <span class="${hoursClass}">\u2022 updated ${relativeTime(eq.hoursUpdatedAt)}</span>
             </div>` : null}
+            ${eq.commissionedAt ? html`<div class="detail-header__meta">Commissioned ${formatDate(eq.commissionedAt)}</div>` : null}
           </div>
 
           <nav class="sub-tabs">${tabLinks}</nav>
