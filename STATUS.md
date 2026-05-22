@@ -1,5 +1,38 @@
 # Session Summary
 
+## 2026-05-22 — Infinite confirm-tracks modal loop (issue #9, PR #10)
+
+Fixed a bug in `EquipmentEditPage` where the "Enable hour-meter tracking?" confirmation modal reopened indefinitely when clicking Enable.
+
+**Root cause:** `onSubmit()` re-checked tasks on every call. After the modal set `showConfirmTracks=false` and called `onSubmit()` again, the condition `!state.showConfirmTracks` was true again, triggering the modal a second time — infinitely.
+
+**Arrow.js pitfall discovered during investigation:** `@click="${onSubmit}"` forwards the `PointerEvent` as the first argument. Adding `skipConfirmCheck=false` on the dev build made the event value truthy, which masked the loop entirely (the check never ran and the form saved silently). This is why the bug couldn't be reproduced locally until the source was reverted to v0.2.0.
+
+**Fix:** `@click="${() => onSubmit()}"` on Save (no event forwarded); `onSubmit(skipConfirmCheck=false)` parameter; Enable button passes `onSubmit(true)`.
+
+Non-regression test added first (pinned failing), then fixed: `confirm-tracks-modal-no-loop.spec.ts`.
+
+Branch: `fix/issue-9-confirm-tracks-loop` — PR #10
+
+## 2026-05-22 — Date of commissioning (issue #5, PR #8, v0.2.0)
+
+Added an optional "Date of commissioning" field to Equipment.
+
+**Backend**
+- DB schema v4: `ALTER TABLE equipments ADD COLUMN commissioned_at TEXT`
+- Go model, OpenAPI spec, and DB queries (INSERT/UPDATE/SELECT) updated
+
+**Frontend**
+- Add modal (`EquipmentsPage`): date input field; saved as `YYYY-MM-DD`
+- Edit page (`EquipmentEditPage`): date input pre-filled on load
+- Equipment detail header: shows "Commissioned YYYY-MM-DD" when set
+- Info tab (`EquipmentDetailPage`): shows commissioning date between Description and hour-meter toggle
+
+**Bug fixed: off-by-one on date display**
+`formatDate()` used local-time getters (`getDate`, `getMonth`, `getFullYear`). Date-only strings like `"2003-05-01"` are parsed by JS as UTC midnight; in negative UTC offset timezones the local date is one day earlier. Fixed by switching to UTC getters (`getUTCDate`, etc.). Non-regression test added: `commissioning-date-no-off-by-one.spec.ts`.
+
+Branch: `feat/issue-5-commissioning-date` — PR #8 — tagged **v0.2.0**
+
 ## 2026-05-21 — Exceptional Interventions (issue #4, PR #6)
 
 Added support for interventions that are not bound to a task. When logging an intervention, the user can check an "Exceptional intervention" checkbox; the task selector is greyed out and a mandatory free-text label field appears in its place. An `ⓘ` icon next to the checkbox shows a tooltip explaining the distinction. Exceptional entries appear in the history with a left-border accent and do not affect task due dates.
