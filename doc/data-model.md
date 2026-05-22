@@ -11,6 +11,7 @@ A component of the maintained system (e.g. "Main Engine", "Family Car", "House H
 | `id`              | int       | yes      | Auto-generated                                          |
 | `name`            | string    | yes      | e.g. "Main Engine"                                      |
 | `description`     | string    | no       | Optional free text                                      |
+| `commissioned_at` | date      | no       | Date the equipment was put into service. Used for informational purposes only. |
 | `tracks_hours`    | boolean   | yes      | Whether this equipment uses an hour-meter (default: false) |
 | `hours`           | number    | no       | Current hour-meter value. Only relevant if `tracks_hours` is true. |
 | `hours_updated_at`| timestamp | no       | Timestamp of the last hour-meter update. Only relevant if `tracks_hours` is true. |

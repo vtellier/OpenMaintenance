@@ -643,6 +643,12 @@ code {
   color: var(--muted);
 }
 
+.detail-header__meta {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
 /* ── Modal ── */
 
 .modal-overlay {

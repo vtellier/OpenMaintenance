@@ -7,7 +7,7 @@ import (
 
 // CurrentSchemaVersion is the schema version the running binary expects.
 // Bump this and append to `migrations` whenever a schema change is added.
-const CurrentSchemaVersion = 3
+const CurrentSchemaVersion = 4
 
 type migration struct {
 	Version int
@@ -47,6 +47,10 @@ var migrations = []migration{
 			`DROP TABLE interventions`,
 			`ALTER TABLE interventions_new RENAME TO interventions`,
 		},
+	},
+	{
+		Version: 4,
+		SQL:     []string{"ALTER TABLE equipments ADD COLUMN commissioned_at TEXT"},
 	},
 }
 

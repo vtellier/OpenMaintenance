@@ -108,6 +108,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
         const newEquipment = {
           ...eq,
+          commissionedAt: eq.commissionedAt ? (eq.commissionedAt as any).toISOString().substring(0, 10) : undefined,
           hoursUpdatedAt: eq.hoursUpdatedAt?.toISOString(),
           createdAt: eq.createdAt?.toISOString(),
           updatedAt: eq.updatedAt?.toISOString(),
@@ -478,6 +479,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               <span>${formatHours(eq.hours)}</span>
               <span class="${hoursClass}">\u2022 updated ${relativeTime(eq.hoursUpdatedAt)}</span>
             </div>` : null}
+            ${eq.commissionedAt ? html`<div class="detail-header__meta">Commissioned ${formatDate(eq.commissionedAt)}</div>` : null}
           </div>
 
           <nav class="sub-tabs">${tabLinks}</nav>
@@ -622,6 +624,10 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
             <label class="form-field__label">Description</label>
             <p>${eq.description || 'None'}</p>
           </div>
+          ${eq.commissionedAt ? html`<div class="form-field">
+            <label class="form-field__label">Date of commissioning</label>
+            <p>${formatDate(eq.commissionedAt)}</p>
+          </div>` : null}
           <div class="toggle-row">
             <span class="toggle-row__label">Hour-meter tracking</span>
             <span>${eq.tracksHours ? 'Enabled' : 'Disabled'}</span>

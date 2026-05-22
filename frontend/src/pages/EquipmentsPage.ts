@@ -20,6 +20,7 @@ export const EquipmentsPage = component(() => {
     showAddModal: false,
     addName: '',
     addDesc: '',
+    addCommissionedAt: '',
     addTracksHours: false,
     addHours: 0,
     adding: false,
@@ -107,6 +108,7 @@ export const EquipmentsPage = component(() => {
         equipmentInput: {
           name,
           description: state.addDesc.trim() || undefined,
+          commissionedAt: state.addCommissionedAt ? new Date(state.addCommissionedAt + 'T12:00:00') : undefined,
           tracksHours: state.addTracksHours,
           hours: state.addTracksHours ? state.addHours : undefined,
         },
@@ -114,6 +116,7 @@ export const EquipmentsPage = component(() => {
       state.showAddModal = false
       state.addName = ''
       state.addDesc = ''
+      state.addCommissionedAt = ''
       state.addTracksHours = false
       state.addHours = 0
       await load()
@@ -188,6 +191,10 @@ export const EquipmentsPage = component(() => {
       <div class="form-field">
         <label class="form-field__label">Description</label>
         <textarea placeholder="Optional description" .value="${() => state.addDesc}" @input="${(e: Event) => { state.addDesc = (e.target as HTMLTextAreaElement).value }}"></textarea>
+      </div>
+      <div class="form-field">
+        <label class="form-field__label">Date of commissioning</label>
+        <input type="date" .value="${() => state.addCommissionedAt}" @input="${(e: Event) => { state.addCommissionedAt = (e.target as HTMLInputElement).value }}" />
       </div>
       <div class="toggle-row">
         <span class="toggle-row__label">This equipment has an hour-meter</span>

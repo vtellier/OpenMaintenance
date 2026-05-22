@@ -35,7 +35,7 @@ The detail screen has three tabs:
 
 1. **Tasks** — The maintenance program of this equipment. See [tasks.md](./tasks.md).
 2. **History** — All interventions performed on this equipment, most recent first.
-3. **Info** — Editable equipment metadata: name, description, `tracks_hours` toggle.
+3. **Info** — Editable equipment metadata: name, description, date of commissioning, `tracks_hours` toggle.
 
 The Tasks tab is the default when opening an equipment.
 
@@ -46,6 +46,7 @@ The Tasks tab is the default when opening an equipment.
 2. A form opens (modal or full screen on mobile) with fields:
    - Name (required)
    - Description (optional)
+   - Date of commissioning (optional, date picker)
    - Toggle: *"This equipment has an hour-meter"* (`tracks_hours`)
    - If toggled on: initial hours value (defaults to 0)
 3. User saves.

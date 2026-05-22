@@ -6,6 +6,7 @@ type Equipment struct {
 	ID             int        `db:"id" json:"id"`
 	Name           string     `db:"name" json:"name"`
 	Description    string     `db:"description" json:"description"`
+	CommissionedAt *string    `db:"commissioned_at" json:"commissioned_at,omitempty"`
 	TracksHours    bool       `db:"tracks_hours" json:"tracks_hours"`
 	Hours          *float64   `db:"hours" json:"hours"`
 	HoursUpdatedAt *time.Time `db:"hours_updated_at" json:"hours_updated_at"`
