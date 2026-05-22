@@ -32,8 +32,14 @@ func (h *Handler) CreateIntervention(ctx echo.Context) error {
 		return ctx.JSON(400, map[string]string{"error": err.Error()})
 	}
 
-	if err := validateInterventionDate(intervention.Date); err != nil {
+	if err := validateIntervention(intervention); err != nil {
 		return ctx.JSON(400, map[string]string{"error": err.Error()})
+	}
+
+	if intervention.TaskID != nil {
+		if err := populateEquipmentIDFromTask(h.DB, intervention); err != nil {
+			return ctx.JSON(400, map[string]string{"error": err.Error()})
+		}
 	}
 
 	if err := dbpackage.CreateIntervention(h.DB, intervention); err != nil {
@@ -60,8 +66,14 @@ func (h *Handler) UpdateIntervention(ctx echo.Context, id int) error {
 	}
 	intervention.ID = id
 
-	if err := validateInterventionDate(intervention.Date); err != nil {
+	if err := validateIntervention(intervention); err != nil {
 		return ctx.JSON(400, map[string]string{"error": err.Error()})
+	}
+
+	if intervention.TaskID != nil {
+		if err := populateEquipmentIDFromTask(h.DB, intervention); err != nil {
+			return ctx.JSON(400, map[string]string{"error": err.Error()})
+		}
 	}
 
 	if err := dbpackage.UpdateIntervention(h.DB, intervention); err != nil {
@@ -80,29 +92,41 @@ func (h *Handler) DeleteIntervention(ctx echo.Context, id int) error {
 	return ctx.NoContent(204)
 }
 
-func validateInterventionDate(date time.Time) error {
-	if date.After(time.Now()) {
+func validateIntervention(intervention *models.Intervention) error {
+	if intervention.Date.After(time.Now()) {
 		return fmt.Errorf("intervention date cannot be in the future")
+	}
+	if intervention.TaskID == nil {
+		if intervention.EquipmentID == nil {
+			return fmt.Errorf("equipment_id is required for exceptional interventions")
+		}
+		if intervention.ExceptionalLabel == nil || *intervention.ExceptionalLabel == "" {
+			return fmt.Errorf("exceptional_label is required for exceptional interventions")
+		}
 	}
 	return nil
 }
 
+func populateEquipmentIDFromTask(db *sql.DB, intervention *models.Intervention) error {
+	task, err := dbpackage.GetTask(db, *intervention.TaskID)
+	if err != nil {
+		return fmt.Errorf("task not found")
+	}
+	intervention.EquipmentID = &task.EquipmentID
+	return nil
+}
+
 func updateEquipmentHoursFromIntervention(db *sql.DB, intervention *models.Intervention) {
-	if intervention.HoursAt == nil {
+	if intervention.HoursAt == nil || intervention.EquipmentID == nil {
 		return
 	}
 
-	task, err := dbpackage.GetTask(db, intervention.TaskID)
+	equipment, err := dbpackage.GetEquipment(db, *intervention.EquipmentID)
 	if err != nil {
 		return
 	}
 
-	equipment, err := dbpackage.GetEquipment(db, task.EquipmentID)
-	if err != nil {
-		return
-	}
-
-	if intervention.HoursAt != nil && (equipment.Hours == nil || *intervention.HoursAt > *equipment.Hours) {
+	if equipment.Hours == nil || *intervention.HoursAt > *equipment.Hours {
 		now := time.Now()
 		equipment.Hours = intervention.HoursAt
 		equipment.HoursUpdatedAt = &now

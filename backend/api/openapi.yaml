@@ -513,7 +513,15 @@ components:
           description: Unique identifier for the intervention
         task_id:
           type: integer
-          description: ID of the associated task
+          nullable: true
+          description: ID of the associated task. Absent for exceptional interventions.
+        equipment_id:
+          type: integer
+          nullable: true
+          description: ID of the associated equipment. Auto-populated from task for standard interventions.
+        exceptional_label:
+          type: string
+          description: Short description of the exceptional operation. Present only for exceptional interventions.
         date:
           type: string
           format: date-time
@@ -550,12 +558,20 @@ components:
     InterventionInput:
       type: object
       required:
-        - task_id
         - date
+      description: >
+        Either task_id (standard intervention) or both equipment_id and exceptional_label
+        (exceptional intervention) must be provided.
       properties:
         task_id:
           type: integer
-          description: ID of the associated task
+          description: ID of the associated task. Omit for exceptional interventions.
+        equipment_id:
+          type: integer
+          description: ID of the equipment. Required for exceptional interventions; auto-populated from task for standard ones.
+        exceptional_label:
+          type: string
+          description: Short description of the exceptional operation. Required when task_id is absent.
         date:
           type: string
           format: date-time

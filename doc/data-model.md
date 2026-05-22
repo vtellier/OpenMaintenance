@@ -54,26 +54,36 @@ A maintenance checkpoint tied to one Equipment. Defines the maintenance program.
 
 ## Intervention
 
-A single recorded execution of a Task. Forms the history.
+A recorded maintenance action on an Equipment. Forms the history.
 
-| Field         | Type      | Required | Notes                                                            |
-|---------------|-----------|----------|------------------------------------------------------------------|
-| `id`          | int       | yes      |                                                                  |
-| `task_id`     | int       | yes      | FK to Task                                                       |
-| `date`        | date      | yes      | When the work was performed                                      |
-| `hours_at`    | number    | no       | Equipment hour-meter reading at the time. Only if equipment tracks hours. |
-| `location`    | string    | no       | e.g. "Marina X", "Home garage"                                   |
-| `performed_by`| string    | no       | Person or company who did the work (e.g. "Self", "Garage du Port") |
-| `comments`    | string    | no       | Free-form notes                                                  |
-| `created_at`  | timestamp | yes      |                                                                  |
-| `updated_at`  | timestamp | yes      |                                                                  |
+There are two kinds of interventions:
+
+- **Standard**: bound to a Task (the normal case — recurring maintenance).
+- **Exceptional**: not bound to a task; used for one-off operations that must still be logged (e.g. replacing a broken part, unexpected repair).
+
+Exactly one of `task_id` or `exceptional_label` must be provided (they are mutually exclusive).
+
+| Field               | Type      | Required | Notes                                                            |
+|---------------------|-----------|----------|------------------------------------------------------------------|
+| `id`                | int       | yes      |                                                                  |
+| `task_id`           | int       | no       | FK to Task. Present for standard interventions, absent for exceptional ones. |
+| `equipment_id`      | int       | yes      | FK to Equipment. Populated automatically from the task for standard interventions; set directly for exceptional ones. |
+| `exceptional_label` | string    | no       | Short description of the exceptional operation. Required when `task_id` is absent. |
+| `date`              | date      | yes      | When the work was performed                                      |
+| `hours_at`          | number    | no       | Equipment hour-meter reading at the time. Only if equipment tracks hours. |
+| `location`          | string    | no       | e.g. "Marina X", "Home garage"                                   |
+| `performed_by`      | string    | no       | Person or company who did the work (e.g. "Self", "Garage du Port") |
+| `comments`          | string    | no       | Free-form notes                                                  |
+| `created_at`        | timestamp | yes      |                                                                  |
+| `updated_at`        | timestamp | yes      |                                                                  |
 
 ### Side effects
 
 - When an intervention is recorded with `hours_at` and that value is greater than the equipment's current `hours`:
   - The equipment's `hours` is updated to that value.
   - The equipment's `hours_updated_at` is set to "now".
-- The next due date for the task is recomputed from the latest intervention.
+- For **standard** interventions: the next due date for the task is recomputed from the latest intervention.
+- For **exceptional** interventions: no task due-date side effect.
 
 ## Derived: "due" status
 
