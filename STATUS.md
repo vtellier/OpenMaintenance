@@ -1,18 +1,18 @@
 # Session Summary
 
-## 2026-05-22 — Infinite confirm-tracks modal loop (issue #9)
+## 2026-05-22 — Infinite confirm-tracks modal loop (issue #9, PR #10)
 
-Fixed a bug in `EquipmentEditPage` where the "Enable hour-meter tracking?" confirmation modal reopened infinitely when clicking Enable.
+Fixed a bug in `EquipmentEditPage` where the "Enable hour-meter tracking?" confirmation modal reopened indefinitely when clicking Enable.
 
-**Two bugs combined:**
-1. After clicking Enable, the modal called `onSubmit()` which re-ran the task check, found hours-interval tasks again, and re-showed the modal.
-2. The Save button used `@click="${onSubmit}"` — Arrow.js forwards the `PointerEvent` as the first argument, making `skipConfirmCheck` truthy and skipping the check entirely (masking bug #1).
+**Root cause:** `onSubmit()` re-checked tasks on every call. After the modal set `showConfirmTracks=false` and called `onSubmit()` again, the condition `!state.showConfirmTracks` was true again, triggering the modal a second time — infinitely.
 
-**Fix:** `@click="${() => onSubmit()}"` on Save (no event forwarded), `onSubmit(true)` from Enable button (skips re-check).
+**Arrow.js pitfall discovered during investigation:** `@click="${onSubmit}"` forwards the `PointerEvent` as the first argument. Adding `skipConfirmCheck=false` on the dev build made the event value truthy, which masked the loop entirely (the check never ran and the form saved silently). This is why the bug couldn't be reproduced locally until the source was reverted to v0.2.0.
 
-Non-regression test: `confirm-tracks-modal-no-loop.spec.ts`.
+**Fix:** `@click="${() => onSubmit()}"` on Save (no event forwarded); `onSubmit(skipConfirmCheck=false)` parameter; Enable button passes `onSubmit(true)`.
 
-Branch: `fix/issue-9-confirm-tracks-loop`
+Non-regression test added first (pinned failing), then fixed: `confirm-tracks-modal-no-loop.spec.ts`.
+
+Branch: `fix/issue-9-confirm-tracks-loop` — PR #10
 
 ## 2026-05-22 — Date of commissioning (issue #5, PR #8, v0.2.0)
 
