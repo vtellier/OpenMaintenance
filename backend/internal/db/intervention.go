@@ -6,13 +6,58 @@ import (
 	"time"
 )
 
+const interventionColumns = "id, task_id, equipment_id, exceptional_label, date, location, performed_by, comments, hours_at, created_at, updated_at"
+
+func scanIntervention(s interface {
+	Scan(...any) error
+}, intervention *models.Intervention) error {
+	var taskID sql.NullInt64
+	var equipmentID sql.NullInt64
+	var exceptionalLabel sql.NullString
+	var hoursAt sql.NullFloat64
+
+	err := s.Scan(
+		&intervention.ID,
+		&taskID,
+		&equipmentID,
+		&exceptionalLabel,
+		&intervention.Date,
+		&intervention.Location,
+		&intervention.PerformedBy,
+		&intervention.Comments,
+		&hoursAt,
+		&intervention.CreatedAt,
+		&intervention.UpdatedAt,
+	)
+	if err != nil {
+		return err
+	}
+	if taskID.Valid {
+		v := int(taskID.Int64)
+		intervention.TaskID = &v
+	}
+	if equipmentID.Valid {
+		v := int(equipmentID.Int64)
+		intervention.EquipmentID = &v
+	}
+	if exceptionalLabel.Valid {
+		intervention.ExceptionalLabel = &exceptionalLabel.String
+	}
+	if hoursAt.Valid {
+		intervention.HoursAt = &hoursAt.Float64
+	}
+	return nil
+}
+
 func CreateIntervention(db *sql.DB, intervention *models.Intervention) error {
 	intervention.CreatedAt = time.Now()
 	intervention.UpdatedAt = time.Now()
 
 	result, err := db.Exec(
-		"INSERT INTO interventions (task_id, date, location, performed_by, comments, hours_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO interventions (task_id, equipment_id, exceptional_label, date, location, performed_by, comments, hours_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 		intervention.TaskID,
+		intervention.EquipmentID,
+		intervention.ExceptionalLabel,
 		intervention.Date,
 		intervention.Location,
 		intervention.PerformedBy,
@@ -32,29 +77,12 @@ func CreateIntervention(db *sql.DB, intervention *models.Intervention) error {
 
 func GetIntervention(db *sql.DB, id int) (*models.Intervention, error) {
 	row := db.QueryRow(
-		"SELECT id, task_id, date, location, performed_by, comments, hours_at, created_at, updated_at FROM interventions WHERE id = ?", id,
+		"SELECT "+interventionColumns+" FROM interventions WHERE id = ?", id,
 	)
-
 	intervention := &models.Intervention{}
-	var hoursAt sql.NullFloat64
-	err := row.Scan(
-		&intervention.ID,
-		&intervention.TaskID,
-		&intervention.Date,
-		&intervention.Location,
-		&intervention.PerformedBy,
-		&intervention.Comments,
-		&hoursAt,
-		&intervention.CreatedAt,
-		&intervention.UpdatedAt,
-	)
-	if err != nil {
+	if err := scanIntervention(row, intervention); err != nil {
 		return nil, err
 	}
-	if hoursAt.Valid {
-		intervention.HoursAt = &hoursAt.Float64
-	}
-
 	return intervention, nil
 }
 
@@ -62,8 +90,10 @@ func UpdateIntervention(db *sql.DB, intervention *models.Intervention) error {
 	intervention.UpdatedAt = time.Now()
 
 	_, err := db.Exec(
-		"UPDATE interventions SET task_id = ?, date = ?, location = ?, performed_by = ?, comments = ?, hours_at = ?, updated_at = ? WHERE id = ?",
+		"UPDATE interventions SET task_id = ?, equipment_id = ?, exceptional_label = ?, date = ?, location = ?, performed_by = ?, comments = ?, hours_at = ?, updated_at = ? WHERE id = ?",
 		intervention.TaskID,
+		intervention.EquipmentID,
+		intervention.ExceptionalLabel,
 		intervention.Date,
 		intervention.Location,
 		intervention.PerformedBy,
@@ -81,9 +111,7 @@ func DeleteIntervention(db *sql.DB, id int) error {
 }
 
 func ListInterventions(db *sql.DB) ([]models.Intervention, error) {
-	rows, err := db.Query(
-		"SELECT id, task_id, date, location, performed_by, comments, hours_at, created_at, updated_at FROM interventions",
-	)
+	rows, err := db.Query("SELECT " + interventionColumns + " FROM interventions")
 	if err != nil {
 		return nil, err
 	}
@@ -92,55 +120,22 @@ func ListInterventions(db *sql.DB) ([]models.Intervention, error) {
 	interventions := make([]models.Intervention, 0)
 	for rows.Next() {
 		intervention := models.Intervention{}
-		var hoursAt sql.NullFloat64
-		err := rows.Scan(
-			&intervention.ID,
-			&intervention.TaskID,
-			&intervention.Date,
-			&intervention.Location,
-			&intervention.PerformedBy,
-			&intervention.Comments,
-			&hoursAt,
-			&intervention.CreatedAt,
-			&intervention.UpdatedAt,
-		)
-		if err != nil {
+		if err := scanIntervention(rows, &intervention); err != nil {
 			return nil, err
-		}
-		if hoursAt.Valid {
-			intervention.HoursAt = &hoursAt.Float64
 		}
 		interventions = append(interventions, intervention)
 	}
-
 	return interventions, nil
 }
 
 func GetLastInterventionByTask(db *sql.DB, taskID int) (*models.Intervention, error) {
 	row := db.QueryRow(
-		"SELECT id, task_id, date, location, performed_by, comments, hours_at, created_at, updated_at FROM interventions WHERE task_id = ? ORDER BY date DESC LIMIT 1", taskID,
+		"SELECT "+interventionColumns+" FROM interventions WHERE task_id = ? ORDER BY date DESC LIMIT 1", taskID,
 	)
-
 	intervention := &models.Intervention{}
-	var hoursAt sql.NullFloat64
-	err := row.Scan(
-		&intervention.ID,
-		&intervention.TaskID,
-		&intervention.Date,
-		&intervention.Location,
-		&intervention.PerformedBy,
-		&intervention.Comments,
-		&hoursAt,
-		&intervention.CreatedAt,
-		&intervention.UpdatedAt,
-	)
-	if err != nil {
+	if err := scanIntervention(row, intervention); err != nil {
 		return nil, err
 	}
-	if hoursAt.Valid {
-		intervention.HoursAt = &hoursAt.Float64
-	}
-
 	return intervention, nil
 }
 
@@ -151,7 +146,7 @@ func DeleteInterventionsByTask(db *sql.DB, taskID int) error {
 
 func ListInterventionsByTask(db *sql.DB, taskID int) ([]models.Intervention, error) {
 	rows, err := db.Query(
-		"SELECT id, task_id, date, location, performed_by, comments, hours_at, created_at, updated_at FROM interventions WHERE task_id = ?", taskID,
+		"SELECT "+interventionColumns+" FROM interventions WHERE task_id = ?", taskID,
 	)
 	if err != nil {
 		return nil, err
@@ -161,26 +156,10 @@ func ListInterventionsByTask(db *sql.DB, taskID int) ([]models.Intervention, err
 	interventions := make([]models.Intervention, 0)
 	for rows.Next() {
 		intervention := models.Intervention{}
-		var hoursAt sql.NullFloat64
-		err := rows.Scan(
-			&intervention.ID,
-			&intervention.TaskID,
-			&intervention.Date,
-			&intervention.Location,
-			&intervention.PerformedBy,
-			&intervention.Comments,
-			&hoursAt,
-			&intervention.CreatedAt,
-			&intervention.UpdatedAt,
-		)
-		if err != nil {
+		if err := scanIntervention(rows, &intervention); err != nil {
 			return nil, err
-		}
-		if hoursAt.Valid {
-			intervention.HoursAt = &hoursAt.Float64
 		}
 		interventions = append(interventions, intervention)
 	}
-
 	return interventions, nil
 }

@@ -57,6 +57,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       editId: null as number | null,
       equipmentId: null as number | null,
       taskId: null as number | null,
+      isExceptional: false,
+      exceptionalLabel: '',
       date: '',
       hours: 0,
       location: '',
@@ -94,7 +96,9 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
         const taskIds = new Set(ts.map((t: Task) => t.id))
         const newInterventions = interventionsResponse.filter(
-          (inv: Intervention) => inv.taskId != null && taskIds.has(inv.taskId)
+          (inv: Intervention) =>
+            (inv.taskId != null && taskIds.has(inv.taskId)) ||
+            (inv.taskId == null && inv.equipmentId === equipmentId)
         ).map((inv: any) => ({
           ...inv,
           date: inv.date?.toISOString(),
@@ -334,6 +338,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       state.editId = null
       state.equipmentId = equipmentId
       state.taskId = null
+      state.isExceptional = false
+      state.exceptionalLabel = ''
       state.date = new Date().toISOString().substring(0, 10)
       state.hours = state.equipment?.hours ?? 0
       state.location = ''
@@ -348,6 +354,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       state.editId = inv.id ?? null
       state.equipmentId = equipmentId
       state.taskId = inv.taskId ?? null
+      state.isExceptional = inv.taskId == null
+      state.exceptionalLabel = inv.exceptionalLabel ?? ''
       state.date = inv.date ? formatDate(inv.date) : ''
       state.hours = inv.hoursAt ?? 0
       state.location = inv.location ?? ''
@@ -366,12 +374,22 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
     }
 
     async function onSaveFullForm() {
-      if (state.taskId == null || !state.date) return
+      if (!state.date) return
+      if (state.isExceptional && !state.exceptionalLabel.trim()) return
+      if (!state.isExceptional && state.taskId == null) return
       state.saving = true
       state.error = null
 
-      const body = {
-        taskId: state.taskId,
+      const body = state.isExceptional ? {
+        equipmentId: equipmentId,
+        exceptionalLabel: state.exceptionalLabel.trim(),
+        date: new Date(state.date + 'T00:00:00'),
+        hoursAt: tracksHours() ? state.hours : undefined,
+        location: state.location.trim() || undefined,
+        performedBy: state.performedBy.trim() || undefined,
+        comments: state.comments.trim() || undefined,
+      } : {
+        taskId: state.taskId!,
         date: new Date(state.date + 'T00:00:00'),
         hoursAt: tracksHours() ? state.hours : undefined,
         location: state.location.trim() || undefined,
@@ -569,9 +587,11 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           return html`<div class="history-list">
             ${() => sorted.map(inv => {
               const dateStr = formatDate(inv.date)
-              return html`<div class="history-item">
+              const taskLabel = inv.taskId == null ? (inv.exceptionalLabel ?? '') : getTaskName(inv.taskId)
+              const itemClass = 'history-item' + (inv.taskId == null ? ' history-item--exceptional' : '')
+              return html`<div class="${itemClass}">
                 <div class="history-item__main">
-                  <p class="history-item__task">${getTaskName(inv.taskId)}</p>
+                  <p class="history-item__task">${taskLabel}</p>
                   <p class="history-item__date">${dateStr}</p>
                   ${inv.hoursAt != null ? html`<p class="history-item__details">${formatHours(inv.hoursAt)}</p>` : null}
                   ${inv.location ? html`<p class="history-item__details">${inv.location}</p>` : null}

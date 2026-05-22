@@ -6,6 +6,8 @@ import { formatHours } from '@/lib/format'
 export interface InterventionFormState {
   equipmentId: number | null
   taskId: number | null
+  isExceptional: boolean
+  exceptionalLabel: string
   date: string
   hours: number
   location: string
@@ -57,6 +59,19 @@ export function FullInterventionModal(
     state.taskId = val ? parseInt(val, 10) : null
   }
 
+  function onExceptionalChange(e: Event) {
+    state.isExceptional = (e.target as HTMLInputElement).checked
+    if (state.isExceptional) {
+      state.taskId = null
+    } else {
+      state.exceptionalLabel = ''
+    }
+  }
+
+  function onExceptionalLabelChange(e: Event) {
+    state.exceptionalLabel = (e.target as HTMLInputElement).value
+  }
+
   function onDateChange(e: Event) {
     state.date = (e.target as HTMLInputElement).value
   }
@@ -79,6 +94,15 @@ export function FullInterventionModal(
 
   const modalTitle = opts.title ?? 'Log intervention'
 
+  const isSaveDisabled = () => {
+    if (state.saving || !state.date) return true
+    if (state.isExceptional) {
+      const hasEquipment = state.equipmentId != null || equipmentIdFixed != null
+      return !hasEquipment || !state.exceptionalLabel.trim()
+    }
+    return !state.taskId
+  }
+
   return html`
     <div class="modal-overlay" @click="${opts.onOverlayClick}">
       <div class="modal">
@@ -95,13 +119,28 @@ export function FullInterventionModal(
           </div>
         ` : null}
 
+        <div class="form-field form-field--inline">
+          <label class="form-field__checkbox-label">
+            <input type="checkbox" .checked="${() => state.isExceptional}" @change="${onExceptionalChange}" />
+            Exceptional intervention
+          </label>
+          <span class="info-icon" data-tooltip="Exceptional interventions are one-off operations not part of your maintenance plan (e.g. replacing a broken part). They appear in the history but do not affect task due dates.">ⓘ</span>
+        </div>
+
         <div class="form-field">
           <label class="form-field__label">Task *</label>
-          <select .value="${() => state.taskId != null ? String(state.taskId) : ''}" @change="${onTaskChange}">
+          <select .value="${() => state.taskId != null ? String(state.taskId) : ''}" @change="${onTaskChange}" disabled="${() => state.isExceptional}">
             <option value="">-- Select task --</option>
             ${() => filteredTasks().map(t => html`<option value="${String(t.id)}">${t.name}</option>`)}
           </select>
         </div>
+
+        ${() => state.isExceptional ? html`
+          <div class="form-field">
+            <label class="form-field__label">Exceptional intervention *</label>
+            <input placeholder="e.g. Replaced broken impeller" .value="${() => state.exceptionalLabel}" @input="${onExceptionalLabelChange}" />
+          </div>
+        ` : null}
 
         <div class="form-field">
           <label class="form-field__label">Date *</label>
@@ -132,7 +171,7 @@ export function FullInterventionModal(
 
         <div class="modal__actions">
           <button class="btn" @click="${opts.onCancel}">Cancel</button>
-          <button class="btn btn--accent" @click="${opts.onSave}" disabled="${() => state.saving || !state.taskId || !state.date}">
+          <button class="btn btn--accent" @click="${opts.onSave}" disabled="${isSaveDisabled}">
             ${() => state.saving ? 'Saving...' : 'Save'}
           </button>
         </div>

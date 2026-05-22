@@ -719,6 +719,72 @@ code {
   min-height: 64px;
 }
 
+.form-field--inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-field__checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.form-field__checkbox-label input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+}
+
+.info-icon {
+  position: relative;
+  font-size: 14px;
+  color: var(--muted, #888);
+  cursor: help;
+  flex-shrink: 0;
+}
+
+.info-icon::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 260px;
+  padding: 8px 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--fg);
+  white-space: normal;
+  line-height: 1.4;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: 200;
+}
+
+.info-icon:hover::after {
+  opacity: 1;
+}
+
+.form-field select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.history-item--exceptional {
+  border-left: 3px solid var(--accent);
+  padding-left: 8px;
+}
+
 /* Toggle switch */
 
 .toggle-row {
