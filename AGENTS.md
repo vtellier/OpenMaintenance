@@ -27,10 +27,9 @@ The backend serves the frontend as embedded static files. The frontend TypeScrip
 
 **Spec first, code second**: before writing any implementation, update the relevant files in `doc/` to reflect the new behaviour. Present the spec to the user and wait for approval before touching any code.
 
-### Fixing a frontend bug
-1. Read the GUI spec for the affected screen
-2. Load the non-regression test skill: `.agents/skills/non-regression-test/SKILL.md`
-3. Reproduce with Chrome DevTools MCP before touching code
+### Fixing a bug
+1. Load the bug-fix skill: `.agents/skills/bug-fix/SKILL.md`
+2. Follow every step in order — do not skip the failing test step
 
 ### Modifying the API
 1. Edit `backend/api/openapi.yaml` first
@@ -66,8 +65,9 @@ Servers run on:
 
 | Skill | File | When to use |
 |-------|------|-------------|
+| Bug fix | `.agents/skills/bug-fix/SKILL.md` | Entry point for every bug fix |
 | Arrow.js | `.agents/skills/arrow-js/SKILL.md` | Any frontend code change |
-| Non-regression tests | `.agents/skills/non-regression-test/SKILL.md` | Fixing or testing frontend bugs |
+| Non-regression tests | `.agents/skills/non-regression-test/SKILL.md` | Playwright test mechanics (called by bug-fix skill) |
 
 ## Rules
 
@@ -77,20 +77,22 @@ Servers run on:
 - Before modifying Arrow.js or Go/Echo code: re-read the **Gotchas / Pitfalls** section in the relevant skill file
 - Use `curl` to test backend changes; use Chrome DevTools MCP for frontend
 
-### Frontend bugs
-- Load the non-regression-test skill before writing any fix
-- Verify the bug against `doc/` specs — confirm it is actually a bug
-- Reproduce with Chrome DevTools MCP first
-- Pin every bug with a Playwright spec in `frontend/tests/non-regression/`
-- Run `pnpm test` after fixing; all specs must pass
-- One commit per bug
+### Bug fixes
+- Always load `.agents/skills/bug-fix/SKILL.md` first — it owns the full workflow
+- Never apply a fix before a failing non-regression test is in place
+
+### GitHub workflow
+- **Features and bug fixes** must be linked to a GitHub issue — create or confirm one exists before starting work
+- Branch name: `type/issue-N-short-slug` (e.g. `fix/issue-9-confirm-loop`, `feat/issue-12-add-equipment`)
+- Open a PR once the work is ready; the PR description must reference the issue (`Closes #N`)
+- **Small chores** (docs, typos, minor formatting) may be committed directly to `main` without an issue or PR
+- **Always ask** before executing any `gh` command
 
 ### Git and documentation
 - Update `README.md` after every change (keep it short, no code examples)
 - Append a session summary to `STATUS.md` before ending a session
 - Update `ROADMAP.md` after completing work (`/update-roadmap` command or manual)
 - One commit per logical change; ask for confirmation before committing
-- **Always ask** before executing a sequence of `gh` commands
 
 ### Behavior
 - Ask when there is ambiguity — do not guess
