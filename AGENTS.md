@@ -80,6 +80,7 @@ Servers run on:
 ### Bug fixes
 - Always load `.agents/skills/bug-fix/SKILL.md` first — it owns the full workflow
 - Never apply a fix before a failing non-regression test is in place
+- Always two commits: one for the failing test, one for the fix — never combine them
 
 ### GitHub workflow
 - **Features and bug fixes** must be linked to a GitHub issue — create or confirm one exists before starting work
