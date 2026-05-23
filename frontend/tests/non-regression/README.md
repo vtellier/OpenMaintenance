@@ -40,3 +40,9 @@ The DB is wiped (via the REST API) before the run. See
 | `task-list-appears-after-add.spec.ts` | Task list stays empty after adding a task — static Arrow.js expression never re-evaluated | Milestone 10 |
 | `task-last-date-updates-after-mark-done.spec.ts` | "Last: never" stays stale after logging an intervention — static `lastLabel` never re-evaluated | Milestone 10 |
 | `equipment-history-appears-after-add.spec.ts` | New intervention not shown in per-equipment History tab without page reload | Milestone 10 |
+| `commissioning-date-no-off-by-one.spec.ts` | Commissioning date displayed one day off due to UTC/local timezone mismatch | — |
+| `confirm-tracks-modal-no-loop.spec.ts` | "Enable hour-meter tracking?" modal re-opened infinitely after clicking Enable | — |
+| `history-filters-refresh.spec.ts` | History filter changes did not refresh the intervention list | — |
+| `history-intervention-delete-refresh.spec.ts` | Deleting an intervention did not refresh the history list | — |
+| `equipment-task-refresh.spec.ts` | Task list did not refresh after marking a task done from the equipment page | — |
+| `confirm-tracks-modal-only-on-toggle.spec.ts` | "Enable hour-meter tracking?" modal appeared on every save when hour-meter was already enabled (issue #9) | — |
