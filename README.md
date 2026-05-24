@@ -100,6 +100,17 @@ sudo systemctl enable --now openmaintenance
 
 The app is now running at `http://localhost:3001`. The database and config file are created in `/opt/openmaintenance/` on first start.
 
+### Run on Windows
+
+1. Download `openmaintenance.exe` from the [releases page](https://github.com/vtellier/OpenMaintenance/releases).
+2. Open a terminal (PowerShell or Command Prompt) in the directory where you saved the file and run:
+   ```
+   .\openmaintenance.exe
+   ```
+3. Open your browser at `http://localhost:3001`.
+
+The database and config file are created next to the executable on first run.
+
 ### Add a desktop icon on Ubuntu
 
 Create a `.desktop` launcher so OpenMaintenance appears in your app grid:

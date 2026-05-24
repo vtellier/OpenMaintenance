@@ -1,0 +1,136 @@
+name: Pipeline
+
+on:
+  pull_request:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-frontend:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install oapi-codegen
+        run: go install github.com/deepmap/oapi-codegen/cmd/oapi-codegen@v1.16.3
+
+      - name: Generate OpenAPI Go stubs
+        run: make generate-openapi
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate TypeScript API client
+        working-directory: frontend
+        run: pnpm run generate:api
+
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm run build
+
+      - name: Copy frontend to backend/static
+        run: make copy-frontend
+
+      - name: Upload frontend static files
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-static
+          path: backend/static
+
+      - name: Upload generated Go stubs
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-gen
+          path: backend/internal/generated/openapi.gen.go
+
+  build-backend:
+    needs: build-frontend
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        include:
+          - make_target: build-backend-linux-amd64
+            artifact_name: openmaintenance-linux-amd64
+            binary_path: backend/bin/openmaintenance
+          - make_target: build-backend-windows-amd64
+            artifact_name: openmaintenance-windows-amd64
+            binary_path: backend/bin/openmaintenance.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+
+      - name: Download frontend static files
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-static
+          path: backend/static
+
+      - name: Download generated Go stubs
+        uses: actions/download-artifact@v4
+        with:
+          name: openapi-gen
+          path: backend/internal/generated
+
+      - name: Build
+        run: make ${{ matrix.make_target }}
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.binary_path }}
+
+  release:
+    needs: build-backend
+    runs-on: ubuntu-24.04
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Download Linux binary
+        uses: actions/download-artifact@v4
+        with:
+          name: openmaintenance-linux-amd64
+
+      - name: Download Windows binary
+        uses: actions/download-artifact@v4
+        with:
+          name: openmaintenance-windows-amd64
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            openmaintenance
+            openmaintenance.exe
+          generate_release_notes: true

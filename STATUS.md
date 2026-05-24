@@ -1,5 +1,22 @@
 # Session Summary
 
+## 2026-05-24 — Windows target + CI restructure (issue #13)
+
+Added cross-compilation support for Windows (amd64) and restructured CI into a proper pipeline.
+
+- `Makefile`: explicit `build-backend-linux-amd64` (GOOS=linux GOARCH=amd64) and `build-backend-windows-amd64` targets. `build-backend` delegates to `build-backend-linux-amd64`; `make build` remains Linux-only for local dev.
+- `release.yml` → `pipeline.yml`: single workflow with three jobs — `build-frontend` (once), `build-backend` (matrix: linux-amd64, windows-amd64), `release` (tag-only). Triggered on PRs, tags, and manual dispatch. Frontend static files and generated Go stubs passed between jobs via artifacts. Adding a new platform = one matrix row.
+- `README.md`: added "Run on Windows" self-hosting section.
+
+Branch: `feat/issue-13-windows-target`
+
+
+## 2026-05-24 — CI build on pull requests (issue #18, PR #19)
+
+Added `pull_request` to the `on:` triggers in `.github/workflows/release.yml` so the `build` job runs on PR creation and updates. The `release` job is unaffected — it remains tag-only via its existing `if: startsWith(github.ref, 'refs/tags/')` guard.
+
+Branch: `ci/issue-18-build-on-pr` — PR #19
+
 ## 2026-05-22 — Infinite confirm-tracks modal loop (issue #9, PR #10)
 
 Fixed a bug in `EquipmentEditPage` where the "Enable hour-meter tracking?" confirmation modal reopened indefinitely when clicking Enable.
