@@ -1,11 +1,11 @@
 # Session Summary
 
-## 2026-05-24 — Windows target (issue #13)
+## 2026-05-24 — Windows target + CI restructure (issue #13)
 
-Added cross-compilation support for Windows (amd64).
+Added cross-compilation support for Windows (amd64) and restructured CI into a proper pipeline.
 
-- `Makefile`: new `build-backend-windows-amd64` target (`GOOS=windows GOARCH=amd64`, outputs `bin/openmaintenance.exe`). `make build` remains Linux-only.
-- `release.yml`: after the Linux build, cross-compiles for Windows; uploads both binaries as separate artifacts; release job downloads and attaches both to GitHub Releases.
+- `Makefile`: explicit `build-backend-linux-amd64` (GOOS=linux GOARCH=amd64) and `build-backend-windows-amd64` targets. `build-backend` delegates to `build-backend-linux-amd64`; `make build` remains Linux-only for local dev.
+- `release.yml` → `pipeline.yml`: single workflow with three jobs — `build-frontend` (once), `build-backend` (matrix: linux-amd64, windows-amd64), `release` (tag-only). Triggered on PRs, tags, and manual dispatch. Frontend static files and generated Go stubs passed between jobs via artifacts. Adding a new platform = one matrix row.
 - `README.md`: added "Run on Windows" self-hosting section.
 
 Branch: `feat/issue-13-windows-target`
