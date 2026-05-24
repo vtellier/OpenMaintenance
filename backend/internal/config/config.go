@@ -16,14 +16,22 @@ type Database struct {
 	Path string `yaml:"path"`
 }
 
+type Backup struct {
+	Enabled bool   `yaml:"enabled"`
+	Path    string `yaml:"path"`
+	Keep    int    `yaml:"keep"`
+}
+
 type Config struct {
 	Server   Server   `yaml:"server"`
 	Database Database `yaml:"database"`
+	Backup   Backup   `yaml:"backup"`
 }
 
 var defaults = Config{
 	Server:   Server{Port: 3001},
 	Database: Database{Path: "./maintenance.db"},
+	Backup:   Backup{Enabled: true, Path: "./backups", Keep: 7},
 }
 
 const defaultYAML = `# OpenMaintenance configuration
@@ -34,6 +42,11 @@ server:
 
 database:
   path: ./maintenance.db  # Path to the SQLite file (relative to the binary or absolute)
+
+backup:
+  enabled: true         # Set to false to disable automatic backups
+  path: ./backups       # Directory for backup files (relative to the binary or absolute)
+  keep: 7               # Number of backups to retain (0 = unlimited)
 `
 
 func Load() (*Config, error) {
