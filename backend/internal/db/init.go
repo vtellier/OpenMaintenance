@@ -8,7 +8,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func InitDB(dbPath, appVersion string) (*sql.DB, error) {
+func InitDB(dbPath, appVersion string, backupCfg BackupConfig) (*sql.DB, error) {
 	if !filepath.IsAbs(dbPath) {
 		exe, err := os.Executable()
 		if err != nil {
@@ -16,6 +16,11 @@ func InitDB(dbPath, appVersion string) (*sql.DB, error) {
 		}
 		dbPath = filepath.Join(filepath.Dir(exe), dbPath)
 	}
+
+	if err := BackupDB(dbPath, backupCfg); err != nil {
+		return nil, err
+	}
+
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, err

@@ -1,4 +1,4 @@
-.PHONY: generate-openapi build build-backend build-backend-linux-amd64 build-backend-windows-amd64 build-frontend copy-frontend install-oapi-codegen dev
+.PHONY: generate-openapi build build-backend build-backend-linux-amd64 build-backend-windows-amd64 build-frontend copy-frontend install-oapi-codegen dev test-backend
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 
@@ -31,6 +31,9 @@ copy-frontend:
 	cp -r frontend/dist/client backend/static
 
 build: build-frontend copy-frontend build-backend
+
+test-backend:
+	cd backend && go test ./tests/...
 
 dev:
 	@echo "Starting backend on :3001 and frontend on :5173 ..."
