@@ -15,6 +15,7 @@ export function EquipmentEditPage(idParam: string) {
       description: '',
       commissionedAt: '',
       tracksHours: false,
+      originalTracksHours: false,
       hours: 0,
       loaded: false,
       saving: false,
@@ -29,6 +30,7 @@ export function EquipmentEditPage(idParam: string) {
         state.description = eq.description ?? ''
         state.commissionedAt = eq.commissionedAt ? (eq.commissionedAt as any).toISOString().substring(0, 10) : ''
         state.tracksHours = eq.tracksHours ?? false
+        state.originalTracksHours = state.tracksHours
         state.hours = eq.hours ?? 0
       } catch {
         state.error = 'Failed to load equipment'
@@ -44,7 +46,7 @@ export function EquipmentEditPage(idParam: string) {
       state.saving = true
       state.error = null
 
-      if (state.tracksHours && !skipConfirmCheck) {
+      if (state.tracksHours && !state.originalTracksHours && !skipConfirmCheck) {
         try {
           const tasks = await taskApi.listTasksByEquipment({ equipmentId })
           const hasHoursInterval = tasks.some(t => t.hoursInterval != null && t.hoursInterval > 0)
