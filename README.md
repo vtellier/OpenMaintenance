@@ -138,6 +138,16 @@ To use a custom icon, replace `preferences-system` with the absolute path to a `
 - macOS
 - Windows
 
+## Development
+
+Run the backend test suite:
+
+```bash
+make test-backend
+```
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full development setup.
+
 ## License
 
 MIT — see [LICENSE](./LICENSE).
