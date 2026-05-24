@@ -94,11 +94,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-static
+          path: backend/static
 
       - name: Download generated Go stubs
         uses: actions/download-artifact@v4
         with:
           name: openapi-gen
+          path: backend/internal/generated
 
       - name: Build
         run: make ${{ matrix.make_target }}
