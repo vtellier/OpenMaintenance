@@ -1,4 +1,4 @@
-.PHONY: generate-openapi build build-backend build-frontend copy-frontend install-oapi-codegen dev
+.PHONY: generate-openapi build build-backend build-backend-windows-amd64 build-frontend copy-frontend install-oapi-codegen dev
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 
@@ -17,6 +17,9 @@ generate-openapi: install-oapi-codegen
 
 build-backend:
 	cd backend && go build -ldflags "-X main.Version=$(VERSION)" -o bin/openmaintenance .
+
+build-backend-windows-amd64:
+	cd backend && GOOS=windows GOARCH=amd64 go build -ldflags "-X main.Version=$(VERSION)" -o bin/openmaintenance.exe .
 
 build-frontend:
 	cd frontend && pnpm run build

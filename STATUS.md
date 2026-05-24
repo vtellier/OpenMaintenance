@@ -1,5 +1,22 @@
 # Session Summary
 
+## 2026-05-24 — Windows target (issue #13)
+
+Added cross-compilation support for Windows (amd64).
+
+- `Makefile`: new `build-backend-windows-amd64` target (`GOOS=windows GOARCH=amd64`, outputs `bin/openmaintenance.exe`). `make build` remains Linux-only.
+- `release.yml`: after the Linux build, cross-compiles for Windows; uploads both binaries as separate artifacts; release job downloads and attaches both to GitHub Releases.
+- `README.md`: added "Run on Windows" self-hosting section.
+
+Branch: `feat/issue-13-windows-target`
+
+
+## 2026-05-24 — CI build on pull requests (issue #18, PR #19)
+
+Added `pull_request` to the `on:` triggers in `.github/workflows/release.yml` so the `build` job runs on PR creation and updates. The `release` job is unaffected — it remains tag-only via its existing `if: startsWith(github.ref, 'refs/tags/')` guard.
+
+Branch: `ci/issue-18-build-on-pr` — PR #19
+
 ## 2026-05-22 — Infinite confirm-tracks modal loop (issue #9, PR #10)
 
 Fixed a bug in `EquipmentEditPage` where the "Enable hour-meter tracking?" confirmation modal reopened indefinitely when clicking Enable.
