@@ -34,8 +34,12 @@ func main() {
 	}
 	defer database.Close()
 
-	e := echo.New()
+	log.Printf("OpenMaintenance %s — db=%s port=%d", Version, cfg.Database.Path, cfg.Server.Port)
 
+	e := echo.New()
+	e.HideBanner = true
+
+	e.Use(middleware.Logger())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"http://localhost:3000", "http://127.0.0.1:5173", "http://localhost:5173", "http://127.0.0.1:5174", "http://localhost:5174"},
 		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
