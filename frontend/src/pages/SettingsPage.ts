@@ -1,8 +1,30 @@
 import { html, reactive } from '@arrow-js/core'
 import { getStoredTheme, setStoredTheme, applyTheme } from '@/theme'
 import type { Theme } from '@/theme'
+import { SystemApi } from '@generated/api'
+import { apiConfig } from '@/api/config'
+
+const systemApi = new SystemApi(apiConfig)
 
 const theme = reactive({ value: getStoredTheme() })
+
+const updateState = reactive({
+  updateAvailable: false,
+  latestVersion: '',
+  releaseUrl: '',
+  checked: false,
+})
+
+systemApi.getUpdateStatus()
+  .then(status => {
+    updateState.updateAvailable = status.updateAvailable
+    updateState.latestVersion = status.latestVersion ?? ''
+    updateState.releaseUrl = status.releaseUrl ?? ''
+    updateState.checked = true
+  })
+  .catch(() => {
+    updateState.checked = true
+  })
 
 function setTheme(t: Theme) {
   theme.value = t
@@ -36,6 +58,17 @@ export const SettingsPage = () => html`
     <section class="settings-section">
       <h2 class="settings-section__title">About</h2>
       <p class="settings-about__line">OpenMaintenance ${__APP_VERSION__}</p>
+      ${() => {
+        if (!updateState.checked) return null
+        if (updateState.updateAvailable) {
+          const url = updateState.releaseUrl
+          const version = updateState.latestVersion
+          return html`<p class="settings-about__line settings-about__update">
+            <a href="${url}" target="_blank" rel="noopener noreferrer">⬆ ${version} available — Release notes ↗</a>
+          </p>`
+        }
+        return html`<p class="settings-about__line settings-about__uptodate">✓ Up to date</p>`
+      }}
       <p class="settings-about__line"><a href="https://github.com/vtellier/OpenMaintenance">github.com/vtellier/OpenMaintenance</a></p>
       <p class="settings-about__line">MIT License</p>
     </section>

@@ -20,6 +20,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VersionInfo'
+  /update-status:
+    get:
+      operationId: getUpdateStatus
+      summary: Get update availability status
+      tags:
+        - System
+      responses:
+        '200':
+          description: Update status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateStatus'
   /equipments:
     get:
       operationId: listEquipments
@@ -563,6 +576,28 @@ components:
           type: string
           description: Application version derived from git tag
           example: "v0.1.0"
+    UpdateStatus:
+      type: object
+      required:
+        - current_version
+        - latest_version
+        - update_available
+      properties:
+        current_version:
+          type: string
+          description: Currently running version
+          example: "v0.2.1"
+        latest_version:
+          type: string
+          description: Latest version available on GitHub. Empty string if the check failed.
+          example: "v0.3.0"
+        update_available:
+          type: boolean
+          description: Whether a newer version is available
+        release_url:
+          type: string
+          description: GitHub release page URL. Empty if no update is available.
+          example: "https://github.com/vtellier/OpenMaintenance/releases/tag/v0.3.0"
     InterventionInput:
       type: object
       required:
