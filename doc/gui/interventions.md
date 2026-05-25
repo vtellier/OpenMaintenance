@@ -68,6 +68,17 @@ Save is disabled until all required fields are filled: date is always required; 
 4. User taps **Save**.
 5. Sheet closes. Task disappears from the dashboard (or is reordered).
 
+## Photos (issue #25)
+
+An intervention can have photos attached (e.g. the state of a part before/after the work). Photos are not available in the quick log — only in the full intervention form and when viewing a past intervention from the History tab.
+
+- The history list shows a photo count badge when photos are present (e.g. *"3 photos"*).
+- The intervention detail/edit view shows a photo grid at the bottom with an **"+ Add photo"** button.
+- Each photo can be deleted individually.
+- Tapping a photo opens it full-screen.
+
+See [file-storage.md](../file-storage.md) for the storage design.
+
 ## Layout sketch (quick log)
 
 ```

@@ -66,18 +66,29 @@ When an equipment has no tasks yet:
 ### Flow: Mark a task as done
 See [interventions.md](./interventions.md).
 
+## Photos (issue #26)
+
+A task can have photos attached (e.g. diagrams, reference images, before/after shots). Photos are shown at the bottom of the task edit form and browsable from the task row.
+
+- The task row shows a photo count badge when photos are present (e.g. *"2 photos"*).
+- The task edit form shows a photo grid at the bottom with an **"+ Add photo"** button.
+- Each photo can be deleted individually.
+- Tapping a photo opens it full-screen.
+
+See [file-storage.md](../file-storage.md) for the storage design.
+
 ## Layout sketch
 
 ```
 +------------------------------------------------------+
 |  ← Main Engine                                       |
-|  [ Tasks ]  History  Info                            |
+|  [ Tasks ]  History  Documents  Info                 |
 +------------------------------------------------------+
 |                                          [+ Add task]|
 |  🔴 Oil change          Every 100h or 6mo            |
 |     overdue by 3 days   Last: 12 Apr 2026   [Done]   |
 |                                                      |
-|  🟡 Filter check        Every 12 months              |
+|  🟡 Filter check        Every 12 months   2 photos   |
 |     in 12 days          Last: 25 Jan 2026   [Done]   |
 |                                                      |
 |  🟢 Hull inspection     Every 24 months              |

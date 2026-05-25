@@ -15,6 +15,7 @@ A component of the maintained system (e.g. "Main Engine", "Family Car", "House H
 | `tracks_hours`    | boolean   | yes      | Whether this equipment uses an hour-meter (default: false) |
 | `hours`           | number    | no       | Current hour-meter value. Only relevant if `tracks_hours` is true. |
 | `hours_updated_at`| timestamp | no       | Timestamp of the last hour-meter update. Only relevant if `tracks_hours` is true. |
+| `picture`         | string    | no       | Relative path to the profile picture file (e.g. `files/equipments/12/picture.jpg`). NULL when no picture is set. See [file-storage.md](./file-storage.md). |
 | `created_at`      | timestamp | yes      | Auto                                                    |
 | `updated_at`      | timestamp | yes      | Auto                                                    |
 
@@ -95,3 +96,37 @@ For each Task we compute a status used in the UI:
 - **OK** — not due soon.
 
 The "next due" date is computed from the most recent intervention on that task (or the equipment's creation date if no intervention exists yet).
+
+## File attachment tables
+
+See [file-storage.md](./file-storage.md) for the full storage design.
+
+### `equipment_files`
+
+Documents (manuals, invoices, warranties) attached to an equipment.
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `equipment_id` | int | yes | FK → equipment.id |
+| `file_path` | string | yes | PK. Relative path to the file (e.g. `files/equipments/12/files/abc123.pdf`) |
+| `uploaded_at` | timestamp | yes | |
+
+### `task_files`
+
+Photos attached to a task.
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `task_id` | int | yes | FK → tasks.id |
+| `file_path` | string | yes | PK. Relative path to the file (e.g. `files/equipments/12/tasks/7/abc123.jpg`) |
+| `uploaded_at` | timestamp | yes | |
+
+### `intervention_files`
+
+Photos attached to an intervention.
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `intervention_id` | int | yes | FK → interventions.id |
+| `file_path` | string | yes | PK. Relative path to the file (e.g. `files/equipments/12/interventions/42/abc123.jpg`) |
+| `uploaded_at` | timestamp | yes | |
