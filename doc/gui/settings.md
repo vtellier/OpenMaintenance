@@ -21,6 +21,10 @@ Changes take effect immediately without a page reload.
 
 ### About
 - App name and version.
+- Update status line, loaded asynchronously from `GET /api/update-status`:
+  - **Update available**: "⬆ vX.Y.Z available — [Release notes ↗]" (link opens `release_url` in new tab)
+  - **Up to date**: "✓ Up to date"
+  - **Check failed / pending**: nothing shown (silent failure)
 - Link to the project repository.
 - License.
 
@@ -50,6 +54,7 @@ Changes take effect immediately without a page reload.
 |                                                      |
 |  About                                               |
 |    OpenMaintenance v0.1.0                            |
+|    ⬆ v0.2.0 available — Release notes ↗             |
 |    github.com/vtellier/OpenMaintenance               |
 |    MIT License                                       |
 |                                                      |

@@ -1,5 +1,19 @@
 # Session Summary
 
+## 2026-05-24 — Update notifications (issue #11)
+
+Added a background update check that queries the GitHub Releases API on startup and exposes the result via a new `GET /api/update-status` endpoint. The Settings page "About" section now shows "⬆ vX.Y.Z available — Release notes ↗" when a newer version exists, or "✓ Up to date" when current. No update is performed — the user follows the link to GitHub and updates manually.
+
+- `backend/internal/updater/updater.go` — new package: `CheckLatestRelease` hits the GitHub API, parses the latest tag, and compares using semver
+- `backend/internal/handlers/update.go` — `GetUpdateStatus` handler returns cached status
+- `backend/internal/handlers/handler.go` — `updateStatus` + `updateStatusMu` fields added
+- `backend/main.go` — background goroutine triggers the check after server start
+- `backend/api/openapi.yaml` — `GET /update-status` endpoint and `UpdateStatus` schema added
+- `frontend/src/pages/SettingsPage.ts` — calls `getUpdateStatus()` on load, renders update badge
+- `doc/gui/settings.md` — About section spec updated
+
+Branch: `feat/issue-11-auto-update` (to be created)
+
 ## 2026-05-24 — Windows target + CI restructure (issue #13)
 
 Added cross-compilation support for Windows (amd64) and restructured CI into a proper pipeline.
