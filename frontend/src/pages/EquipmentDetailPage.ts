@@ -680,7 +680,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
                   ${inv.location ? html`<p class="history-item__details">${inv.location}</p>` : null}
                   ${inv.performedBy ? html`<p class="history-item__details">${inv.performedBy}</p>` : null}
                   ${inv.comments ? html`<p class="history-item__details history-item__comments">${inv.comments}</p>` : null}
-                  ${inv.photoCount ? html`<p class="history-item__details"><span class="photo-badge">📷 ${String(inv.photoCount)} photo${inv.photoCount === 1 ? '' : 's'}</span></p>` : null}
+                  ${() => inv.photoCount ? html`<p class="history-item__details"><span class="photo-badge">📷 ${String(inv.photoCount)} photo${inv.photoCount === 1 ? '' : 's'}</span></p>` : null}
                 </div>
                 <div class="history-item__actions">
                   <button class="btn btn--small" @click="${() => onEditFromHistory(inv)}">Edit</button>
