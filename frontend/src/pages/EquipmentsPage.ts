@@ -5,6 +5,7 @@ import { Intervention } from '@generated/api/models/Intervention'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { relativeTime, formatHours, formatDate, isHoursVeryStale } from '@/lib/format'
+import { equipmentAvatar } from '@/components/EquipmentAvatar'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -20,6 +21,7 @@ export const EquipmentsPage = component(() => {
     showAddModal: false,
     addName: '',
     addDesc: '',
+    addIcon: '',
     addCommissionedAt: '',
     addTracksHours: false,
     addHours: 0,
@@ -108,6 +110,7 @@ export const EquipmentsPage = component(() => {
         equipmentInput: {
           name,
           description: state.addDesc.trim() || undefined,
+          icon: state.addIcon.trim() || undefined,
           commissionedAt: state.addCommissionedAt ? new Date(state.addCommissionedAt + 'T12:00:00') : undefined,
           tracksHours: state.addTracksHours,
           hours: state.addTracksHours ? state.addHours : undefined,
@@ -116,6 +119,7 @@ export const EquipmentsPage = component(() => {
       state.showAddModal = false
       state.addName = ''
       state.addDesc = ''
+      state.addIcon = ''
       state.addCommissionedAt = ''
       state.addTracksHours = false
       state.addHours = 0
@@ -159,7 +163,10 @@ export const EquipmentsPage = component(() => {
 
     return html`
     <a href="${link}" class="equipment-card">
-      <p class="equipment-card__title">${eq.name}</p>
+      <div class="equipment-card__head">
+        ${equipmentAvatar(eq)}
+        <p class="equipment-card__title">${eq.name}</p>
+      </div>
       ${eq.description ? html`<p class="equipment-card__desc">${eq.description}</p>` : null}
       ${eq.tracksHours ? html`
         <div class="equipment-card__hours">
@@ -191,6 +198,11 @@ export const EquipmentsPage = component(() => {
       <div class="form-field">
         <label class="form-field__label">Description</label>
         <textarea placeholder="Optional description" .value="${() => state.addDesc}" @input="${(e: Event) => { state.addDesc = (e.target as HTMLTextAreaElement).value }}"></textarea>
+      </div>
+      <div class="form-field">
+        <label class="form-field__label">Icon (emoji)</label>
+        <input class="emoji-input" maxlength="8" placeholder="🔧" .value="${() => state.addIcon}" @input="${(e: Event) => { state.addIcon = (e.target as HTMLInputElement).value }}" />
+        <p class="form-field__hint">Shown until you upload a picture. Defaults to 🔧.</p>
       </div>
       <div class="form-field">
         <label class="form-field__label">Date of commissioning</label>

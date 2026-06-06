@@ -6,16 +6,24 @@ import (
 	"time"
 )
 
+// DefaultEquipmentIcon is the emoji shown when an equipment has neither a
+// picture nor a custom icon.
+const DefaultEquipmentIcon = "🔧"
+
 func CreateEquipment(db *sql.DB, equipment *models.Equipment) error {
 	equipment.CreatedAt = time.Now()
 	equipment.UpdatedAt = time.Now()
+	if equipment.Icon == "" {
+		equipment.Icon = DefaultEquipmentIcon
+	}
 
 	result, err := db.Exec(
-		`INSERT INTO equipments (name, description, commissioned_at, tracks_hours, hours, hours_updated_at, created_at, updated_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO equipments (name, description, commissioned_at, icon, tracks_hours, hours, hours_updated_at, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		equipment.Name,
 		equipment.Description,
 		equipment.CommissionedAt,
+		equipment.Icon,
 		equipment.TracksHours,
 		equipment.Hours,
 		equipment.HoursUpdatedAt,
@@ -33,11 +41,13 @@ func CreateEquipment(db *sql.DB, equipment *models.Equipment) error {
 
 func GetEquipment(db *sql.DB, id int) (*models.Equipment, error) {
 	row := db.QueryRow(
-		`SELECT id, name, description, commissioned_at, tracks_hours, hours, hours_updated_at, created_at, updated_at
+		`SELECT id, name, description, commissioned_at, picture, icon, tracks_hours, hours, hours_updated_at, created_at, updated_at
 		 FROM equipments WHERE id = ?`, id,
 	)
 	equipment := &models.Equipment{}
 	var commissionedAt sql.NullString
+	var picture sql.NullString
+	var icon sql.NullString
 	var hours sql.NullFloat64
 	var hoursUpdatedAt sql.NullTime
 	err := row.Scan(
@@ -45,6 +55,8 @@ func GetEquipment(db *sql.DB, id int) (*models.Equipment, error) {
 		&equipment.Name,
 		&equipment.Description,
 		&commissionedAt,
+		&picture,
+		&icon,
 		&equipment.TracksHours,
 		&hours,
 		&hoursUpdatedAt,
@@ -57,6 +69,10 @@ func GetEquipment(db *sql.DB, id int) (*models.Equipment, error) {
 	if commissionedAt.Valid {
 		equipment.CommissionedAt = &commissionedAt.String
 	}
+	if picture.Valid && picture.String != "" {
+		equipment.Picture = &picture.String
+	}
+	equipment.Icon = iconOrDefault(icon)
 	if hours.Valid {
 		equipment.Hours = &hours.Float64
 	}
@@ -66,20 +82,46 @@ func GetEquipment(db *sql.DB, id int) (*models.Equipment, error) {
 	return equipment, nil
 }
 
+// iconOrDefault returns the stored icon, falling back to the default emoji when
+// it is NULL or empty (e.g. rows created before the icon column existed).
+func iconOrDefault(icon sql.NullString) string {
+	if icon.Valid && icon.String != "" {
+		return icon.String
+	}
+	return DefaultEquipmentIcon
+}
+
+// UpdateEquipment updates editable equipment metadata. It deliberately does
+// not touch the picture column — the profile picture is managed through the
+// dedicated picture endpoints, not the generic update payload.
 func UpdateEquipment(db *sql.DB, equipment *models.Equipment) error {
 	equipment.UpdatedAt = time.Now()
+	if equipment.Icon == "" {
+		equipment.Icon = DefaultEquipmentIcon
+	}
 
 	_, err := db.Exec(
-		`UPDATE equipments SET name = ?, description = ?, commissioned_at = ?, tracks_hours = ?, hours = ?, hours_updated_at = ?, updated_at = ?
+		`UPDATE equipments SET name = ?, description = ?, commissioned_at = ?, icon = ?, tracks_hours = ?, hours = ?, hours_updated_at = ?, updated_at = ?
 		 WHERE id = ?`,
 		equipment.Name,
 		equipment.Description,
 		equipment.CommissionedAt,
+		equipment.Icon,
 		equipment.TracksHours,
 		equipment.Hours,
 		equipment.HoursUpdatedAt,
 		equipment.UpdatedAt,
 		equipment.ID,
+	)
+	return err
+}
+
+// UpdateEquipmentPicture sets (or clears, when picture is nil) the relative
+// path to an equipment's profile picture.
+func UpdateEquipmentPicture(db *sql.DB, id int, picture *string) error {
+	_, err := db.Exec(
+		`UPDATE equipments SET picture = ?, updated_at = ? WHERE id = ?`,
+		picture, time.Now(), id,
 	)
 	return err
 }
@@ -102,7 +144,7 @@ func DeleteEquipment(db *sql.DB, id int) error {
 
 func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 	rows, err := db.Query(
-		`SELECT id, name, description, commissioned_at, tracks_hours, hours, hours_updated_at, created_at, updated_at
+		`SELECT id, name, description, commissioned_at, picture, icon, tracks_hours, hours, hours_updated_at, created_at, updated_at
 		 FROM equipments`,
 	)
 	if err != nil {
@@ -114,6 +156,8 @@ func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 	for rows.Next() {
 		equipment := models.Equipment{}
 		var commissionedAt sql.NullString
+		var picture sql.NullString
+		var icon sql.NullString
 		var hours sql.NullFloat64
 		var hoursUpdatedAt sql.NullTime
 		err := rows.Scan(
@@ -121,6 +165,8 @@ func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 			&equipment.Name,
 			&equipment.Description,
 			&commissionedAt,
+			&picture,
+			&icon,
 			&equipment.TracksHours,
 			&hours,
 			&hoursUpdatedAt,
@@ -133,6 +179,10 @@ func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 		if commissionedAt.Valid {
 			equipment.CommissionedAt = &commissionedAt.String
 		}
+		if picture.Valid && picture.String != "" {
+			equipment.Picture = &picture.String
+		}
+		equipment.Icon = iconOrDefault(icon)
 		if hours.Valid {
 			equipment.Hours = &hours.Float64
 		}

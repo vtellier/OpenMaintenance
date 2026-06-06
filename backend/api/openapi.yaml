@@ -176,6 +176,87 @@ paths:
           description: Invalid input (equipment does not track hours, or value below current)
         '404':
           description: Equipment not found
+  /equipments/{id}/picture:
+    post:
+      operationId: uploadEquipmentPicture
+      summary: Upload or replace an equipment's profile picture
+      description: Attach or replace the equipment's profile picture. Only image files are accepted (JPEG, PNG, WebP, GIF), up to 10 MB. There is only ever one picture per equipment.
+      tags:
+        - Equipment
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the equipment
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The picture to upload
+      responses:
+        '200':
+          description: Picture uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileInfo'
+        '404':
+          description: Equipment not found
+        '413':
+          description: File exceeds the maximum allowed size
+        '415':
+          description: Unsupported media type
+    get:
+      operationId: getEquipmentPicture
+      summary: Serve an equipment's profile picture
+      description: Serve the raw bytes of the equipment's profile picture inline so it can be displayed.
+      tags:
+        - Equipment
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the equipment
+      responses:
+        '200':
+          description: The picture bytes
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Equipment or picture not found
+    delete:
+      operationId: deleteEquipmentPicture
+      summary: Delete an equipment's profile picture
+      description: Remove the equipment's profile picture. The equipment then falls back to its icon emoji.
+      tags:
+        - Equipment
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the equipment
+      responses:
+        '204':
+          description: Picture deleted (or already absent)
+        '404':
+          description: Equipment not found
   /equipments/{equipment_id}/files:
     get:
       operationId: listEquipmentFiles
@@ -690,6 +771,12 @@ components:
           type: string
           format: date
           description: Date the equipment was put into service (YYYY-MM-DD). Optional.
+        picture:
+          type: string
+          description: Relative path to the uploaded profile picture, or absent when none is set. Served via GET /equipments/{id}/picture.
+        icon:
+          type: string
+          description: Emoji shown when no picture is set. Defaults to 🔧.
         tracks_hours:
           type: boolean
           description: Whether this equipment uses an hour-meter
@@ -724,6 +811,9 @@ components:
           type: string
           format: date
           description: Date the equipment was put into service (YYYY-MM-DD). Optional.
+        icon:
+          type: string
+          description: Emoji shown when no picture is set. Defaults to 🔧 when omitted.
         tracks_hours:
           type: boolean
           description: Whether this equipment uses an hour-meter

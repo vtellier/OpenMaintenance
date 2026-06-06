@@ -7,7 +7,7 @@ Define your own maintenance program, log interventions, and see at a glance what
 ## Features
 
 - **Dashboard** — see all upcoming and overdue tasks at a glance
-- **Multiple equipments** — manage any number of devices in one place
+- **Multiple equipments** — manage any number of devices in one place, each with a custom picture or emoji icon
 - **Custom maintenance program** — define tasks by time interval, hour-meter interval, or both
 - **Intervention history** — log what you did, when, where, and who performed it, per equipment
 - **Equipment documents** — attach manuals, invoices, or warranty papers to each equipment

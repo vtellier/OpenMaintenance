@@ -13,6 +13,7 @@ export function EquipmentEditPage(idParam: string) {
     const state = reactive({
       name: '',
       description: '',
+      icon: '',
       commissionedAt: '',
       tracksHours: false,
       originalTracksHours: false,
@@ -28,6 +29,7 @@ export function EquipmentEditPage(idParam: string) {
         const eq = await equipmentApi.getEquipment({ id: equipmentId })
         state.name = eq.name ?? ''
         state.description = eq.description ?? ''
+        state.icon = eq.icon ?? ''
         state.commissionedAt = eq.commissionedAt ? (eq.commissionedAt as any).toISOString().substring(0, 10) : ''
         state.tracksHours = eq.tracksHours ?? false
         state.originalTracksHours = state.tracksHours
@@ -66,6 +68,7 @@ export function EquipmentEditPage(idParam: string) {
           equipmentInput: {
             name: state.name.trim(),
             description: state.description.trim() || undefined,
+            icon: state.icon.trim() || undefined,
             commissionedAt: state.commissionedAt ? new Date(state.commissionedAt + 'T12:00:00') : undefined,
             tracksHours: state.tracksHours,
             hours: state.tracksHours ? state.hours : undefined,
@@ -98,6 +101,11 @@ export function EquipmentEditPage(idParam: string) {
             <div class="form-field">
               <label class="form-field__label">Description</label>
               <textarea placeholder="Optional description" .value="${() => state.description}" @input="${(e: Event) => { state.description = (e.target as HTMLTextAreaElement).value }}"></textarea>
+            </div>
+            <div class="form-field">
+              <label class="form-field__label">Icon (emoji)</label>
+              <input class="emoji-input" maxlength="8" placeholder="🔧" .value="${() => state.icon}" @input="${(e: Event) => { state.icon = (e.target as HTMLInputElement).value }}" />
+              <p class="form-field__hint">Shown until a picture is uploaded. Defaults to 🔧.</p>
             </div>
             <div class="form-field">
               <label class="form-field__label">Date of commissioning</label>

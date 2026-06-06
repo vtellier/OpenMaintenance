@@ -649,6 +649,108 @@ code {
   color: var(--muted);
 }
 
+.detail-header__picture-actions {
+  margin-top: 8px;
+}
+
+/* ── Equipment avatar (picture or emoji) ── */
+
+.equipment-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--card-hover);
+  border: 1px solid var(--border);
+}
+
+.equipment-avatar__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.equipment-avatar__emoji {
+  line-height: 1;
+}
+
+.equipment-avatar--sm {
+  width: 32px;
+  height: 32px;
+}
+
+.equipment-avatar--sm .equipment-avatar__emoji {
+  font-size: 18px;
+}
+
+.equipment-avatar--lg {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+}
+
+.equipment-avatar--lg .equipment-avatar__emoji {
+  font-size: 30px;
+}
+
+.equipment-avatar--edit {
+  position: relative;
+  cursor: pointer;
+}
+
+.equipment-avatar--edit:hover {
+  border-color: var(--border-hover);
+}
+
+.equipment-avatar__edit-hint {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--card);
+}
+
+.equipment-card__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.equipment-card__head .equipment-card__title {
+  margin: 0;
+}
+
+.equipment-block__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Emoji input ── */
+
+.emoji-input {
+  width: 4em;
+  text-align: center;
+  font-size: 20px;
+}
+
+.form-field__hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 /* ── Modal ── */
 
 .modal-overlay {
