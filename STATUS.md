@@ -348,3 +348,23 @@ Frontend:
 API spec: 4 new operations + `File` schema in `backend/api/openapi.yaml`; Go and TS clients regenerated.
 
 > Note: pre-existing `pnpm run typecheck` errors in `DashboardPage.ts` and `EquipmentsPage.ts` are unrelated to this work (the required gate is `pnpm run build`, which passes).
+
+## 2026-06-06 — Dismiss "Keep your hour-meters fresh" reminder with same value (issue #16)
+
+The freshness reminder could not be dismissed when an equipment simply had not run: `hours_updated_at` was bumped only when the new value was *strictly greater* than the current one, so saving the same value (or doing nothing) left the row stale forever.
+
+Spec-first (doc/ updated and approved before code):
+- `doc/data-model.md`: explicit hour-meter updates now refresh `hours_updated_at` even when the value is unchanged (value must be ≥ current); intervention logging keeps the stricter "only when hours increase" rule.
+- `doc/gui/dashboard.md`: documented the new **"Same hours"** banner button + dismissal flow.
+- `doc/gui/equipments.md`: updated the Update hour-meter flow.
+
+Backend:
+- New dedicated endpoint **`PUT /equipments/{id}/hours`** (`EquipmentHoursInput { hours }`) — sets hours (rejects values below current with 400, non-tracking equipment with 400) and **always** refreshes `hours_updated_at` to now. Kept separate from `updateEquipment` so editing name/description never touches freshness.
+- `tests/equipment_hours_test.go`: same-value refresh, higher accepted, lower rejected (400), non-tracking (400), not-found (404).
+
+Frontend:
+- Dashboard banner: new **"Same hours"** ghost button per row → calls the endpoint with the current value and reloads, dropping the row out of the stale list.
+- "Update hours" form now posts to the dedicated endpoint, so saving the same value also dismisses the reminder.
+- Added `.btn--ghost` style.
+
+> Note: the same pre-existing `pnpm run typecheck` errors persist (unrelated; gate is `pnpm run build`, which passes). Follow-up issues filed to wire typecheck and Playwright into CI.

@@ -937,6 +937,23 @@ code {
   font-size: 12px;
 }
 
+.btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+
+.btn--ghost:hover {
+  background: var(--card-hover);
+  border-color: var(--border);
+  color: var(--fg);
+}
+
+.btn--ghost:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
 /* ── Documents list ── */
 
 .doc-list {

@@ -12,7 +12,6 @@ export function EquipmentHoursPage(idParam: string) {
   return component(() => {
     const state = reactive({
       name: '',
-      tracksHours: false,
       currentHours: 0,
       newHours: 0,
       lastUpdated: null as string | null,
@@ -25,7 +24,6 @@ export function EquipmentHoursPage(idParam: string) {
       try {
         const eq = await equipmentApi.getEquipment({ id: equipmentId })
         state.name = eq.name ?? ''
-        state.tracksHours = eq.tracksHours ?? false
         state.currentHours = eq.hours ?? 0
         state.newHours = eq.hours ?? 0
         state.lastUpdated = eq.hoursUpdatedAt?.toISOString() ?? null
@@ -43,11 +41,9 @@ export function EquipmentHoursPage(idParam: string) {
       state.saving = true
       state.error = null
       try {
-        await equipmentApi.updateEquipment({
+        await equipmentApi.updateEquipmentHours({
           id: equipmentId,
-          equipmentInput: {
-            name: state.name,
-            tracksHours: state.tracksHours,
+          equipmentHoursInput: {
             hours: state.newHours,
           },
         })

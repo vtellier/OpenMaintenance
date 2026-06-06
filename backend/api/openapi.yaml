@@ -141,6 +141,41 @@ paths:
           description: Equipment deleted
         '404':
           description: Equipment not found
+  /equipments/{id}/hours:
+    put:
+      operationId: updateEquipmentHours
+      summary: Update an equipment's hour-meter reading
+      description: >
+        Explicit hour-meter freshness confirmation. Sets the equipment's hours
+        to the submitted value (which must be greater than or equal to the
+        current value) and always refreshes hours_updated_at to now, even when
+        the value is unchanged. Used to dismiss the Dashboard freshness reminder.
+      tags:
+        - Equipment
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the equipment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentHoursInput'
+      responses:
+        '200':
+          description: Hour-meter updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+        '400':
+          description: Invalid input (equipment does not track hours, or value below current)
+        '404':
+          description: Equipment not found
   /equipments/{equipment_id}/files:
     get:
       operationId: listEquipmentFiles
@@ -696,6 +731,14 @@ components:
         hours:
           type: number
           description: Current hour-meter value. Only relevant if tracks_hours is true
+    EquipmentHoursInput:
+      type: object
+      required:
+        - hours
+      properties:
+        hours:
+          type: number
+          description: New hour-meter reading. Must be greater than or equal to the current value.
     Task:
       type: object
       properties:

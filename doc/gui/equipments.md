@@ -68,9 +68,9 @@ The same flow is reachable from three places: the equipment detail header, the d
 
 1. User taps **"Update hours"**.
 2. A small form asks for the new hours value (must be ≥ current).
-3. On save:
+3. On save (via `PUT /equipments/{id}/hours`):
    - The equipment's `hours` is updated.
-   - If the new value is strictly greater than the previous one, `hours_updated_at` is set to "now". Setting the same value does **not** reset the freshness timestamp.
+   - `hours_updated_at` is set to "now", **even when the value is unchanged** — submitting the form is an explicit freshness confirmation, so it dismisses the Dashboard reminder. (Logging an intervention keeps the stricter "only when hours increase" rule; see [data-model.md](../data-model.md).)
    - Any hour-based task statuses are recomputed.
 
 ### Flow: Toggle hour-meter on an existing equipment
