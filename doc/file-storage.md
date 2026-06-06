@@ -53,6 +53,7 @@ Files are stored under a generated UUID to avoid collisions and path special-cha
 |--------|------|-------|
 | `equipment_id` | INTEGER | FK → equipment.id |
 | `file_path` | TEXT PK | Relative path (e.g. `files/equipments/12/files/abc123.pdf`) |
+| `original_name` | TEXT | Filename as uploaded by the user (e.g. `manual.pdf`). Used for display and download. |
 | `uploaded_at` | TIMESTAMP | |
 
 ### `task_files` — photos attached to a task
@@ -61,6 +62,7 @@ Files are stored under a generated UUID to avoid collisions and path special-cha
 |--------|------|-------|
 | `task_id` | INTEGER | FK → tasks.id |
 | `file_path` | TEXT PK | Relative path (e.g. `files/equipments/12/tasks/7/abc123.jpg`) |
+| `original_name` | TEXT | Filename as uploaded by the user. |
 | `uploaded_at` | TIMESTAMP | |
 
 ### `intervention_files` — photos attached to an intervention
@@ -69,7 +71,10 @@ Files are stored under a generated UUID to avoid collisions and path special-cha
 |--------|------|-------|
 | `intervention_id` | INTEGER | FK → interventions.id |
 | `file_path` | TEXT PK | Relative path (e.g. `files/equipments/12/interventions/42/abc123.jpg`) |
+| `original_name` | TEXT | Filename as uploaded by the user. |
 | `uploaded_at` | TIMESTAMP | |
+
+The equipment profile picture does not need an `original_name` — there is only ever one, stored at a fixed `picture.{ext}` path.
 
 ## API endpoints
 
@@ -108,20 +113,58 @@ Files are stored under a generated UUID to avoid collisions and path special-cha
 | `GET` | `/api/equipment/{id}/interventions/{intervention_id}/files/{filename}` | Serve a photo. |
 | `DELETE` | `/api/equipment/{id}/interventions/{intervention_id}/files/{filename}` | Delete a photo. |
 
+The `{filename}` path segment in the serve/delete endpoints is always the **stored UUID filename** (e.g. `abc123.pdf`), not the user's original name. The original name is carried in the `File` object's `original_name` field (see below), never in the URL.
+
+## Validation & limits
+
+Uploads are validated server-side before anything is written to disk. Limits are fixed defaults for now; they may later be promoted to `config.yaml` keys.
+
+| Kind | Allowed types | Max size |
+|------|---------------|----------|
+| Equipment picture (#2) | `image/jpeg`, `image/png`, `image/webp`, `image/gif` | 10 MB |
+| Task / intervention photos (#25, #26) | `image/jpeg`, `image/png`, `image/webp`, `image/gif` | 10 MB |
+| Equipment documents (#3) | any type | 25 MB |
+
+Rules:
+
+- **Content sniffing, not extension trust.** The MIME type used for the allowlist check is detected from the file's leading bytes (Go's `http.DetectContentType`), not from the supplied filename. The stored extension is derived from the detected type for images, and from the original filename for documents.
+- **Size** is enforced from the request `Content-Length` and again while streaming, so a lying header cannot exceed the cap.
+- **Rejections** return a problem response: `413 Payload Too Large` when over the size cap, `415 Unsupported Media Type` when the detected type is not allowed. No file or DB row is created on rejection.
+
+## Response shapes
+
+### `File` object
+
+Every list and upload response returns one or more `File` objects:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `name` | string | Stored UUID filename, used as the `{filename}` URL segment (e.g. `abc123.pdf`). |
+| `original_name` | string | Filename as uploaded (e.g. `manual.pdf`). |
+| `size` | integer | Size in bytes. |
+| `mime_type` | string | Detected MIME type. |
+| `uploaded_at` | string (date-time) | ISO 8601 timestamp. |
+| `url` | string | Relative serve URL for the file. |
+
+### List endpoints
+
+`GET …/files` returns a JSON array of `File` objects (empty array when none). `POST …/files` returns the single created `File` object with `201 Created`. Serving a missing file returns `404 Not Found`.
+
 ## File lifecycle
 
 ### Upload
 
 1. Validate the parent entity exists.
-2. Generate a UUID filename, preserving the original file extension.
-3. Write the file to its target path on disk.
-4. Insert a row in the appropriate DB table (or update `equipment.picture` for the profile picture).
+2. Validate type and size (see [Validation & limits](#validation--limits)); reject before writing on failure.
+3. Generate a UUID filename. The extension comes from the detected MIME type for images, or the original filename for documents.
+4. Write the file to its target path on disk.
+5. Insert a row in the appropriate DB table — recording `original_name` — (or update `equipment.picture` for the profile picture).
 
 For equipment picture: if a picture already exists, delete the old file from disk first, then write the new one and update the `picture` column.
 
 ### Serve
 
-Read the file path from the DB, stream the file from disk with `Content-Type` derived from the file extension.
+Read the file path from the DB, stream the file from disk with `Content-Type` set to the stored MIME type. Documents are served with `Content-Disposition: attachment; filename="<original_name>"` so downloads keep their original name; images are served inline so they can be displayed.
 
 ### Delete
 
