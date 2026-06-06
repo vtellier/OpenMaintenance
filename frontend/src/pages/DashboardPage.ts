@@ -27,6 +27,7 @@ export function DashboardPage() {
       quickComments: '',
       quickSaving: false,
       quickError: null as string | null,
+      sameHoursSavingId: null as number | null,
     })
 
     async function load() {
@@ -65,6 +66,22 @@ export function DashboardPage() {
     }
 
     load()
+
+    async function onSameHours(eq: Equipment) {
+      if (eq.id == null || state.sameHoursSavingId != null) return
+      state.sameHoursSavingId = eq.id
+      try {
+        await equipmentApi.updateEquipmentHours({
+          id: eq.id,
+          equipmentHoursInput: { hours: eq.hours ?? 0 },
+        })
+        await load()
+      } catch {
+        state.loadError = 'Failed to update hours'
+      } finally {
+        state.sameHoursSavingId = null
+      }
+    }
 
     function getEquipmentForTask(taskId: number | undefined): Equipment | undefined {
       if (taskId == null) return undefined
@@ -183,6 +200,7 @@ export function DashboardPage() {
                   <a href="${eqHref}" class="hours-banner__eq-name">${eq.name}</a>
                   <span class="hours-banner__hours">${formatHours(eq.hours)}</span>
                   <span class="${updatedClass}">updated ${relativeTime(eq.hoursUpdatedAt)}</span>
+                  <button class="btn btn--small btn--ghost" @click="${() => onSameHours(eq)}" disabled="${() => state.sameHoursSavingId === eq.id}">${() => state.sameHoursSavingId === eq.id ? '...' : 'Same hours'}</button>
                   <a href="${updateHref}" class="btn btn--small">Update</a>
                 </div>`
               })}
@@ -197,6 +215,7 @@ export function DashboardPage() {
                     <a href="${eqHref}" class="hours-banner__eq-name">${eq.name}</a>
                     <span class="hours-banner__hours">${formatHours(eq.hours)}</span>
                     <span class="${updatedClass}">updated ${relativeTime(eq.hoursUpdatedAt)}</span>
+                    <button class="btn btn--small btn--ghost" @click="${() => onSameHours(eq)}" disabled="${() => state.sameHoursSavingId === eq.id}">${() => state.sameHoursSavingId === eq.id ? '...' : 'Same hours'}</button>
                     <a href="${updateHref}" class="btn btn--small">Update</a>
                   </div>`
                 })}
