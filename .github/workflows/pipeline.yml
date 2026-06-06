@@ -78,6 +78,9 @@ jobs:
         with:
           go-version-file: backend/go.mod
 
+      - name: Generate OpenAPI Go stubs
+        run: make generate-openapi
+
       - name: Run backend tests
         run: make test-backend
 
