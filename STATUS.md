@@ -1,5 +1,17 @@
 # Session Summary
 
+## 2026-06-06 — File storage design decisions (issues #2, #3, #25, #26)
+
+Resolved the three blocking open questions in `doc/file-storage.md` so the file-attachment feature is implementable:
+
+1. **Original filenames** — added an `original_name` column to `equipment_files`, `task_files`, and `intervention_files`. Recorded at upload; documents download via `Content-Disposition: attachment; filename="<original_name>"`, images serve inline. URLs still use the stored UUID name.
+2. **Upload validation & limits** — new section: per-kind MIME allowlists (images for picture/photos, any type for documents), 10 MB images / 25 MB documents caps, content-sniffed MIME (not extension-trusted), 413/415 rejection before any write. Limits are fixed defaults, possibly promoted to `config.yaml` later.
+3. **Response shapes** — defined the `File` object (`name`, `original_name`, `size`, `mime_type`, `uploaded_at`, `url`); list returns an array, `POST` returns `201` with one object; clarified `{filename}` in URLs is always the stored UUID name.
+
+Still open: thumbnails/resizing, write atomicity, quotas, serving safety beyond disposition, backup/restore archive format. OpenAPI spec not yet updated (still doc-level).
+
+Commit: `110076f` — doc(file-storage): decide filenames, upload validation, response shapes
+
 ## 2026-05-24 — Update notifications (issue #11)
 
 Added a background update check that queries the GitHub Releases API on startup and exposes the result via a new `GET /api/update-status` endpoint. The Settings page "About" section now shows "⬆ vX.Y.Z available — Release notes ↗" when a newer version exists, or "✓ Up to date" when current. No update is performed — the user follows the link to GitHub and updates manually.
