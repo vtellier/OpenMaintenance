@@ -21,6 +21,7 @@ Banner content:
   - Current hours value.
   - Relative time since `hours_updated_at` (e.g. *"updated 3 days ago"*, *"updated 2 months ago"*, *"never updated"*).
   - A **"Update hours"** button → opens the hours update form (see [equipments.md](../gui/equipments.md)).
+  - A **"Same hours"** button → confirms, in place, that the hour-meter has not changed since the last reading. It refreshes `hours_updated_at` to "now" without changing the value, so the row drops out of the stale list. Used when the equipment simply has not run.
 - Equipments whose `hours_updated_at` is older than the **staleness threshold** (default: 7 days, configurable in Settings) are visually emphasized (e.g. amber/red highlight, bold relative time).
 - Rows are sorted by `hours_updated_at` ascending (oldest first).
 
@@ -73,6 +74,12 @@ Note: the hour-meter freshness banner is independent of the tasks empty state. I
 4. User enters the new value and saves.
 5. The equipment's `hours` and `hours_updated_at` are updated. Any hour-based task statuses are recomputed.
 6. The banner row visually returns to a "fresh" state (or moves to the bottom of the banner).
+
+### Flow: Dismiss the reminder when hours have not changed
+1. User sees a stale equipment in the freshness banner but the equipment has not run since the last reading.
+2. User taps **"Same hours"** on the equipment row.
+3. The app refreshes `hours_updated_at` to "now", keeping the same `hours` value (no form, no navigation).
+4. The row immediately returns to a "fresh" state and folds into the "fresh" group.
 
 ## Layout sketch
 

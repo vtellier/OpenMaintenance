@@ -12,7 +12,7 @@ Define your own maintenance program, log interventions, and see at a glance what
 - **Intervention history** — log what you did, when, where, and who performed it, per equipment
 - **Equipment documents** — attach manuals, invoices, or warranty papers to each equipment
 - **Intervention photos** — attach photos to an intervention to record the state of a part before/after the work
-- **Hour-meter tracking** — optional, for engine hours or similar metrics
+- **Hour-meter tracking** — optional, for engine hours or similar metrics; a "Same hours" shortcut dismisses the freshness reminder when a machine hasn't run
 - **No authentication** — anyone with network access to the app can use it; security is delegated to your deployment (reverse proxy, firewall, etc.)
 - **Multi-device friendly** — works on desktop, tablet, and mobile
 - **Update notifications** — the Settings page notifies you when a new release is available on GitHub
