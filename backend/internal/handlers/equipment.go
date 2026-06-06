@@ -68,5 +68,6 @@ func (h *Handler) DeleteEquipment(ctx echo.Context, id int) error {
 	if err := dbpackage.DeleteEquipment(h.DB, id); err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
+	h.removeEquipmentFilesDir(id)
 	return ctx.NoContent(204)
 }

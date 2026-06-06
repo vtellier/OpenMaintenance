@@ -10,6 +10,7 @@ Define your own maintenance program, log interventions, and see at a glance what
 - **Multiple equipments** — manage any number of devices in one place
 - **Custom maintenance program** — define tasks by time interval, hour-meter interval, or both
 - **Intervention history** — log what you did, when, where, and who performed it, per equipment
+- **Equipment documents** — attach manuals, invoices, or warranty papers to each equipment
 - **Hour-meter tracking** — optional, for engine hours or similar metrics
 - **No authentication** — anyone with network access to the app can use it; security is delegated to your deployment (reverse proxy, firewall, etc.)
 - **Multi-device friendly** — works on desktop, tablet, and mobile

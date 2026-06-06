@@ -35,6 +35,15 @@ export function formatDate(date: Date | string | undefined | null): string {
   return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0')
 }
 
+export function formatFileSize(bytes: number | undefined): string {
+  if (bytes == null) return ''
+  if (bytes < 1024) return bytes + ' B'
+  const kb = bytes / 1024
+  if (kb < 1024) return kb.toFixed(kb < 10 ? 1 : 0) + ' KB'
+  const mb = kb / 1024
+  return mb.toFixed(mb < 10 ? 1 : 0) + ' MB'
+}
+
 export function formatHours(hours: number | undefined): string {
   if (hours == null) return ''
   return Math.round(hours).toLocaleString() + ' h'

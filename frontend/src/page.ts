@@ -19,7 +19,7 @@ export interface Page {
   view: unknown
 }
 
-const equipmentPathRe = /^\/equipments\/(\d+)(?:\/(history|info))?$/
+const equipmentPathRe = /^\/equipments\/(\d+)(?:\/(history|documents|info))?$/
 const equipmentEditRe = /^\/equipments\/(\d+)\/edit$/
 const equipmentDeleteRe = /^\/equipments\/(\d+)\/delete$/
 const equipmentHoursRe = /^\/equipments\/(\d+)\/edit\/hours$/

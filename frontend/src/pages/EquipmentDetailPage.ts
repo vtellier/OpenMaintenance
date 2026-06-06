@@ -2,9 +2,10 @@ import { component, html, reactive } from '@arrow-js/core'
 import { Equipment } from '@generated/api/models/Equipment'
 import { Task } from '@generated/api/models/Task'
 import { Intervention } from '@generated/api/models/Intervention'
+import { ModelFile } from '@generated/api/models/ModelFile'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { relativeTime, formatHours, formatDate, isHoursVeryStale, dueRelative } from '@/lib/format'
+import { relativeTime, formatHours, formatDate, formatFileSize, isHoursVeryStale, dueRelative } from '@/lib/format'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -71,6 +72,17 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       historyDeleteTarget: null as Intervention | null,
       historyDeleteSaving: false,
       historyDeleteError: null as string | null,
+
+      documents: [] as ModelFile[],
+      documentsLoaded: false,
+      documentsError: null as string | null,
+      uploading: false,
+      uploadError: null as string | null,
+      showDeleteDoc: false,
+      deleteDocName: '',
+      deleteDocOriginal: '',
+      deleteDocSaving: false,
+      deleteDocError: null as string | null,
     })
 
     async function load() {
@@ -125,7 +137,23 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       }
     }
 
+    async function loadDocuments() {
+      try {
+        const files = await equipmentApi.listEquipmentFiles({ equipmentId })
+        state.documents = files.map((f: any) => ({
+          ...f,
+          uploadedAt: f.uploadedAt?.toISOString?.() ?? f.uploadedAt,
+        }))
+        state.documentsError = null
+      } catch {
+        state.documentsError = 'Failed to load documents'
+      } finally {
+        state.documentsLoaded = true
+      }
+    }
+
     load()
+    loadDocuments()
 
     function getLastIntervention(taskId: number | undefined): Intervention | null {
       if (taskId == null) return null
@@ -159,6 +187,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
     const tabs = [
       { key: '', label: 'Tasks' },
       { key: 'history', label: 'History' },
+      { key: 'documents', label: 'Documents' },
       { key: 'info', label: 'Info' },
     ]
 
@@ -447,6 +476,55 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       }
     }
 
+    // ── Documents ──
+
+    async function onUploadChange(e: Event) {
+      const input = e.target as HTMLInputElement
+      const file = input.files?.[0]
+      if (!file) return
+      state.uploading = true
+      state.uploadError = null
+      try {
+        await equipmentApi.uploadEquipmentFile({ equipmentId, file })
+        await loadDocuments()
+      } catch {
+        state.uploadError = 'Failed to upload document'
+      } finally {
+        state.uploading = false
+        input.value = ''
+      }
+    }
+
+    function onDeleteDoc(f: ModelFile) {
+      state.showDeleteDoc = true
+      state.deleteDocName = f.name
+      state.deleteDocOriginal = f.originalName
+      state.deleteDocError = null
+    }
+
+    function onCancelDeleteDoc() {
+      state.showDeleteDoc = false
+    }
+
+    function onDeleteDocOverlayClick(e: Event) {
+      if ((e.target as HTMLElement).classList.contains('modal-overlay')) onCancelDeleteDoc()
+    }
+
+    async function onConfirmDeleteDoc() {
+      if (!state.deleteDocName) return
+      state.deleteDocSaving = true
+      state.deleteDocError = null
+      try {
+        await equipmentApi.deleteEquipmentFile({ equipmentId, filename: state.deleteDocName })
+        state.showDeleteDoc = false
+        await loadDocuments()
+      } catch {
+        state.deleteDocError = 'Failed to delete document'
+      } finally {
+        state.deleteDocSaving = false
+      }
+    }
+
     // ── Templates ──
 
     return html`<section class="page">
@@ -487,6 +565,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           <div class="tab-content">
             ${() => currentTab === '' ? taskTabContent() : null}
             ${() => currentTab === 'history' ? historyTabContent() : null}
+            ${() => currentTab === 'documents' ? documentsTabContent() : null}
             ${() => currentTab === 'info' ? infoTabContent() : null}
           </div>
 
@@ -494,6 +573,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           ${() => state.showEditTask ? editTaskModal() : null}
           ${() => state.showDeleteTask ? deleteTaskModal() : null}
           ${() => state.showQuickLog ? quickLogModal() : null}
+          ${() => state.showDeleteDoc ? deleteDocModal() : null}
           ${() => state.showFullForm ? FullInterventionModal(state as any, {
             equipments: () => [state.equipment!],
             allTasks: () => state.allTasks,
@@ -606,6 +686,41 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
                 </div>
               </div>`
             })}
+          </div>`
+        }}
+      `
+    }
+
+    function documentsTabContent() {
+      return html`
+        <div class="tab-toolbar">
+          <h2>Documents</h2>
+          <label class="btn btn--accent">
+            ${() => state.uploading ? 'Uploading...' : '+ Upload document'}
+            <input type="file" style="display: none" @change="${onUploadChange}" disabled="${() => state.uploading}" />
+          </label>
+        </div>
+        ${() => state.uploadError ? html`<div class="flash flash--error">${state.uploadError}</div>` : null}
+        ${() => {
+          if (!state.documentsLoaded) return html`<p class="page__empty">Loading...</p>`
+          if (state.documentsError) return html`<div class="flash flash--error">${state.documentsError}</div>`
+          const docs = state.documents
+          if (docs.length === 0) {
+            return html`<p class="page__empty">No documents attached.
+              <label class="upload-inline">+ Upload your first document<input type="file" style="display: none" @change="${onUploadChange}" /></label>
+            </p>`
+          }
+          return html`<div class="doc-list">
+            ${() => docs.map(f => html`<div class="doc-row">
+              <div class="doc-row__info">
+                <p class="doc-row__name">${f.originalName}</p>
+                <p class="doc-row__meta">${formatFileSize(f.size)} • ${formatDate(f.uploadedAt)}</p>
+              </div>
+              <div class="doc-row__actions">
+                <a class="btn btn--small" href="${f.url}" download="${f.originalName}">Download</a>
+                <button class="btn btn--small btn--danger" @click="${() => onDeleteDoc(f)}">Delete</button>
+              </div>
+            </div>`)}
           </div>`
         }}
       `
@@ -759,6 +874,23 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               <button class="btn" @click="${onCancelQuickLog}">Cancel</button>
               <button class="btn btn--accent" @click="${onSaveQuickLog}" disabled="${() => state.quickSaving || !state.quickDate}">
                 ${() => state.quickSaving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>`
+    }
+
+    function deleteDocModal() {
+      return html`
+        <div class="modal-overlay" @click="${onDeleteDocOverlayClick}">
+          <div class="modal">
+            <h2 class="modal__title">Delete file</h2>
+            ${() => state.deleteDocError ? html`<div class="flash flash--error">${state.deleteDocError}</div>` : null}
+            <p class="confirm-text">Delete <strong>${() => state.deleteDocOriginal}</strong>? This cannot be undone.</p>
+            <div class="modal__actions">
+              <button class="btn" @click="${onCancelDeleteDoc}">Cancel</button>
+              <button class="btn btn--danger" @click="${onConfirmDeleteDoc}" disabled="${() => state.deleteDocSaving}">
+                ${() => state.deleteDocSaving ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
