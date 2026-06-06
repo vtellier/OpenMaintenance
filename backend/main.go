@@ -12,6 +12,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/vtellier/OpenMaintenance/internal/config"
 	"github.com/vtellier/OpenMaintenance/internal/db"
+	"github.com/vtellier/OpenMaintenance/internal/filestore"
 	"github.com/vtellier/OpenMaintenance/internal/generated"
 	"github.com/vtellier/OpenMaintenance/internal/handlers"
 	"github.com/vtellier/OpenMaintenance/internal/updater"
@@ -40,6 +41,14 @@ func main() {
 	}
 	defer database.Close()
 
+	baseDir, err := filestore.BaseDir(cfg.Database.Path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := filestore.EnsureFilesDir(baseDir); err != nil {
+		log.Fatal(err)
+	}
+
 	log.Printf("OpenMaintenance %s — db=%s port=%d", Version, cfg.Database.Path, cfg.Server.Port)
 
 	e := echo.New()
@@ -67,7 +76,7 @@ func main() {
 		return nil
 	})
 
-	h := &handlers.Handler{DB: database, Version: Version}
+	h := &handlers.Handler{DB: database, Version: Version, BaseDir: baseDir}
 	generated.RegisterHandlersWithBaseURL(e, h, "/api")
 
 	go func() {

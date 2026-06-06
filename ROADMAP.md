@@ -117,6 +117,14 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] Migration runner: bootstrap pre-meta DBs as v1, refuse future DBs, apply numbered migrations forward-only
 - [x] Spec: `doc/db-migration.md`
 
+## Milestone 14 — Equipment Documents (issue #3)
+
+- [x] `equipment_files` table (migration v5) + `files/` directory on disk next to the DB
+- [x] API: list / upload / download / delete documents under `/equipments/{id}/files`
+- [x] Documents tab on the equipment detail screen (upload, list, download, delete)
+- [x] Files removed from disk on document delete and on equipment delete (cascade)
+- [x] Spec: `doc/file-storage.md`
+
 ## Future (post-V1)
 
 - Configurable "due soon" window
@@ -124,7 +132,8 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - Configurable date format
 - CSV export
 - Email/push notifications
-- File attachments
+- File attachments — equipment documents done (#3); equipment picture (#2), task/intervention photos (#25/#26) pending
+- Backup of attached files (#27)
 - Mobile app (native)
 
 > See [`doc/overview.md`](./doc/overview.md) for the product vision and [`doc/data-model.md`](./doc/data-model.md) for data model details.

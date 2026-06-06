@@ -304,3 +304,24 @@ Added optional "Done by" field to interventions (person or company who performed
 Also fixed two dev tooling issues:
 - `make generate-openapi` was failing because `oapi-codegen` was installed in `~/go/bin` but not on PATH — Makefile now uses `$(GOBIN)/oapi-codegen`
 - Vite dev server had no `/api` proxy configured — API calls were returning the HTML shell instead of hitting the backend; added `proxy: { '/api': 'http://localhost:3001' }` to `vite.config.ts`
+
+## 2026-06-06 — Equipment documents (issue #3)
+
+Implemented file attachments for equipments — the first slice of the `doc/file-storage.md` design (which covers #2/#3/#25/#26). Scope was kept to **#3 only**; backup-of-files (#27) and startup orphan cleanup were deliberately deferred.
+
+Backend:
+- Migration **v5**: `equipment_files (equipment_id, file_path PK, original_name, uploaded_at)`; `CurrentSchemaVersion` → 5
+- New `internal/filestore` package: derives the `files/` dir from `database.path`, creates it on startup, and resolves relative ↔ absolute paths
+- Files stored on disk at `files/equipments/{id}/files/{random}.{ext}`; DB holds only the relative path. Size cap 25 MB, enforced from header **and** while streaming
+- Handlers: `ListEquipmentFiles`, `UploadEquipmentFile`, `GetEquipmentFile` (served `attachment` with original filename + sniffed MIME), `DeleteEquipmentFile`
+- Cascade: deleting an equipment removes its `equipment_files` rows and the whole `files/equipments/{id}/` tree; deleting a document removes its row and disk file
+- Tests in `tests/equipment_file_test.go` cover upload→list→download→delete, missing-equipment 404, and equipment-delete cascade
+
+Frontend:
+- New **Documents** tab on the equipment detail screen (between History and Info); router regex updated
+- Upload via hidden file input, list with size + date, download link, delete confirmation modal
+- `formatFileSize` helper added to `lib/format.ts`
+
+API spec: 4 new operations + `File` schema in `backend/api/openapi.yaml`; Go and TS clients regenerated.
+
+> Note: pre-existing `pnpm run typecheck` errors in `DashboardPage.ts` and `EquipmentsPage.ts` are unrelated to this work (the required gate is `pnpm run build`, which passes).

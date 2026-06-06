@@ -141,6 +141,122 @@ paths:
           description: Equipment deleted
         '404':
           description: Equipment not found
+  /equipments/{equipment_id}/files:
+    get:
+      operationId: listEquipmentFiles
+      summary: List documents attached to an equipment
+      description: Retrieve all documents attached to an equipment
+      tags:
+        - Equipment
+      parameters:
+        - in: path
+          name: equipment_id
+          schema:
+            type: integer
+          required: true
+          description: ID of the equipment
+      responses:
+        '200':
+          description: A list of attached documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/File'
+        '404':
+          description: Equipment not found
+    post:
+      operationId: uploadEquipmentFile
+      summary: Upload a document to an equipment
+      description: Attach a new document to an equipment. Any file type is accepted, up to 25 MB.
+      tags:
+        - Equipment
+      parameters:
+        - in: path
+          name: equipment_id
+          schema:
+            type: integer
+          required: true
+          description: ID of the equipment
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The document to upload
+      responses:
+        '201':
+          description: Document uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+        '404':
+          description: Equipment not found
+        '413':
+          description: File exceeds the maximum allowed size
+  /equipments/{equipment_id}/files/{filename}:
+    get:
+      operationId: getEquipmentFile
+      summary: Download an attached document
+      description: Serve the raw bytes of an attached document as a download.
+      tags:
+        - Equipment
+      parameters:
+        - in: path
+          name: equipment_id
+          schema:
+            type: integer
+          required: true
+          description: ID of the equipment
+        - in: path
+          name: filename
+          schema:
+            type: string
+          required: true
+          description: Stored filename of the document (the File.name value)
+      responses:
+        '200':
+          description: The document bytes
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Document not found
+    delete:
+      operationId: deleteEquipmentFile
+      summary: Delete an attached document
+      description: Remove an attached document from the equipment.
+      tags:
+        - Equipment
+      parameters:
+        - in: path
+          name: equipment_id
+          schema:
+            type: integer
+          required: true
+          description: ID of the equipment
+        - in: path
+          name: filename
+          schema:
+            type: string
+          required: true
+          description: Stored filename of the document (the File.name value)
+      responses:
+        '204':
+          description: Document deleted
+        '404':
+          description: Document not found
   /equipments/{equipment_id}/tasks:
     get:
       operationId: listTasksByEquipment
@@ -567,6 +683,40 @@ components:
           type: string
           format: date-time
           description: When the intervention was last updated
+    File:
+      type: object
+      required:
+        - name
+        - original_name
+        - size
+        - mime_type
+        - uploaded_at
+        - url
+      properties:
+        name:
+          type: string
+          description: Stored filename, used as the {filename} URL segment
+          example: "abc123.pdf"
+        original_name:
+          type: string
+          description: Filename as uploaded by the user
+          example: "manual.pdf"
+        size:
+          type: integer
+          format: int64
+          description: Size of the file in bytes
+        mime_type:
+          type: string
+          description: Detected MIME type of the file
+          example: "application/pdf"
+        uploaded_at:
+          type: string
+          format: date-time
+          description: When the file was uploaded
+        url:
+          type: string
+          description: Relative URL to download the file
+          example: "/api/equipments/12/files/abc123.pdf"
     VersionInfo:
       type: object
       required:

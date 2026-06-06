@@ -937,6 +937,56 @@ code {
   font-size: 12px;
 }
 
+/* ── Documents list ── */
+
+.doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.doc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  gap: 12px;
+}
+
+.doc-row__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.doc-row__name {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 2px;
+  overflow-wrap: anywhere;
+}
+
+.doc-row__meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.doc-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.upload-inline {
+  color: var(--accent, #2563eb);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 /* ── History list ── */
 
 .history-list {
