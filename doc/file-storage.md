@@ -46,6 +46,7 @@ Files are stored under a generated UUID to avoid collisions and path special-cha
 | Column | Type | Notes |
 |--------|------|-------|
 | `picture` | TEXT | Relative path to the picture file (e.g. `files/equipments/12/picture.jpg`). NULL when no picture is set. |
+| `icon` | TEXT | A single emoji shown when no `picture` is set. Defaults to `🔧`. Not a file — plain equipment metadata, listed here only because it is the fallback for the picture. |
 
 ### `equipment_files` — documents attached to an equipment
 
@@ -82,9 +83,11 @@ The equipment profile picture does not need an `original_name` — there is only
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/api/equipment/{id}/picture` | Upload or replace the profile picture. |
-| `GET` | `/api/equipment/{id}/picture` | Serve the picture. Returns 404 if none. |
-| `DELETE` | `/api/equipment/{id}/picture` | Delete the picture. |
+| `POST` | `/api/equipments/{id}/picture` | Upload or replace the profile picture. |
+| `GET` | `/api/equipments/{id}/picture` | Serve the picture inline. Returns 404 if none. |
+| `DELETE` | `/api/equipments/{id}/picture` | Delete the picture. |
+
+The `icon` emoji is not a file and has no dedicated endpoint — it is set through the normal equipment create/update payload (`EquipmentInput.icon`).
 
 ### Equipment documents (issue #3)
 

@@ -16,8 +16,19 @@ A component of the maintained system (e.g. "Main Engine", "Family Car", "House H
 | `hours`           | number    | no       | Current hour-meter value. Only relevant if `tracks_hours` is true. |
 | `hours_updated_at`| timestamp | no       | Timestamp of the last hour-meter update. Only relevant if `tracks_hours` is true. |
 | `picture`         | string    | no       | Relative path to the profile picture file (e.g. `files/equipments/12/picture.jpg`). NULL when no picture is set. See [file-storage.md](./file-storage.md). |
+| `icon`            | string    | no       | A single emoji used as the equipment's icon when no `picture` is set. Defaults to `🔧`. |
 | `created_at`      | timestamp | yes      | Auto                                                    |
 | `updated_at`      | timestamp | yes      | Auto                                                    |
+
+### Visual identity (picture vs icon)
+
+Every equipment has a visual marker shown on the detail header, the list cards, and the dashboard. The precedence is:
+
+1. If `picture` is set, show the uploaded picture.
+2. Otherwise show the `icon` emoji.
+3. `icon` itself defaults to `🔧`, so an equipment always has a marker even before the user customizes anything.
+
+The `icon` is edited as plain equipment metadata (via the equipment create/edit form). The `picture` is managed through dedicated upload/serve/delete endpoints — see [file-storage.md](./file-storage.md).
 
 ### Hour-meter behavior
 
