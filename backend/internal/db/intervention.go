@@ -106,6 +106,7 @@ func UpdateIntervention(db *sql.DB, intervention *models.Intervention) error {
 }
 
 func DeleteIntervention(db *sql.DB, id int) error {
+	db.Exec("DELETE FROM intervention_files WHERE intervention_id = ?", id)
 	_, err := db.Exec("DELETE FROM interventions WHERE id = ?", id)
 	return err
 }
@@ -140,6 +141,11 @@ func GetLastInterventionByTask(db *sql.DB, taskID int) (*models.Intervention, er
 }
 
 func DeleteInterventionsByTask(db *sql.DB, taskID int) error {
+	db.Exec(
+		`DELETE FROM intervention_files
+		 WHERE intervention_id IN (SELECT id FROM interventions WHERE task_id = ?)`,
+		taskID,
+	)
 	_, err := db.Exec("DELETE FROM interventions WHERE task_id = ?", taskID)
 	return err
 }

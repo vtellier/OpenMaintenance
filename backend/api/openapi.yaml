@@ -519,6 +519,124 @@ paths:
           description: Intervention deleted
         '404':
           description: Intervention not found
+  /interventions/{id}/files:
+    get:
+      operationId: listInterventionFiles
+      summary: List photos attached to an intervention
+      description: Retrieve all photos attached to an intervention.
+      tags:
+        - Intervention
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the intervention
+      responses:
+        '200':
+          description: A list of attached photos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FileInfo'
+        '404':
+          description: Intervention not found
+    post:
+      operationId: uploadInterventionFile
+      summary: Upload a photo to an intervention
+      description: Attach a new photo to an intervention. Only image files are accepted (JPEG, PNG, WebP, GIF), up to 10 MB.
+      tags:
+        - Intervention
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the intervention
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The photo to upload
+      responses:
+        '201':
+          description: Photo uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileInfo'
+        '404':
+          description: Intervention not found
+        '413':
+          description: File exceeds the maximum allowed size
+        '415':
+          description: Unsupported media type
+  /interventions/{id}/files/{filename}:
+    get:
+      operationId: getInterventionFile
+      summary: Serve an attached photo
+      description: Serve the raw bytes of an attached photo inline so it can be displayed.
+      tags:
+        - Intervention
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the intervention
+        - in: path
+          name: filename
+          schema:
+            type: string
+          required: true
+          description: Stored filename of the photo (the FileInfo.name value)
+      responses:
+        '200':
+          description: The photo bytes
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Photo not found
+    delete:
+      operationId: deleteInterventionFile
+      summary: Delete an attached photo
+      description: Remove an attached photo from the intervention.
+      tags:
+        - Intervention
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the intervention
+        - in: path
+          name: filename
+          schema:
+            type: string
+          required: true
+          description: Stored filename of the photo (the FileInfo.name value)
+      responses:
+        '204':
+          description: Photo deleted
+        '404':
+          description: Photo not found
 components:
   schemas:
     Equipment:
@@ -683,6 +801,10 @@ components:
           type: string
           format: date-time
           description: When the intervention was last updated
+        photo_count:
+          type: integer
+          description: Number of photos attached to the intervention
+          readOnly: true
     FileInfo:
       type: object
       required:

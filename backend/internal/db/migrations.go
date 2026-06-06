@@ -7,7 +7,7 @@ import (
 
 // CurrentSchemaVersion is the schema version the running binary expects.
 // Bump this and append to `migrations` whenever a schema change is added.
-const CurrentSchemaVersion = 5
+const CurrentSchemaVersion = 6
 
 type migration struct {
 	Version int
@@ -61,6 +61,18 @@ var migrations = []migration{
 				original_name TEXT NOT NULL,
 				uploaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 				FOREIGN KEY (equipment_id) REFERENCES equipments(id)
+			)`,
+		},
+	},
+	{
+		Version: 6,
+		SQL: []string{
+			`CREATE TABLE intervention_files (
+				intervention_id INTEGER NOT NULL,
+				file_path TEXT PRIMARY KEY,
+				original_name TEXT NOT NULL,
+				uploaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				FOREIGN KEY (intervention_id) REFERENCES interventions(id)
 			)`,
 		},
 	},

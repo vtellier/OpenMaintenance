@@ -3,6 +3,13 @@ bin/
 
 # Database files
 data/
+*.db
+*.db-wal
+*.db-shm
+
+# Runtime data created next to the DB
+backend/files/
+backend/backups/
 
 # Go build artifacts
 *.exe

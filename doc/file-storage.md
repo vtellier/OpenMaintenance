@@ -106,12 +106,20 @@ The equipment profile picture does not need an `original_name` — there is only
 
 ### Intervention photos (issue #25)
 
+Interventions are a flat resource in the API (`/interventions/{id}`), so their
+photo endpoints are nested directly under the intervention — not under the
+equipment. This deliberately leaves room for interventions that are **not bound
+to an equipment** one day (e.g. a standalone log entry); the URL would stay
+valid even if the equipment link were dropped. The on-disk layout still groups
+the files under the owning equipment today, resolved server-side from the
+intervention.
+
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/equipment/{id}/interventions/{intervention_id}/files` | List all photos for this intervention. |
-| `POST` | `/api/equipment/{id}/interventions/{intervention_id}/files` | Upload a photo. |
-| `GET` | `/api/equipment/{id}/interventions/{intervention_id}/files/{filename}` | Serve a photo. |
-| `DELETE` | `/api/equipment/{id}/interventions/{intervention_id}/files/{filename}` | Delete a photo. |
+| `GET` | `/api/interventions/{id}/files` | List all photos for this intervention. |
+| `POST` | `/api/interventions/{id}/files` | Upload a photo. |
+| `GET` | `/api/interventions/{id}/files/{filename}` | Serve a photo. |
+| `DELETE` | `/api/interventions/{id}/files/{filename}` | Delete a photo. |
 
 The `{filename}` path segment in the serve/delete endpoints is always the **stored UUID filename** (e.g. `abc123.pdf`), not the user's original name. The original name is carried in the `File` object's `original_name` field (see below), never in the URL.
 

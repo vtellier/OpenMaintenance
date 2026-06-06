@@ -13,6 +13,10 @@ import (
 // MaxDocumentSize is the largest equipment document accepted, in bytes (25 MB).
 const MaxDocumentSize = 25 << 20
 
+// MaxImageSize is the largest photo accepted for tasks and interventions, in
+// bytes (10 MB).
+const MaxImageSize = 10 << 20
+
 // BaseDir returns the directory that contains the files/ tree, derived from
 // the database path. Relative database paths are resolved against the
 // executable's directory, matching db.InitDB.
@@ -42,6 +46,14 @@ func EquipmentFilesRelDir(equipmentID int) string {
 // equipment, e.g. files/equipments/12.
 func EquipmentRelDir(equipmentID int) string {
 	return filepath.ToSlash(filepath.Join("files", "equipments", strconv.Itoa(equipmentID)))
+}
+
+// InterventionFilesRelDir is the relative directory holding one intervention's
+// photos, e.g. files/equipments/12/interventions/42.
+func InterventionFilesRelDir(equipmentID, interventionID int) string {
+	return filepath.ToSlash(filepath.Join(
+		"files", "equipments", strconv.Itoa(equipmentID),
+		"interventions", strconv.Itoa(interventionID)))
 }
 
 // Abs joins a stored relative path with the base directory.
