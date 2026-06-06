@@ -163,7 +163,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/File'
+                  $ref: '#/components/schemas/FileInfo'
         '404':
           description: Equipment not found
     post:
@@ -198,7 +198,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/File'
+                $ref: '#/components/schemas/FileInfo'
         '404':
           description: Equipment not found
         '413':
@@ -683,7 +683,7 @@ components:
           type: string
           format: date-time
           description: When the intervention was last updated
-    File:
+    FileInfo:
       type: object
       required:
         - name
