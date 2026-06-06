@@ -19,7 +19,7 @@ import (
 
 // fileResponse builds the API File object for a stored document, reading size
 // and MIME type from disk.
-func (h *Handler) fileResponse(equipmentID int, f models.EquipmentFile) generated.File {
+func (h *Handler) fileResponse(equipmentID int, f models.EquipmentFile) generated.FileInfo {
 	name := filepath.Base(f.FilePath)
 	abs := filestore.Abs(h.BaseDir, f.FilePath)
 
@@ -30,7 +30,7 @@ func (h *Handler) fileResponse(equipmentID int, f models.EquipmentFile) generate
 
 	mimeType := detectMime(abs)
 
-	return generated.File{
+	return generated.FileInfo{
 		Name:         name,
 		OriginalName: f.OriginalName,
 		Size:         size,
@@ -63,7 +63,7 @@ func (h *Handler) ListEquipmentFiles(ctx echo.Context, equipmentId int) error {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
 
-	files := make([]generated.File, 0, len(rows))
+	files := make([]generated.FileInfo, 0, len(rows))
 	for _, r := range rows {
 		files = append(files, h.fileResponse(equipmentId, r))
 	}

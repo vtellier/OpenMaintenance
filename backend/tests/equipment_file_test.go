@@ -78,7 +78,7 @@ func TestEquipmentFile_UploadListDownloadDelete(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("upload: expected 201, got %d (%s)", rec.Code, rec.Body.String())
 	}
-	var created generated.File
+	var created generated.FileInfo
 	if err := json.Unmarshal(rec.Body.Bytes(), &created); err != nil {
 		t.Fatalf("decode upload response: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestEquipmentFile_UploadListDownloadDelete(t *testing.T) {
 	if listRec.Code != http.StatusOK {
 		t.Fatalf("list: expected 200, got %d", listRec.Code)
 	}
-	var listed []generated.File
+	var listed []generated.FileInfo
 	json.Unmarshal(listRec.Body.Bytes(), &listed)
 	if len(listed) != 1 {
 		t.Fatalf("list: expected 1 file, got %d", len(listed))

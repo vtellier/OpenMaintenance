@@ -2,7 +2,7 @@ import { component, html, reactive } from '@arrow-js/core'
 import { Equipment } from '@generated/api/models/Equipment'
 import { Task } from '@generated/api/models/Task'
 import { Intervention } from '@generated/api/models/Intervention'
-import { ModelFile } from '@generated/api/models/ModelFile'
+import { FileInfo } from '@generated/api/models/FileInfo'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { relativeTime, formatHours, formatDate, formatFileSize, isHoursVeryStale, dueRelative } from '@/lib/format'
@@ -73,7 +73,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       historyDeleteSaving: false,
       historyDeleteError: null as string | null,
 
-      documents: [] as ModelFile[],
+      documents: [] as FileInfo[],
       documentsLoaded: false,
       documentsError: null as string | null,
       uploading: false,
@@ -495,7 +495,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       }
     }
 
-    function onDeleteDoc(f: ModelFile) {
+    function onDeleteDoc(f: FileInfo) {
       state.showDeleteDoc = true
       state.deleteDocName = f.name
       state.deleteDocOriginal = f.originalName
