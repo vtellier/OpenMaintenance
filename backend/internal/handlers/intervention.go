@@ -15,6 +15,7 @@ func (h *Handler) ListInterventions(ctx echo.Context) error {
 	if err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
+	h.attachPhotoCounts(interventions)
 	return ctx.JSON(200, interventions)
 }
 
@@ -23,7 +24,20 @@ func (h *Handler) ListInterventionsByTask(ctx echo.Context, taskId int) error {
 	if err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
+	h.attachPhotoCounts(interventions)
 	return ctx.JSON(200, interventions)
+}
+
+// attachPhotoCounts fills the PhotoCount of each intervention from a single
+// grouped query, leaving counts at zero if the lookup fails.
+func (h *Handler) attachPhotoCounts(interventions []models.Intervention) {
+	counts, err := dbpackage.CountInterventionFilesByIntervention(h.DB)
+	if err != nil {
+		return
+	}
+	for i := range interventions {
+		interventions[i].PhotoCount = counts[interventions[i].ID]
+	}
 }
 
 func (h *Handler) CreateIntervention(ctx echo.Context) error {
@@ -56,6 +70,9 @@ func (h *Handler) GetIntervention(ctx echo.Context, id int) error {
 	if err != nil {
 		return ctx.JSON(404, map[string]string{"error": "Intervention not found"})
 	}
+	if n, err := dbpackage.CountInterventionFiles(h.DB, id); err == nil {
+		intervention.PhotoCount = n
+	}
 	return ctx.JSON(200, intervention)
 }
 
@@ -86,9 +103,18 @@ func (h *Handler) UpdateIntervention(ctx echo.Context, id int) error {
 }
 
 func (h *Handler) DeleteIntervention(ctx echo.Context, id int) error {
+	// Capture the equipment the intervention belongs to before it is gone, so
+	// its photo directory can be cleaned up afterwards.
+	existing, _ := dbpackage.GetIntervention(h.DB, id)
+
 	if err := dbpackage.DeleteIntervention(h.DB, id); err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
+
+	if existing != nil && existing.EquipmentID != nil {
+		h.removeInterventionFilesDir(*existing.EquipmentID, id)
+	}
+
 	return ctx.NoContent(204)
 }
 

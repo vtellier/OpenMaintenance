@@ -125,6 +125,15 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] Files removed from disk on document delete and on equipment delete (cascade)
 - [x] Spec: `doc/file-storage.md`
 
+## Milestone 15 — Intervention Photos (issue #25)
+
+- [x] `intervention_files` table (migration v6); `CurrentSchemaVersion` → 6
+- [x] API: list / upload / serve / delete photos under `/interventions/{id}/files` (images only, 10 MB, served inline)
+- [x] `photo_count` added to the intervention response for the history badge
+- [x] Photo grid (add / delete / full-screen view) in the full intervention form; photo-count badge in history lists
+- [x] Files removed from disk on photo delete and on intervention / task / equipment delete (cascade)
+- [x] Spec: `doc/file-storage.md`
+
 ## Future (post-V1)
 
 - Configurable "due soon" window
@@ -132,7 +141,7 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - Configurable date format
 - CSV export
 - Email/push notifications
-- File attachments — equipment documents done (#3); equipment picture (#2), task/intervention photos (#25/#26) pending
+- File attachments — equipment documents (#3) and intervention photos (#25) done; equipment picture (#2), task photos (#26) pending
 - Backup of attached files (#27)
 - Mobile app (native)
 

@@ -1,5 +1,28 @@
 # Session Summary
 
+## 2026-06-06 — Intervention photos (issue #25)
+
+Implemented photo attachments for interventions, the next slice of the file-storage design after equipment documents (#3). Reuses the `filestore` package, the `FileInfo` schema, and the handler/db/test patterns from #3.
+
+**API decision:** endpoints are nested under the *intervention*, not the equipment: `/api/interventions/{id}/files[/{filename}]`. This matches the flat intervention API and deliberately leaves room for interventions not bound to an equipment one day. (Initially scoped as nested under equipment per the doc; changed mid-session.) `doc/file-storage.md` updated with the rationale.
+
+Backend:
+- Migration **v6**: `intervention_files (intervention_id, file_path PK, original_name, uploaded_at)`; `CurrentSchemaVersion` → 6
+- Files stored at `files/equipments/{eq}/interventions/{inv}/{random}.{ext}` — the equipment is resolved server-side from the intervention. DB holds only the relative path
+- **Image-only** validation: MIME content-sniffed from leading bytes (JPEG/PNG/WebP/GIF), 10 MB cap enforced from header **and** while streaming; 415 on wrong type, 413 on oversize, before any write
+- Handlers: `ListInterventionFiles`, `UploadInterventionFile`, `GetInterventionFile` (served **inline** with sniffed MIME), `DeleteInterventionFile`
+- Cascade: deleting an intervention, its parent task, or its equipment removes the `intervention_files` rows and the on-disk photo dirs
+- `photo_count` added to the intervention API response (cheap grouped query) to drive the history badge
+- Tests in `tests/intervention_file_test.go`: upload→list→serve→delete, 415 non-image, 404 missing intervention, intervention-delete and equipment-delete cascades
+
+Frontend:
+- New reusable `components/InterventionPhotos.ts` — photo grid with add (multi-file), per-photo delete, and full-screen viewer; owns its own reactive state, mounted per form open
+- Wired into the shared `FullInterventionModal` (shown only when editing a saved intervention; a hint shows for not-yet-saved ones), used by both the equipment History tab and the global History screen
+- Photo-count badge (📷 N photos) on history rows in both screens
+- CSS for the grid, thumbnails, delete affordance, badge, and viewer overlay
+
+API spec: 5 new operations (4 file routes + `photo_count` field) in `backend/api/openapi.yaml`; Go and TS clients regenerated. `make build` and all 15 Playwright tests pass.
+
 ## 2026-06-06 — File storage design decisions (issues #2, #3, #25, #26)
 
 Resolved the three blocking open questions in `doc/file-storage.md` so the file-attachment feature is implementable:

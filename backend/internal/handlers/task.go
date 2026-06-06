@@ -123,8 +123,19 @@ func validateTaskIntervals(db *sql.DB, task *models.Task) error {
 }
 
 func (h *Handler) DeleteTask(ctx echo.Context, id int) error {
+	// Capture the task's interventions before they cascade away, so their photo
+	// directories can be cleaned up from disk afterwards.
+	interventions, _ := dbpackage.ListInterventionsByTask(h.DB, id)
+
 	if err := dbpackage.DeleteTask(h.DB, id); err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
+
+	for _, inv := range interventions {
+		if inv.EquipmentID != nil {
+			h.removeInterventionFilesDir(*inv.EquipmentID, inv.ID)
+		}
+	}
+
 	return ctx.NoContent(204)
 }

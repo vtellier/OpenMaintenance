@@ -85,7 +85,16 @@ func UpdateEquipment(db *sql.DB, equipment *models.Equipment) error {
 }
 
 func DeleteEquipment(db *sql.DB, id int) error {
+	// Remove photos of any intervention belonging to this equipment (including
+	// exceptional interventions, which are not tied to a task) before the
+	// interventions themselves are gone.
+	db.Exec(
+		`DELETE FROM intervention_files
+		 WHERE intervention_id IN (SELECT id FROM interventions WHERE equipment_id = ?)`,
+		id,
+	)
 	DeleteTasksByEquipment(db, id)
+	db.Exec("DELETE FROM interventions WHERE equipment_id = ?", id)
 	db.Exec("DELETE FROM equipment_files WHERE equipment_id = ?", id)
 	_, err := db.Exec("DELETE FROM equipments WHERE id = ?", id)
 	return err

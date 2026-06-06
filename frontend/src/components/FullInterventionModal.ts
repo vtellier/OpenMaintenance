@@ -2,6 +2,7 @@ import { html, type ArrowExpression } from '@arrow-js/core'
 import { Equipment } from '@generated/api/models/Equipment'
 import { Task } from '@generated/api/models/Task'
 import { formatHours } from '@/lib/format'
+import { InterventionPhotos } from '@/components/InterventionPhotos'
 
 export interface InterventionFormState {
   equipmentId: number | null
@@ -23,6 +24,7 @@ export function FullInterventionModal(
     equipments: () => Equipment[]
     allTasks: () => Task[]
     equipmentIdFixed?: number
+    interventionId?: number | null
     title?: string
     onCancel: () => void
     onOverlayClick: (e: Event) => void
@@ -32,6 +34,11 @@ export function FullInterventionModal(
   const equipments = opts.equipments
   const allTasks = opts.allTasks
   const equipmentIdFixed = opts.equipmentIdFixed
+
+  // Photos can only be attached to an already-saved intervention (we need its
+  // id). When editing one, mount the photo manager; when logging a new one,
+  // show a hint instead.
+  const photos = opts.interventionId != null ? InterventionPhotos(opts.interventionId) : null
 
   const filteredTasks = () => {
     const eqId = state.equipmentId ?? equipmentIdFixed
@@ -168,6 +175,10 @@ export function FullInterventionModal(
           <label class="form-field__label">Comments</label>
           <textarea placeholder="Optional notes" .value="${() => state.comments}" @input="${onCommentsChange}"></textarea>
         </div>
+
+        ${photos
+          ? photos.render()
+          : html`<p class="photo-hint">Save the intervention to attach photos.</p>`}
 
         <div class="modal__actions">
           <button class="btn" @click="${opts.onCancel}">Cancel</button>
