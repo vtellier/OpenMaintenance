@@ -16,7 +16,9 @@
   },
   "dependencies": {
     "@arrow-js/core": "^1.0.6",
-    "@arrow-js/framework": "^1.0.6"
+    "@arrow-js/framework": "^1.0.6",
+    "emoji-picker-element": "^1.29.1",
+    "emoji-picker-element-data": "^1.8.0"
   },
   "devDependencies": {
     "@arrow-js/skill": "^1.0.6",

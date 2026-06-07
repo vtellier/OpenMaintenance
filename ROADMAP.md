@@ -135,6 +135,14 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] Files removed from disk on photo delete and on intervention / task / equipment delete (cascade)
 - [x] Spec: `doc/file-storage.md`
 
+## Milestone 16 — Equipment Icon (issue #2)
+
+- [x] `equipments.icon` column (migration v7); `CurrentSchemaVersion` → 7
+- [x] Mandatory `icon` emoji field on `Equipment` / `EquipmentInput`, defaults to 🔧
+- [x] Icon avatar shown on the list cards and the dashboard
+- [x] Icon chosen from an emoji picker (searchable, offline-bundled data) in the create/edit forms
+- [x] Spec: `doc/data-model.md`, `doc/gui/equipments.md`
+
 ## Future (post-V1)
 
 - Configurable "due soon" window
@@ -142,7 +150,8 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - Configurable date format
 - CSV export
 - Email/push notifications
-- File attachments — equipment documents (#3) and intervention photos (#25) done; equipment picture (#2), task photos (#26) pending
+- File attachments — equipment documents (#3) and intervention photos (#25) done; task photos (#26) pending
+- Equipment icon (#2) done; equipment picture dropped from scope
 - Backup of attached files (#27)
 - Mobile app (native)
 

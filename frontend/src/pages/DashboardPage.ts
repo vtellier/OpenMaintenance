@@ -5,6 +5,7 @@ import { Intervention } from '@generated/api/models/Intervention'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { relativeTime, formatHours, isHoursStale, isHoursVeryStale, dueRelative } from '@/lib/format'
+import { equipmentAvatar } from '@/components/EquipmentAvatar'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -241,7 +242,7 @@ export function DashboardPage() {
                 const eqDetailHref = '/equipments/' + eqId
                 return html`<div class="equipment-block">
                   <div class="equipment-block__header">
-                    <a href="${eqDetailHref}" class="equipment-block__name">${eq.name}</a>
+                    <a href="${eqDetailHref}" class="equipment-block__name">${equipmentAvatar(eq)}<span>${eq.name}</span></a>
                     ${eq.tracksHours ? html`<span class="equipment-block__hours">${formatHours(eq.hours)}</span>` : null}
                   </div>
                   <div class="task-list-compact">

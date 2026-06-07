@@ -690,6 +690,9 @@ components:
           type: string
           format: date
           description: Date the equipment was put into service (YYYY-MM-DD). Optional.
+        icon:
+          type: string
+          description: Emoji marker for the equipment, shown wherever it is referenced. Defaults to 🔧.
         tracks_hours:
           type: boolean
           description: Whether this equipment uses an hour-meter
@@ -724,6 +727,9 @@ components:
           type: string
           format: date
           description: Date the equipment was put into service (YYYY-MM-DD). Optional.
+        icon:
+          type: string
+          description: Emoji marker for the equipment. Defaults to 🔧 when omitted.
         tracks_hours:
           type: boolean
           description: Whether this equipment uses an hour-meter

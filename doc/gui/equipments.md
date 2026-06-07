@@ -12,7 +12,7 @@ Browse, find, and create equipments. Get an at-a-glance status of each.
 - A prominent **"+ Add equipment"** button (top-right on desktop, floating action button on mobile).
 
 ### Card content
-- **Equipment picture** shown as a small avatar/thumbnail in the top-left corner of the card. Fallback when no picture is set: 🔧 emoji.
+- **Equipment icon** (emoji, defaults to 🔧) shown as a small avatar in the top-left corner of the card.
 - **Equipment name** (large, primary).
 - **Description** (optional, truncated to 1–2 lines).
 - **Hour-meter** value (only if the equipment tracks hours, e.g. *"1 245 h"*) + the **last hour-meter update** as relative time (e.g. *"updated 3 days ago"*, *"never updated"*). Stale updates (older than the configured threshold) are visually emphasized.
@@ -26,7 +26,7 @@ Friendly message: *"No equipments yet."* + a prominent **"+ Add your first equip
 ## Equipment detail
 
 ### Header (always visible)
-- **Equipment picture** shown prominently on the left side of the header. Fallback: 🔧 emoji. Tapping the picture opens the upload/replace flow.
+- **Equipment icon** (emoji, defaults to 🔧) shown on the left side, before the name. Clicking it opens the emoji picker; the change is saved immediately.
 - Equipment name.
 - Edit / delete actions.
 - Hour-meter value + last update relative time (e.g. *"1 245 h • updated 3 days ago"*) + **"Update hours"** action. Only if the equipment tracks hours. Stale values are emphasized.
@@ -38,7 +38,7 @@ The detail screen has four tabs:
 1. **Tasks** — The maintenance program of this equipment. See [tasks.md](./tasks.md).
 2. **History** — All interventions performed on this equipment, most recent first.
 3. **Documents** — Files attached to this equipment (manuals, invoices, warranties). See below.
-4. **Info** — Editable equipment metadata: name, description, date of commissioning, `tracks_hours` toggle.
+4. **Info** — Editable equipment metadata: name, description, date of commissioning, **icon emoji**, `tracks_hours` toggle.
 
 The Tasks tab is the default when opening an equipment.
 
@@ -57,6 +57,7 @@ Empty state: *"No documents attached."* + **"+ Upload your first document"** CTA
 2. A form opens (modal or full screen on mobile) with fields:
    - Name (required)
    - Description (optional)
+   - **Icon** (defaults to 🔧) — chosen from an **icon picker**: a button opens a searchable emoji picker (any emoji, no text field), with a Reset to 🔧. The icon is the equipment's marker in lists and the dashboard.
    - Date of commissioning (optional, date picker)
    - Toggle: *"This equipment has an hour-meter"* (`tracks_hours`)
    - If toggled on: initial hours value (defaults to 0)
@@ -78,11 +79,13 @@ The same flow is reachable from three places: the equipment detail header, the d
 2. Turning `tracks_hours` on: a hours field appears, user sets initial value.
 3. Turning `tracks_hours` off: the app warns that any task using `hours_interval` will be affected. Confirmation required.
 
-### Flow: Upload or replace equipment picture
-1. User taps the picture area in the equipment detail header (or a dedicated "Change picture" action).
-2. A file picker opens — image files only.
-3. On selection, the picture is uploaded and the old one is replaced immediately.
-4. A **"Remove picture"** action (visible next to the picture when one is set) deletes it and restores the 🔧 fallback.
+### Flow: Change the icon
+There are two ways to change the icon:
+
+- **From the detail header**: click the icon shown before the name to open the **emoji picker**; selecting an emoji saves it immediately (a **Reset** restores 🔧).
+- **From the create/edit form**: click the icon button to open the same picker; the choice is saved with the form.
+
+The new icon then appears wherever the equipment is referenced (list cards, dashboard, detail header). The Info tab shows the current icon read-only.
 
 ### Flow: Upload a document
 1. User goes to the **Documents** tab.

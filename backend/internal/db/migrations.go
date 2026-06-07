@@ -7,7 +7,7 @@ import (
 
 // CurrentSchemaVersion is the schema version the running binary expects.
 // Bump this and append to `migrations` whenever a schema change is added.
-const CurrentSchemaVersion = 6
+const CurrentSchemaVersion = 7
 
 type migration struct {
 	Version int
@@ -74,6 +74,14 @@ var migrations = []migration{
 				uploaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 				FOREIGN KEY (intervention_id) REFERENCES interventions(id)
 			)`,
+		},
+	},
+	{
+		Version: 7,
+		// Equipment visual identity: an emoji icon defaulting to 🔧, shown
+		// wherever an equipment is referenced.
+		SQL: []string{
+			`ALTER TABLE equipments ADD COLUMN icon TEXT NOT NULL DEFAULT '🔧'`,
 		},
 	},
 }

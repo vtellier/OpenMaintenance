@@ -368,3 +368,38 @@ Frontend:
 - Added `.btn--ghost` style.
 
 > Note: the same pre-existing `pnpm run typecheck` errors persist (unrelated; gate is `pnpm run build`, which passes). Follow-up issues filed to wire typecheck and Playwright into CI.
+
+## 2026-06-06 — Equipment picture & icon (issue #2)
+
+Added a visual identity to equipments: an uploadable profile picture with a customizable emoji icon fallback (default 🔧). Reused the `filestore` package, image MIME-sniff + size-cap upload logic, `detectMime`, and the `FileInfo` shape from #3/#25.
+
+Backend:
+- Migration **v7**: `equipments.picture TEXT` + `equipments.icon TEXT NOT NULL DEFAULT '🔧'`; `CurrentSchemaVersion` → 7
+- New handlers in `internal/handlers/equipment_picture.go`: upload/replace (image-only, 10 MB cap, 415/413 before write), serve inline, delete. One picture per equipment at the fixed path `files/equipments/{id}/picture.{ext}`; replacing with a different extension removes the old file
+- `picture` stored as a relative path in the `equipment.picture` column (no `*_files` table); `UpdateEquipment` deliberately leaves `picture` untouched (managed only by the picture endpoints). New `db.UpdateEquipmentPicture`
+- `icon` added to the Equipment model + create/update; defaults to 🔧 when empty (including legacy NULL rows via `iconOrDefault`)
+- Equipment-delete cascade already removes the whole `files/equipments/{id}/` tree, so the picture goes with it
+- Tests in `tests/equipment_picture_test.go`: upload→serve→replace→delete, 415 non-image, 404 missing equipment / no picture, equipment-delete cascade, icon default/update/clear
+
+API spec: 3 new picture operations + `picture`/`icon` on `Equipment` and `icon` on `EquipmentInput`; Go and TS clients regenerated.
+
+Frontend:
+- New reusable `components/EquipmentAvatar.ts` (picture-or-emoji, `sm`/`lg` sizes, cache-bust token)
+- Equipment detail header: editable avatar (tap to upload/replace) + "Remove picture" action + upload error flash; `mapEquipment` helper extracted and `reloadEquipment` added
+- Icon emoji field in the create (EquipmentsPage) and edit (EquipmentEditPage) forms; read-only icon row in the Info tab
+- Avatar shown on the equipments list cards and the dashboard equipment blocks; CSS for `.equipment-avatar*`, `.equipment-card__head`, `.emoji-input`, `.form-field__hint`
+
+> Note: the same two pre-existing `pnpm run typecheck` errors remain (verified present on `main`); the `pnpm run build` gate passes. Verified end-to-end with curl (create with icon, upload/serve/reject/delete picture).
+
+## 2026-06-07 — Issue #2 scope reduced to icon-only; emoji picker
+
+Iterated on the feature during review. **The equipment picture was dropped entirely** — only the emoji `icon` remains.
+
+- **Picture removed**: deleted the `picture` column from migration v7 (now adds only `icon`), the `equipment_picture.go` handler, `db.UpdateEquipmentPicture`, `filestore.EquipmentPictureRelPath`, the model field, and the 3 `/equipments/{id}/picture` API operations + `picture` schema field. Go/TS clients regenerated. Picture tests replaced by `tests/equipment_icon_test.go`.
+- **Icon is mandatory** (default 🔧) and shown wherever an equipment is referenced — list cards and dashboard (`EquipmentAvatar`, now emoji-only). Not shown on the detail page (per the agreed display rule at the time).
+- **Emoji picker**: replaced the plain icon text field with `components/IconPicker.ts` — a button opens the `emoji-picker-element` web component (searchable, categorized) in a popover, with a Reset to 🔧. There is no programmatic way to open the OS emoji picker from the web, hence an in-app picker. Emoji data is **bundled locally** (`emoji-picker-element-data`, emitted as a same-origin asset) so it works offline (self-hosted/boat scenario).
+- New runtime deps: `emoji-picker-element`, `emoji-picker-element-data` (a deliberate, approved break from the zero-deps posture).
+
+Docs updated: `data-model.md`, `file-storage.md`, `gui/equipments.md`, `README.md`, `ROADMAP.md` (Milestone 16 → "Equipment Icon"). `make build` and `go test ./tests/` pass; only the 2 pre-existing typecheck errors remain.
+
+Follow-up: the icon is now also shown on the **equipment detail page** header, left of the name, as a clickable avatar — clicking it opens the same emoji picker (`iconPicker` gained an `avatar` variant) and the change is persisted immediately via `updateEquipment` (optimistic update, reverts on failure). `data-model.md` / `gui/equipments.md` updated accordingly.

@@ -15,9 +15,15 @@ A component of the maintained system (e.g. "Main Engine", "Family Car", "House H
 | `tracks_hours`    | boolean   | yes      | Whether this equipment uses an hour-meter (default: false) |
 | `hours`           | number    | no       | Current hour-meter value. Only relevant if `tracks_hours` is true. |
 | `hours_updated_at`| timestamp | no       | Timestamp of the last hour-meter update. Only relevant if `tracks_hours` is true. |
-| `picture`         | string    | no       | Relative path to the profile picture file (e.g. `files/equipments/12/picture.jpg`). NULL when no picture is set. See [file-storage.md](./file-storage.md). |
+| `icon`            | string    | yes      | A single emoji used as the equipment's marker. Defaults to `🔧`; always has a value. |
 | `created_at`      | timestamp | yes      | Auto                                                    |
 | `updated_at`      | timestamp | yes      | Auto                                                    |
+
+### Visual identity (icon)
+
+Every equipment has a mandatory **`icon`** — a single emoji (default `🔧`) used as its marker wherever the equipment is referenced: the equipments list, the dashboard, and the equipment's own detail header (left of the name). It always has a value.
+
+The `icon` is chosen from an emoji picker — a button (or, on the detail header, the icon itself) opens a searchable, categorized picker of all emojis (no text field), with a Reset to restore the 🔧 default. The picker's emoji data is bundled locally so it works offline. It can be set from the create/edit form, and changed directly by clicking the icon on the detail header (persisted immediately).
 
 ### Hour-meter behavior
 

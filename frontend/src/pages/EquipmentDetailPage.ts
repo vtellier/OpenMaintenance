@@ -7,6 +7,17 @@ import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { relativeTime, formatHours, formatDate, formatFileSize, isHoursVeryStale, dueRelative } from '@/lib/format'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
+import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
+
+function mapEquipment(eq: any): Equipment {
+  return {
+    ...eq,
+    commissionedAt: eq.commissionedAt ? (eq.commissionedAt as any).toISOString().substring(0, 10) : undefined,
+    hoursUpdatedAt: eq.hoursUpdatedAt?.toISOString(),
+    createdAt: eq.createdAt?.toISOString(),
+    updatedAt: eq.updatedAt?.toISOString(),
+  } as Equipment
+}
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -73,6 +84,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       historyDeleteSaving: false,
       historyDeleteError: null as string | null,
 
+      iconError: null as string | null,
+
       documents: [] as FileInfo[],
       documentsLoaded: false,
       documentsError: null as string | null,
@@ -118,13 +131,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           updatedAt: inv.updatedAt?.toISOString(),
         }))
 
-        const newEquipment = {
-          ...eq,
-          commissionedAt: eq.commissionedAt ? (eq.commissionedAt as any).toISOString().substring(0, 10) : undefined,
-          hoursUpdatedAt: eq.hoursUpdatedAt?.toISOString(),
-          createdAt: eq.createdAt?.toISOString(),
-          updatedAt: eq.updatedAt?.toISOString(),
-        } as Equipment
+        const newEquipment = mapEquipment(eq)
 
         state.tasks = newTasks
         state.allTasks = newAllTasks
@@ -476,6 +483,33 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       }
     }
 
+    // ── Icon ──
+
+    async function onChangeIcon(icon: string) {
+      const eq = state.equipment
+      if (!eq || icon === eq.icon) return
+      const prev = eq.icon
+      state.iconError = null
+      // Optimistic: reflect the new icon immediately, revert if the save fails.
+      state.equipment = { ...eq, icon }
+      try {
+        await equipmentApi.updateEquipment({
+          id: equipmentId,
+          equipmentInput: {
+            name: eq.name!,
+            description: eq.description || undefined,
+            icon,
+            commissionedAt: eq.commissionedAt ? new Date(eq.commissionedAt + 'T12:00:00') : undefined,
+            tracksHours: eq.tracksHours,
+            hours: eq.tracksHours ? (eq.hours ?? 0) : undefined,
+          },
+        })
+      } catch {
+        state.equipment = { ...eq, icon: prev }
+        state.iconError = 'Failed to update icon'
+      }
+    }
+
     // ── Documents ──
 
     async function onUploadChange(e: Event) {
@@ -545,6 +579,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           <div class="detail-header">
             <div class="detail-header__top">
               <div class="detail-header__title">
+                ${iconPicker(() => state.equipment?.icon ?? DEFAULT_ICON, onChangeIcon, { variant: 'avatar' })}
                 <h1>${eq.name}</h1>
               </div>
               <div class="detail-header__actions">
@@ -558,6 +593,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               <span class="${hoursClass}">\u2022 updated ${relativeTime(eq.hoursUpdatedAt)}</span>
             </div>` : null}
             ${eq.commissionedAt ? html`<div class="detail-header__meta">Commissioned ${formatDate(eq.commissionedAt)}</div>` : null}
+            ${() => state.iconError ? html`<div class="flash flash--error">${state.iconError}</div>` : null}
           </div>
 
           <nav class="sub-tabs">${tabLinks}</nav>
@@ -740,6 +776,10 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           <div class="form-field">
             <label class="form-field__label">Description</label>
             <p>${eq.description || 'None'}</p>
+          </div>
+          <div class="form-field">
+            <label class="form-field__label">Icon</label>
+            <p>${eq.icon || '🔧'} <span class="form-field__hint">— shown in lists and the dashboard</span></p>
           </div>
           ${eq.commissionedAt ? html`<div class="form-field">
             <label class="form-field__label">Date of commissioning</label>
