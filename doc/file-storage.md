@@ -26,7 +26,6 @@ Files are organised under the equipment they belong to, even for tasks and inter
 files/
   equipments/
     {equipment_id}/
-      picture.{ext}                         ← one profile picture per equipment
       files/
         {uuid}.{ext}                        ← equipment documents
       tasks/
@@ -40,13 +39,6 @@ files/
 Files are stored under a generated UUID to avoid collisions and path special-character issues.
 
 ## Database schema additions
-
-### `equipment` table — new column
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `picture` | TEXT | Relative path to the picture file (e.g. `files/equipments/12/picture.jpg`). NULL when no picture is set. |
-| `icon` | TEXT | A single emoji shown when no `picture` is set. Defaults to `🔧`. Not a file — plain equipment metadata, listed here only because it is the fallback for the picture. |
 
 ### `equipment_files` — documents attached to an equipment
 
@@ -75,19 +67,7 @@ Files are stored under a generated UUID to avoid collisions and path special-cha
 | `original_name` | TEXT | Filename as uploaded by the user. |
 | `uploaded_at` | TIMESTAMP | |
 
-The equipment profile picture does not need an `original_name` — there is only ever one, stored at a fixed `picture.{ext}` path.
-
 ## API endpoints
-
-### Equipment picture (issue #2)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/equipments/{id}/picture` | Upload or replace the profile picture. |
-| `GET` | `/api/equipments/{id}/picture` | Serve the picture inline. Returns 404 if none. |
-| `DELETE` | `/api/equipments/{id}/picture` | Delete the picture. |
-
-The `icon` emoji is not a file and has no dedicated endpoint — it is set through the normal equipment create/update payload (`EquipmentInput.icon`).
 
 ### Equipment documents (issue #3)
 
@@ -132,7 +112,6 @@ Uploads are validated server-side before anything is written to disk. Limits are
 
 | Kind | Allowed types | Max size |
 |------|---------------|----------|
-| Equipment picture (#2) | `image/jpeg`, `image/png`, `image/webp`, `image/gif` | 10 MB |
 | Task / intervention photos (#25, #26) | `image/jpeg`, `image/png`, `image/webp`, `image/gif` | 10 MB |
 | Equipment documents (#3) | any type | 25 MB |
 
@@ -169,9 +148,7 @@ Every list and upload response returns one or more `File` objects:
 2. Validate type and size (see [Validation & limits](#validation--limits)); reject before writing on failure.
 3. Generate a UUID filename. The extension comes from the detected MIME type for images, or the original filename for documents.
 4. Write the file to its target path on disk.
-5. Insert a row in the appropriate DB table — recording `original_name` — (or update `equipment.picture` for the profile picture).
-
-For equipment picture: if a picture already exists, delete the old file from disk first, then write the new one and update the `picture` column.
+5. Insert a row in the appropriate DB table, recording `original_name`.
 
 ### Serve
 
@@ -179,7 +156,7 @@ Read the file path from the DB, stream the file from disk with `Content-Type` se
 
 ### Delete
 
-1. Delete the DB row (or set `equipment.picture` to NULL).
+1. Delete the DB row.
 2. Delete the file from disk. Log on failure, do not abort.
 
 ### Entity deletion cascade
@@ -190,14 +167,14 @@ When an equipment, task, or intervention is deleted:
 2. Delete each file from disk.
 3. Delete the entity and its `_files` rows.
 
-For equipment deletion: also delete the picture file if present, then remove the entire `files/equipments/{id}/` directory tree.
+For equipment deletion: remove the entire `files/equipments/{id}/` directory tree.
 
 ### Startup orphan cleanup
 
 On every startup, after migrations:
 
 1. Walk the `files/` directory tree.
-2. For each file found, check if a corresponding DB row (or `equipment.picture` value) exists.
+2. For each file found, check if a corresponding DB row exists.
 3. Remove any file with no matching DB reference.
 
 This recovers from partially failed deletes.

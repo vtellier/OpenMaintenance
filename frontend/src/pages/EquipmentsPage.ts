@@ -6,6 +6,7 @@ import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { relativeTime, formatHours, formatDate, isHoursVeryStale } from '@/lib/format'
 import { equipmentAvatar } from '@/components/EquipmentAvatar'
+import { iconPicker } from '@/components/IconPicker'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -21,7 +22,7 @@ export const EquipmentsPage = component(() => {
     showAddModal: false,
     addName: '',
     addDesc: '',
-    addIcon: '',
+    addIcon: '🔧',
     addCommissionedAt: '',
     addTracksHours: false,
     addHours: 0,
@@ -119,7 +120,7 @@ export const EquipmentsPage = component(() => {
       state.showAddModal = false
       state.addName = ''
       state.addDesc = ''
-      state.addIcon = ''
+      state.addIcon = '🔧'
       state.addCommissionedAt = ''
       state.addTracksHours = false
       state.addHours = 0
@@ -200,9 +201,9 @@ export const EquipmentsPage = component(() => {
         <textarea placeholder="Optional description" .value="${() => state.addDesc}" @input="${(e: Event) => { state.addDesc = (e.target as HTMLTextAreaElement).value }}"></textarea>
       </div>
       <div class="form-field">
-        <label class="form-field__label">Icon (emoji)</label>
-        <input class="emoji-input" maxlength="8" placeholder="🔧" .value="${() => state.addIcon}" @input="${(e: Event) => { state.addIcon = (e.target as HTMLInputElement).value }}" />
-        <p class="form-field__hint">Shown until you upload a picture. Defaults to 🔧.</p>
+        <label class="form-field__label">Icon</label>
+        ${iconPicker(() => state.addIcon, (v) => { state.addIcon = v })}
+        <p class="form-field__hint">Shown in lists and the dashboard. Defaults to 🔧.</p>
       </div>
       <div class="form-field">
         <label class="form-field__label">Date of commissioning</label>

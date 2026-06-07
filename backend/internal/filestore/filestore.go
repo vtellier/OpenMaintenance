@@ -48,15 +48,6 @@ func EquipmentRelDir(equipmentID int) string {
 	return filepath.ToSlash(filepath.Join("files", "equipments", strconv.Itoa(equipmentID)))
 }
 
-// EquipmentPictureRelPath is the relative path of an equipment's profile
-// picture, e.g. files/equipments/12/picture.jpg. There is only ever one, stored
-// under the fixed name "picture" with the extension derived from the image
-// type. ext must include the leading dot (e.g. ".jpg").
-func EquipmentPictureRelPath(equipmentID int, ext string) string {
-	return filepath.ToSlash(filepath.Join(
-		"files", "equipments", strconv.Itoa(equipmentID), "picture"+ext))
-}
-
 // InterventionFilesRelDir is the relative directory holding one intervention's
 // photos, e.g. files/equipments/12/interventions/42.
 func InterventionFilesRelDir(equipmentID, interventionID int) string {

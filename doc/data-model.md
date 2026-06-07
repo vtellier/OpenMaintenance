@@ -15,20 +15,15 @@ A component of the maintained system (e.g. "Main Engine", "Family Car", "House H
 | `tracks_hours`    | boolean   | yes      | Whether this equipment uses an hour-meter (default: false) |
 | `hours`           | number    | no       | Current hour-meter value. Only relevant if `tracks_hours` is true. |
 | `hours_updated_at`| timestamp | no       | Timestamp of the last hour-meter update. Only relevant if `tracks_hours` is true. |
-| `picture`         | string    | no       | Relative path to the profile picture file (e.g. `files/equipments/12/picture.jpg`). NULL when no picture is set. See [file-storage.md](./file-storage.md). |
-| `icon`            | string    | no       | A single emoji used as the equipment's icon when no `picture` is set. Defaults to `🔧`. |
+| `icon`            | string    | yes      | A single emoji used as the equipment's marker. Defaults to `🔧`; always has a value. |
 | `created_at`      | timestamp | yes      | Auto                                                    |
 | `updated_at`      | timestamp | yes      | Auto                                                    |
 
-### Visual identity (picture vs icon)
+### Visual identity (icon)
 
-Every equipment has a visual marker shown on the detail header, the list cards, and the dashboard. The precedence is:
+Every equipment has a mandatory **`icon`** — a single emoji (default `🔧`) used as its marker wherever the equipment is referenced: the equipments list, the dashboard, etc. It always has a value.
 
-1. If `picture` is set, show the uploaded picture.
-2. Otherwise show the `icon` emoji.
-3. `icon` itself defaults to `🔧`, so an equipment always has a marker even before the user customizes anything.
-
-The `icon` is edited as plain equipment metadata (via the equipment create/edit form). The `picture` is managed through dedicated upload/serve/delete endpoints — see [file-storage.md](./file-storage.md).
+The `icon` is chosen from an emoji picker in the equipment create/edit form — a button opens a searchable, categorized picker of all emojis (no text field), with a Reset to restore the 🔧 default. The picker's emoji data is bundled locally so it works offline.
 
 ### Hour-meter behavior
 

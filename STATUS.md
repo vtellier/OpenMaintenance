@@ -390,3 +390,14 @@ Frontend:
 - Avatar shown on the equipments list cards and the dashboard equipment blocks; CSS for `.equipment-avatar*`, `.equipment-card__head`, `.emoji-input`, `.form-field__hint`
 
 > Note: the same two pre-existing `pnpm run typecheck` errors remain (verified present on `main`); the `pnpm run build` gate passes. Verified end-to-end with curl (create with icon, upload/serve/reject/delete picture).
+
+## 2026-06-07 — Issue #2 scope reduced to icon-only; emoji picker
+
+Iterated on the feature during review. **The equipment picture was dropped entirely** — only the emoji `icon` remains.
+
+- **Picture removed**: deleted the `picture` column from migration v7 (now adds only `icon`), the `equipment_picture.go` handler, `db.UpdateEquipmentPicture`, `filestore.EquipmentPictureRelPath`, the model field, and the 3 `/equipments/{id}/picture` API operations + `picture` schema field. Go/TS clients regenerated. Picture tests replaced by `tests/equipment_icon_test.go`.
+- **Icon is mandatory** (default 🔧) and shown wherever an equipment is referenced — list cards and dashboard (`EquipmentAvatar`, now emoji-only). Not shown on the detail page (per the agreed display rule at the time).
+- **Emoji picker**: replaced the plain icon text field with `components/IconPicker.ts` — a button opens the `emoji-picker-element` web component (searchable, categorized) in a popover, with a Reset to 🔧. There is no programmatic way to open the OS emoji picker from the web, hence an in-app picker. Emoji data is **bundled locally** (`emoji-picker-element-data`, emitted as a same-origin asset) so it works offline (self-hosted/boat scenario).
+- New runtime deps: `emoji-picker-element`, `emoji-picker-element-data` (a deliberate, approved break from the zero-deps posture).
+
+Docs updated: `data-model.md`, `file-storage.md`, `gui/equipments.md`, `README.md`, `ROADMAP.md` (Milestone 16 → "Equipment Icon"). `make build` and `go test ./tests/` pass; only the 2 pre-existing typecheck errors remain.

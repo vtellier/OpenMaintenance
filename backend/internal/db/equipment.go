@@ -6,8 +6,7 @@ import (
 	"time"
 )
 
-// DefaultEquipmentIcon is the emoji shown when an equipment has neither a
-// picture nor a custom icon.
+// DefaultEquipmentIcon is the emoji used when an equipment has no custom icon.
 const DefaultEquipmentIcon = "🔧"
 
 func CreateEquipment(db *sql.DB, equipment *models.Equipment) error {
@@ -41,12 +40,11 @@ func CreateEquipment(db *sql.DB, equipment *models.Equipment) error {
 
 func GetEquipment(db *sql.DB, id int) (*models.Equipment, error) {
 	row := db.QueryRow(
-		`SELECT id, name, description, commissioned_at, picture, icon, tracks_hours, hours, hours_updated_at, created_at, updated_at
+		`SELECT id, name, description, commissioned_at, icon, tracks_hours, hours, hours_updated_at, created_at, updated_at
 		 FROM equipments WHERE id = ?`, id,
 	)
 	equipment := &models.Equipment{}
 	var commissionedAt sql.NullString
-	var picture sql.NullString
 	var icon sql.NullString
 	var hours sql.NullFloat64
 	var hoursUpdatedAt sql.NullTime
@@ -55,7 +53,6 @@ func GetEquipment(db *sql.DB, id int) (*models.Equipment, error) {
 		&equipment.Name,
 		&equipment.Description,
 		&commissionedAt,
-		&picture,
 		&icon,
 		&equipment.TracksHours,
 		&hours,
@@ -68,9 +65,6 @@ func GetEquipment(db *sql.DB, id int) (*models.Equipment, error) {
 	}
 	if commissionedAt.Valid {
 		equipment.CommissionedAt = &commissionedAt.String
-	}
-	if picture.Valid && picture.String != "" {
-		equipment.Picture = &picture.String
 	}
 	equipment.Icon = iconOrDefault(icon)
 	if hours.Valid {
@@ -91,9 +85,7 @@ func iconOrDefault(icon sql.NullString) string {
 	return DefaultEquipmentIcon
 }
 
-// UpdateEquipment updates editable equipment metadata. It deliberately does
-// not touch the picture column — the profile picture is managed through the
-// dedicated picture endpoints, not the generic update payload.
+// UpdateEquipment updates editable equipment metadata.
 func UpdateEquipment(db *sql.DB, equipment *models.Equipment) error {
 	equipment.UpdatedAt = time.Now()
 	if equipment.Icon == "" {
@@ -116,16 +108,6 @@ func UpdateEquipment(db *sql.DB, equipment *models.Equipment) error {
 	return err
 }
 
-// UpdateEquipmentPicture sets (or clears, when picture is nil) the relative
-// path to an equipment's profile picture.
-func UpdateEquipmentPicture(db *sql.DB, id int, picture *string) error {
-	_, err := db.Exec(
-		`UPDATE equipments SET picture = ?, updated_at = ? WHERE id = ?`,
-		picture, time.Now(), id,
-	)
-	return err
-}
-
 func DeleteEquipment(db *sql.DB, id int) error {
 	// Remove photos of any intervention belonging to this equipment (including
 	// exceptional interventions, which are not tied to a task) before the
@@ -144,7 +126,7 @@ func DeleteEquipment(db *sql.DB, id int) error {
 
 func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 	rows, err := db.Query(
-		`SELECT id, name, description, commissioned_at, picture, icon, tracks_hours, hours, hours_updated_at, created_at, updated_at
+		`SELECT id, name, description, commissioned_at, icon, tracks_hours, hours, hours_updated_at, created_at, updated_at
 		 FROM equipments`,
 	)
 	if err != nil {
@@ -156,7 +138,6 @@ func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 	for rows.Next() {
 		equipment := models.Equipment{}
 		var commissionedAt sql.NullString
-		var picture sql.NullString
 		var icon sql.NullString
 		var hours sql.NullFloat64
 		var hoursUpdatedAt sql.NullTime
@@ -165,7 +146,6 @@ func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 			&equipment.Name,
 			&equipment.Description,
 			&commissionedAt,
-			&picture,
 			&icon,
 			&equipment.TracksHours,
 			&hours,
@@ -178,9 +158,6 @@ func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 		}
 		if commissionedAt.Valid {
 			equipment.CommissionedAt = &commissionedAt.String
-		}
-		if picture.Valid && picture.String != "" {
-			equipment.Picture = &picture.String
 		}
 		equipment.Icon = iconOrDefault(icon)
 		if hours.Valid {

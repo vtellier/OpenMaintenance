@@ -649,27 +649,16 @@ code {
   color: var(--muted);
 }
 
-.detail-header__picture-actions {
-  margin-top: 8px;
-}
-
-/* ── Equipment avatar (picture or emoji) ── */
+/* ── Equipment avatar (icon emoji) ── */
 
 .equipment-avatar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  overflow: hidden;
   border-radius: 10px;
   background: var(--card-hover);
   border: 1px solid var(--border);
-}
-
-.equipment-avatar__img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .equipment-avatar__emoji {
@@ -695,31 +684,6 @@ code {
   font-size: 30px;
 }
 
-.equipment-avatar--edit {
-  position: relative;
-  cursor: pointer;
-}
-
-.equipment-avatar--edit:hover {
-  border-color: var(--border-hover);
-}
-
-.equipment-avatar__edit-hint {
-  position: absolute;
-  right: -2px;
-  bottom: -2px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid var(--card);
-}
-
 .equipment-card__head {
   display: flex;
   align-items: center;
@@ -737,18 +701,76 @@ code {
   gap: 8px;
 }
 
-/* ── Emoji input ── */
-
-.emoji-input {
-  width: 4em;
-  text-align: center;
-  font-size: 20px;
-}
-
 .form-field__hint {
   margin: 4px 0 0;
   font-size: 12px;
   color: var(--muted);
+}
+
+/* ── Icon picker ── */
+
+.icon-picker {
+  position: relative;
+  display: inline-block;
+}
+
+.icon-picker__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--fg);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.icon-picker__button:hover {
+  border-color: var(--border-hover);
+  background: var(--card-hover);
+}
+
+.icon-picker__current {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.icon-picker__caret {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.icon-picker__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.icon-picker__popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.icon-picker__popover emoji-picker {
+  --background: var(--card);
+  --border-color: var(--border);
+  height: 320px;
+}
+
+.icon-picker__reset {
+  align-self: flex-start;
 }
 
 /* ── Modal ── */

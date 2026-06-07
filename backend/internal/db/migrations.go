@@ -78,10 +78,9 @@ var migrations = []migration{
 	},
 	{
 		Version: 7,
-		// Equipment visual identity: an optional uploaded picture (relative
-		// path) and a fallback emoji icon defaulting to 🔧.
+		// Equipment visual identity: an emoji icon defaulting to 🔧, shown
+		// wherever an equipment is referenced.
 		SQL: []string{
-			`ALTER TABLE equipments ADD COLUMN picture TEXT`,
 			`ALTER TABLE equipments ADD COLUMN icon TEXT NOT NULL DEFAULT '🔧'`,
 		},
 	},

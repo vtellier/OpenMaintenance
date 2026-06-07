@@ -83,10 +83,6 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       historyDeleteSaving: false,
       historyDeleteError: null as string | null,
 
-      pictureUploading: false,
-      pictureError: null as string | null,
-      pictureBust: 0,
-
       documents: [] as FileInfo[],
       documentsLoaded: false,
       documentsError: null as string | null,
@@ -484,49 +480,6 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       }
     }
 
-    // ── Picture ──
-
-    async function reloadEquipment() {
-      try {
-        const eq = await equipmentApi.getEquipment({ id: equipmentId })
-        state.equipment = mapEquipment(eq)
-      } catch {
-        // keep the existing equipment on a transient reload failure
-      }
-    }
-
-    async function onPictureChange(e: Event) {
-      const input = e.target as HTMLInputElement
-      const file = input.files?.[0]
-      if (!file) return
-      state.pictureUploading = true
-      state.pictureError = null
-      try {
-        await equipmentApi.uploadEquipmentPicture({ id: equipmentId, file })
-        await reloadEquipment()
-        state.pictureBust = Date.now()
-      } catch {
-        state.pictureError = 'Failed to upload picture'
-      } finally {
-        state.pictureUploading = false
-        input.value = ''
-      }
-    }
-
-    async function onRemovePicture() {
-      state.pictureUploading = true
-      state.pictureError = null
-      try {
-        await equipmentApi.deleteEquipmentPicture({ id: equipmentId })
-        await reloadEquipment()
-        state.pictureBust = Date.now()
-      } catch {
-        state.pictureError = 'Failed to remove picture'
-      } finally {
-        state.pictureUploading = false
-      }
-    }
-
     // ── Documents ──
 
     async function onUploadChange(e: Event) {
@@ -596,13 +549,6 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           <div class="detail-header">
             <div class="detail-header__top">
               <div class="detail-header__title">
-                <label class="equipment-avatar equipment-avatar--lg equipment-avatar--edit" title="Change picture">
-                  ${eq.picture
-                    ? html`<img class="equipment-avatar__img" src="${'/api/equipments/' + equipmentId + '/picture?v=' + state.pictureBust}" alt="${eq.name}" />`
-                    : html`<span class="equipment-avatar__emoji">${eq.icon || '🔧'}</span>`}
-                  <span class="equipment-avatar__edit-hint">${() => state.pictureUploading ? '…' : '✎'}</span>
-                  <input type="file" accept="image/*" style="display: none" @change="${onPictureChange}" disabled="${() => state.pictureUploading}" />
-                </label>
                 <h1>${eq.name}</h1>
               </div>
               <div class="detail-header__actions">
@@ -611,10 +557,6 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
                 <a href="${deleteHref}" class="btn">Delete</a>
               </div>
             </div>
-            ${eq.picture ? html`<div class="detail-header__picture-actions">
-              <button class="btn btn--small" @click="${onRemovePicture}" disabled="${() => state.pictureUploading}">Remove picture</button>
-            </div>` : null}
-            ${() => state.pictureError ? html`<div class="flash flash--error">${state.pictureError}</div>` : null}
             ${eq.tracksHours ? html`<div class="detail-header__hours">
               <span>${formatHours(eq.hours)}</span>
               <span class="${hoursClass}">\u2022 updated ${relativeTime(eq.hoursUpdatedAt)}</span>
@@ -805,7 +747,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           </div>
           <div class="form-field">
             <label class="form-field__label">Icon</label>
-            <p>${eq.icon || '🔧'}${eq.picture ? ' (hidden — a picture is set)' : ''}</p>
+            <p>${eq.icon || '🔧'} <span class="form-field__hint">— shown in lists and the dashboard</span></p>
           </div>
           ${eq.commissionedAt ? html`<div class="form-field">
             <label class="form-field__label">Date of commissioning</label>

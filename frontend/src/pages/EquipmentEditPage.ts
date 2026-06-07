@@ -1,6 +1,7 @@
 import { component, html, reactive } from '@arrow-js/core'
 import { EquipmentApi, TaskApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
+import { iconPicker } from '@/components/IconPicker'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -13,7 +14,7 @@ export function EquipmentEditPage(idParam: string) {
     const state = reactive({
       name: '',
       description: '',
-      icon: '',
+      icon: '🔧',
       commissionedAt: '',
       tracksHours: false,
       originalTracksHours: false,
@@ -29,7 +30,7 @@ export function EquipmentEditPage(idParam: string) {
         const eq = await equipmentApi.getEquipment({ id: equipmentId })
         state.name = eq.name ?? ''
         state.description = eq.description ?? ''
-        state.icon = eq.icon ?? ''
+        state.icon = eq.icon || '🔧'
         state.commissionedAt = eq.commissionedAt ? (eq.commissionedAt as any).toISOString().substring(0, 10) : ''
         state.tracksHours = eq.tracksHours ?? false
         state.originalTracksHours = state.tracksHours
@@ -103,9 +104,9 @@ export function EquipmentEditPage(idParam: string) {
               <textarea placeholder="Optional description" .value="${() => state.description}" @input="${(e: Event) => { state.description = (e.target as HTMLTextAreaElement).value }}"></textarea>
             </div>
             <div class="form-field">
-              <label class="form-field__label">Icon (emoji)</label>
-              <input class="emoji-input" maxlength="8" placeholder="🔧" .value="${() => state.icon}" @input="${(e: Event) => { state.icon = (e.target as HTMLInputElement).value }}" />
-              <p class="form-field__hint">Shown until a picture is uploaded. Defaults to 🔧.</p>
+              <label class="form-field__label">Icon</label>
+              ${iconPicker(() => state.icon, (v) => { state.icon = v })}
+              <p class="form-field__hint">Shown in lists and the dashboard. Defaults to 🔧.</p>
             </div>
             <div class="form-field">
               <label class="form-field__label">Date of commissioning</label>
