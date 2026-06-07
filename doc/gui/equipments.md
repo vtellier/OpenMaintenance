@@ -26,6 +26,7 @@ Friendly message: *"No equipments yet."* + a prominent **"+ Add your first equip
 ## Equipment detail
 
 ### Header (always visible)
+- **Equipment icon** (emoji, defaults to 🔧) shown on the left side, before the name. Clicking it opens the emoji picker; the change is saved immediately.
 - Equipment name.
 - Edit / delete actions.
 - Hour-meter value + last update relative time (e.g. *"1 245 h • updated 3 days ago"*) + **"Update hours"** action. Only if the equipment tracks hours. Stale values are emphasized.
@@ -79,9 +80,12 @@ The same flow is reachable from three places: the equipment detail header, the d
 3. Turning `tracks_hours` off: the app warns that any task using `hours_interval` will be affected. Confirmation required.
 
 ### Flow: Change the icon
-1. User opens the create/edit form (the Info tab shows the current icon read-only).
-2. Clicks the icon button to open the **emoji picker** and selects any emoji (searchable); a **Reset** restores 🔧.
-3. On save, the new icon is shown wherever the equipment is referenced (list cards, dashboard).
+There are two ways to change the icon:
+
+- **From the detail header**: click the icon shown before the name to open the **emoji picker**; selecting an emoji saves it immediately (a **Reset** restores 🔧).
+- **From the create/edit form**: click the icon button to open the same picker; the choice is saved with the form.
+
+The new icon then appears wherever the equipment is referenced (list cards, dashboard, detail header). The Info tab shows the current icon read-only.
 
 ### Flow: Upload a document
 1. User goes to the **Documents** tab.
@@ -121,7 +125,7 @@ The same flow is reachable from three places: the equipment detail header, the d
 ### Detail
 ```
 +------------------------------------------------------+
-|  ← Main Engine              [Update hours] [⋯ Edit] |
+|  ← [🔧] Main Engine         [Update hours] [⋯ Edit] |
 |       1 245 h • updated 3 days ago                   |
 +------------------------------------------------------+
 |  [ Tasks ]  [ History ]  [ Documents ]  [ Info ]     |
@@ -135,7 +139,7 @@ The same flow is reachable from three places: the equipment detail header, the d
 ### Documents tab
 ```
 +------------------------------------------------------+
-|  ← Main Engine                            [⋯ Edit]  |
+|  ← [🔧] Main Engine                       [⋯ Edit]  |
 +------------------------------------------------------+
 |  Tasks  History  [ Documents ]  Info                 |
 +------------------------------------------------------+

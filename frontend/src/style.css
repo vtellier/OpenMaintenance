@@ -714,6 +714,16 @@ code {
   display: inline-block;
 }
 
+.icon-picker__avatar {
+  padding: 0;
+  cursor: pointer;
+}
+
+.icon-picker__avatar:hover {
+  border-color: var(--border-hover);
+  filter: brightness(0.97);
+}
+
 .icon-picker__button {
   display: inline-flex;
   align-items: center;

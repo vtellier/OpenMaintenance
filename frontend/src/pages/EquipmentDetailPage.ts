@@ -7,6 +7,7 @@ import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { relativeTime, formatHours, formatDate, formatFileSize, isHoursVeryStale, dueRelative } from '@/lib/format'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
+import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
 
 function mapEquipment(eq: any): Equipment {
   return {
@@ -82,6 +83,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       historyDeleteTarget: null as Intervention | null,
       historyDeleteSaving: false,
       historyDeleteError: null as string | null,
+
+      iconError: null as string | null,
 
       documents: [] as FileInfo[],
       documentsLoaded: false,
@@ -480,6 +483,33 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       }
     }
 
+    // ── Icon ──
+
+    async function onChangeIcon(icon: string) {
+      const eq = state.equipment
+      if (!eq || icon === eq.icon) return
+      const prev = eq.icon
+      state.iconError = null
+      // Optimistic: reflect the new icon immediately, revert if the save fails.
+      state.equipment = { ...eq, icon }
+      try {
+        await equipmentApi.updateEquipment({
+          id: equipmentId,
+          equipmentInput: {
+            name: eq.name!,
+            description: eq.description || undefined,
+            icon,
+            commissionedAt: eq.commissionedAt ? new Date(eq.commissionedAt + 'T12:00:00') : undefined,
+            tracksHours: eq.tracksHours,
+            hours: eq.tracksHours ? (eq.hours ?? 0) : undefined,
+          },
+        })
+      } catch {
+        state.equipment = { ...eq, icon: prev }
+        state.iconError = 'Failed to update icon'
+      }
+    }
+
     // ── Documents ──
 
     async function onUploadChange(e: Event) {
@@ -549,6 +579,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           <div class="detail-header">
             <div class="detail-header__top">
               <div class="detail-header__title">
+                ${iconPicker(() => state.equipment?.icon ?? DEFAULT_ICON, onChangeIcon, { variant: 'avatar' })}
                 <h1>${eq.name}</h1>
               </div>
               <div class="detail-header__actions">
@@ -562,6 +593,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               <span class="${hoursClass}">\u2022 updated ${relativeTime(eq.hoursUpdatedAt)}</span>
             </div>` : null}
             ${eq.commissionedAt ? html`<div class="detail-header__meta">Commissioned ${formatDate(eq.commissionedAt)}</div>` : null}
+            ${() => state.iconError ? html`<div class="flash flash--error">${state.iconError}</div>` : null}
           </div>
 
           <nav class="sub-tabs">${tabLinks}</nav>

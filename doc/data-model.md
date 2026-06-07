@@ -21,9 +21,9 @@ A component of the maintained system (e.g. "Main Engine", "Family Car", "House H
 
 ### Visual identity (icon)
 
-Every equipment has a mandatory **`icon`** — a single emoji (default `🔧`) used as its marker wherever the equipment is referenced: the equipments list, the dashboard, etc. It always has a value.
+Every equipment has a mandatory **`icon`** — a single emoji (default `🔧`) used as its marker wherever the equipment is referenced: the equipments list, the dashboard, and the equipment's own detail header (left of the name). It always has a value.
 
-The `icon` is chosen from an emoji picker in the equipment create/edit form — a button opens a searchable, categorized picker of all emojis (no text field), with a Reset to restore the 🔧 default. The picker's emoji data is bundled locally so it works offline.
+The `icon` is chosen from an emoji picker — a button (or, on the detail header, the icon itself) opens a searchable, categorized picker of all emojis (no text field), with a Reset to restore the 🔧 default. The picker's emoji data is bundled locally so it works offline. It can be set from the create/edit form, and changed directly by clicking the icon on the detail header (persisted immediately).
 
 ### Hour-meter behavior
 

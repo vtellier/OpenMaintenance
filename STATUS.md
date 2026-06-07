@@ -401,3 +401,5 @@ Iterated on the feature during review. **The equipment picture was dropped entir
 - New runtime deps: `emoji-picker-element`, `emoji-picker-element-data` (a deliberate, approved break from the zero-deps posture).
 
 Docs updated: `data-model.md`, `file-storage.md`, `gui/equipments.md`, `README.md`, `ROADMAP.md` (Milestone 16 → "Equipment Icon"). `make build` and `go test ./tests/` pass; only the 2 pre-existing typecheck errors remain.
+
+Follow-up: the icon is now also shown on the **equipment detail page** header, left of the name, as a clickable avatar — clicking it opens the same emoji picker (`iconPicker` gained an `avatar` variant) and the change is persisted immediately via `updateEquipment` (optimistic update, reverts on failure). `data-model.md` / `gui/equipments.md` updated accordingly.

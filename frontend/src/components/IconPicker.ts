@@ -7,11 +7,17 @@ import emojiDataUrl from 'emoji-picker-element-data/en/emojibase/data.json?url'
 
 export const DEFAULT_ICON = '🔧'
 
-// iconPicker renders a button showing the current icon; clicking it opens a
+export interface IconPickerOptions {
+  // 'button' (default): a labelled "Choose icon ▾" button, for forms.
+  // 'avatar': the icon shown as a clickable avatar (used in the detail header).
+  variant?: 'button' | 'avatar'
+}
+
+// iconPicker renders a trigger showing the current icon; clicking it opens a
 // full searchable emoji picker (the `emoji-picker-element` web component) in a
 // popover. There is no text field — selecting an emoji sets the value and
 // closes the popover. `current()` reads the value, `onSelect(value)` stores it.
-export function iconPicker(current: () => string, onSelect: (value: string) => void) {
+export function iconPicker(current: () => string, onSelect: (value: string) => void, opts: IconPickerOptions = {}) {
   const ui = reactive({ open: false })
 
   function toggle() {
@@ -33,13 +39,19 @@ export function iconPicker(current: () => string, onSelect: (value: string) => v
     ui.open = false
   }
 
-  return html`
-    <div class="icon-picker">
-      <button type="button" class="icon-picker__button" @click="${toggle}">
+  const trigger = opts.variant === 'avatar'
+    ? html`<button type="button" class="equipment-avatar equipment-avatar--lg icon-picker__avatar" title="Change icon" @click="${toggle}">
+        <span class="equipment-avatar__emoji">${() => current() || DEFAULT_ICON}</span>
+      </button>`
+    : html`<button type="button" class="icon-picker__button" @click="${toggle}">
         <span class="icon-picker__current">${() => current() || DEFAULT_ICON}</span>
         <span class="icon-picker__label">Choose icon</span>
         <span class="icon-picker__caret">▾</span>
-      </button>
+      </button>`
+
+  return html`
+    <div class="icon-picker">
+      ${trigger}
       ${() => ui.open ? html`
         <div class="icon-picker__backdrop" @click="${close}"></div>
         <div class="icon-picker__popover">
