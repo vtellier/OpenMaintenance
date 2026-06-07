@@ -403,3 +403,14 @@ Iterated on the feature during review. **The equipment picture was dropped entir
 Docs updated: `data-model.md`, `file-storage.md`, `gui/equipments.md`, `README.md`, `ROADMAP.md` (Milestone 16 → "Equipment Icon"). `make build` and `go test ./tests/` pass; only the 2 pre-existing typecheck errors remain.
 
 Follow-up: the icon is now also shown on the **equipment detail page** header, left of the name, as a clickable avatar — clicking it opens the same emoji picker (`iconPicker` gained an `avatar` variant) and the change is persisted immediately via `updateEquipment` (optimistic update, reverts on failure). `data-model.md` / `gui/equipments.md` updated accordingly.
+
+## 2026-06-07 — Release v0.4.0
+
+Tagged and pushed `v0.4.0`. CI triggered the release pipeline, which builds Linux and Windows binaries and publishes the GitHub release with auto-generated notes.
+
+Changes bundled in this release (since v0.3.0):
+- **Equipment icon** (issue #2): emoji picker on create/edit forms and equipment detail header; icon shown on list cards and dashboard
+- **Equipment document attachments** (issue #3): upload, serve, delete documents attached to equipments
+- **Intervention photo attachments** (issue #25): upload, serve, delete photos attached to interventions
+- **"Same hours" dismissal** (issue #16): ghost button per stale row + dedicated `PUT /equipments/{id}/hours` endpoint that refreshes `hours_updated_at` even when the value is unchanged
+- **Version update notification** (issue #11): backend polls GitHub releases; frontend banner when a new version is available
