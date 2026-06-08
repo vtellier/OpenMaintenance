@@ -212,7 +212,6 @@ button, a { font: inherit; }
   padding-bottom: 0;
   overflow-x: auto;
   scrollbar-width: none;
-  -ms-overflow-style: none;
 }
 
 .sub-tabs::-webkit-scrollbar {
