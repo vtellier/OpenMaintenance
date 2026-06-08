@@ -46,3 +46,4 @@ The DB is wiped (via the REST API) before the run. See
 | `history-intervention-delete-refresh.spec.ts` | Deleting an intervention did not refresh the history list | — |
 | `equipment-task-refresh.spec.ts` | Task list did not refresh after marking a task done from the equipment page | — |
 | `confirm-tracks-modal-only-on-toggle.spec.ts` | "Enable hour-meter tracking?" modal appeared on every save when hour-meter was already enabled (issue #9) | — |
+| `freshness-reminder-dismiss-immediate.spec.ts` | "Same hours" dismissal kept stale row visible until page reload — static Arrow.js expressions not reactive (issue #34) | — |
