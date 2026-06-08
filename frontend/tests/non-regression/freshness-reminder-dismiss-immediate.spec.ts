@@ -5,7 +5,7 @@ const API = 'http://127.0.0.1:3001/api'
 /**
  * Bug: clicking "Same hours" on the dashboard freshness reminder keeps the stale
  *      row visible — the user had to refresh the page for the notification to disappear.
- * Fixed in: open
+ * Fixed in: open (issue #34)
  */
 test('same hours dismissal removes stale row immediately without page reload', async ({ page }) => {
   // Arrange: equipment with hours tracking — hoursUpdatedAt is null on creation → always stale
