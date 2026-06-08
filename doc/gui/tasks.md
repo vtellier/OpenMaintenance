@@ -79,19 +79,30 @@ See [file-storage.md](../file-storage.md) for the storage design.
 
 ## Layout sketch
 
+Desktop and tablet (≥ 640 px):
 ```
 +------------------------------------------------------+
 |  ← Main Engine                                       |
 |  [ Tasks ]  History  Documents  Info                 |
 +------------------------------------------------------+
 |                                          [+ Add task]|
-|  🔴 Oil change          Every 100h or 6mo            |
-|     overdue by 3 days   Last: 12 Apr 2026   [Done]   |
+|  Oil change                         [Done][Edit][Del]|
+|  🔴 overdue by 3 days                                |
+|  Every 100h or 6mo  · Last: 12 Apr 2026              |
 |                                                      |
-|  🟡 Filter check        Every 12 months   2 photos   |
-|     in 12 days          Last: 25 Jan 2026   [Done]   |
-|                                                      |
-|  🟢 Hull inspection     Every 24 months              |
-|     in 14 months        Last: never         [Done]   |
+|  Filter check                       [Done][Edit][Del]|
+|  🟡 due in 12 days                                   |
+|  Every 12 months    · Last: 25 Jan 2026              |
 +------------------------------------------------------+
+```
+
+Mobile (< 640 px) — actions wrap below the task info:
+```
++-----------------------------+
+|  Oil change                 |
+|  🔴 overdue by 3 days       |
+|  Every 100h or 6mo          |
+|  Last: 12 Apr 2026          |
+|            [Done] [Edit][Del]|
++-----------------------------+
 ```

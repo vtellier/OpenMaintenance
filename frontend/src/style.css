@@ -1237,6 +1237,17 @@ code {
     grid-template-columns: 1fr;
   }
 
+  .task-row {
+    flex-wrap: wrap;
+  }
+
+  .task-row__actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+    width: 100%;
+  }
+
   .fab {
     position: fixed;
     bottom: calc(var(--tabbar-h) + 16px);

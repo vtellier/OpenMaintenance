@@ -664,18 +664,18 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               return html`<div class="task-row">
                 <div class="task-row__info">
                   <p class="task-row__name">${t.name}</p>
-                  <p class="task-row__interval">${trigger}</p>
-                  <p class="task-row__meta">Last: ${lastLabel}</p>
-                </div>
-                <div class="task-row__actions">
                   ${() => {
                     const task = state.tasks.find(tt => tt.id === t.id)
                     const ds = task?.dueStatus ?? 'ok'
                     const relStr = dueRelative(task?.nextDueDate, task?.nextDueHours)
-                    if (ds === 'overdue') return html`<span class="due-indicator due-indicator--overdue">Overdue \u2014 ${relStr}</span>`
-                    if (ds === 'due_soon') return html`<span class="due-indicator due-indicator--due-soon">Due soon \u2014 ${relStr}</span>`
-                    return html`<span class="due-indicator due-indicator--ok">OK</span>`
+                    if (ds === 'overdue') return html`<p class="task-row__meta"><span class="due-indicator due-indicator--overdue">Overdue \u2014 ${relStr}</span></p>`
+                    if (ds === 'due_soon') return html`<p class="task-row__meta"><span class="due-indicator due-indicator--due-soon">Due soon \u2014 ${relStr}</span></p>`
+                    return html`<p class="task-row__meta"><span class="due-indicator due-indicator--ok">OK</span></p>`
                   }}
+                  <p class="task-row__interval">${trigger}</p>
+                  <p class="task-row__meta">Last: ${lastLabel}</p>
+                </div>
+                <div class="task-row__actions">
                   <button class="btn btn--small" @click="${() => onQuickLog(t)}">Done</button>
                   <button class="btn btn--small" @click="${() => onEditTask(t)}">Edit</button>
                   <button class="btn btn--small btn--danger" @click="${() => onDeleteTask(t)}">Del</button>
