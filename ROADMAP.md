@@ -143,6 +143,16 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] Icon chosen from an emoji picker (searchable, offline-bundled data) in the create/edit forms
 - [x] Spec: `doc/data-model.md`, `doc/gui/equipments.md`
 
+## Milestone 17 — Mobile UX Fixes (issues #34, #36, #37)
+
+- [x] **Freshness reminder dismiss** (issue #34): "Same hours" row hides immediately on the dashboard without a page reload
+- [x] **Task layout mobile** (issue #36): task cards no longer overflow on small screens
+- [x] **Equipment tab bar mobile** (issue #37): tab bar scrolls horizontally on mobile instead of wrapping
+
+## Milestone 18 — Equipment Status Aggregation (issue #38)
+
+- [x] Aggregated status badge per equipment on the Equipments page (OK / Warning / Overdue) derived from task due dates
+
 ## Future (post-V1)
 
 - Configurable "due soon" window
