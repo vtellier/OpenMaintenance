@@ -52,13 +52,13 @@ export const EquipmentsPage = component(() => {
         updatedAt: inv.updatedAt?.toISOString(),
       }))
 
-      const grouped: Record<number, Task[]> = {}
+      const grouped: Record<number, (Omit<Task, 'nextDueDate'> & { nextDueDate: string | undefined })[]> = {}
       for (const t of tasks) {
         const eid = t.equipmentId ?? 0
         if (!grouped[eid]) grouped[eid] = []
         grouped[eid].push({
           ...t,
-          nextDueDate: t.nextDueDate?.toISOString() as any,
+          nextDueDate: t.nextDueDate?.toISOString(),
         })
       }
       state.tasksByEquipment = grouped
@@ -88,7 +88,7 @@ export const EquipmentsPage = component(() => {
   function safeTaskDate(date: Date | string | undefined | null): Date | null {
     if (date == null) return null
     try {
-      const d = new Date(date as any)
+      const d = new Date(date)
       return isNaN(d.getTime()) ? null : d
     } catch {
       return null
@@ -123,21 +123,24 @@ export const EquipmentsPage = component(() => {
   }
 
   function overdueScore(task: Task, eq: Equipment): number {
+    const now = Date.now()
     const d = safeTaskDate(task.nextDueDate)
-    if (d) return Date.now() - d.getTime()
+    if (d) return now - d.getTime()
     if (task.nextDueHours != null && eq.hours != null) return (eq.hours - task.nextDueHours) * 3600 * 1000
-    return 0
+    return -Infinity
   }
 
   function dueSoonScore(task: Task, eq: Equipment): number {
+    const now = Date.now()
     const d = safeTaskDate(task.nextDueDate)
-    if (d) return d.getTime() - Date.now()
+    if (d) return d.getTime() - now
     if (task.nextDueHours != null && eq.hours != null) return (task.nextDueHours - eq.hours) * 3600 * 1000
     return Infinity
   }
 
   function cropText(s: string, maxLen = 30): string {
-    return s.length > maxLen ? s.slice(0, maxLen) + '…' : s
+    const chars = [...s]
+    return chars.length > maxLen ? chars.slice(0, maxLen).join('') + '…' : s
   }
 
   function taskName(id: number | undefined): string {
