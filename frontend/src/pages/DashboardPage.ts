@@ -185,12 +185,12 @@ export function DashboardPage() {
         const hasEquipments = state.equipments.length > 0
 
         return html`
-          ${hourEquipments.length > 0 ? html`<div class="hours-banner">
+          ${() => hourEquipments.length > 0 ? html`<div class="hours-banner">
             <div class="hours-banner__header">
               <span class="hours-banner__title">Keep your hour-meters fresh</span>
             </div>
             <div class="hours-banner__list">
-              ${staleHourEqs.map(eq => {
+              ${() => staleHourEqs.map(eq => {
                 const eqHref = '/equipments/' + eq.id
                 const updateHref = '/equipments/' + eq.id + '/edit/hours'
                 const stale = isHoursStale(eq.hoursUpdatedAt)
@@ -205,9 +205,9 @@ export function DashboardPage() {
                   <a href="${updateHref}" class="btn btn--small">Update</a>
                 </div>`
               })}
-              ${freshHourEqs.length > 0 ? html`<details class="hours-banner__fresh">
-                <summary class="hours-banner__summary">${freshHourEqs.length} fresh (show/hide)</summary>
-                ${freshHourEqs.map(eq => {
+              ${() => freshHourEqs.length > 0 ? html`<details class="hours-banner__fresh">
+                <summary class="hours-banner__summary">${() => freshHourEqs.length} fresh (show/hide)</summary>
+                ${() => freshHourEqs.map(eq => {
                   const eqHref = '/equipments/' + eq.id
                   const updateHref = '/equipments/' + eq.id + '/edit/hours'
                   const rowClass = 'hours-banner__row'
