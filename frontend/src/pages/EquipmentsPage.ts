@@ -52,11 +52,14 @@ export const EquipmentsPage = component(() => {
         updatedAt: inv.updatedAt?.toISOString(),
       }))
 
-      const grouped: Record<number, Task[]> = {}
+      const grouped: Record<number, (Omit<Task, 'nextDueDate'> & { nextDueDate: string | undefined })[]> = {}
       for (const t of tasks) {
         const eid = t.equipmentId ?? 0
         if (!grouped[eid]) grouped[eid] = []
-        grouped[eid].push(t)
+        grouped[eid].push({
+          ...t,
+          nextDueDate: t.nextDueDate?.toISOString(),
+        })
       }
       state.tasksByEquipment = grouped
     } catch (err) {
@@ -82,15 +85,62 @@ export const EquipmentsPage = component(() => {
     return latest
   }
 
-  function mostUrgentTask(equipmentId: number): Task | null {
-    const tasks = state.tasksByEquipment[equipmentId] || []
-    let worst = null as Task | null
-    for (const t of tasks) {
-      if (t.dueStatus === 'overdue') return t
-      if (t.dueStatus === 'due_soon' && (!worst || worst.dueStatus === 'ok')) worst = t
-      if (t.dueStatus === 'ok' && !worst) worst = t
+  function safeTaskDate(date: Date | string | undefined | null): Date | null {
+    if (date == null) return null
+    try {
+      const d = new Date(date)
+      return isNaN(d.getTime()) ? null : d
+    } catch {
+      return null
     }
-    return worst
+  }
+
+  function taskTimingText(task: Task, eq: Equipment): string {
+    const d = safeTaskDate(task.nextDueDate)
+    if (d) {
+      const diffDays = Math.round((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24))
+      if (task.dueStatus === 'overdue') {
+        if (diffDays <= 0) return 'today'
+        return diffDays + 'd ago'
+      } else {
+        const remaining = -diffDays
+        if (remaining <= 0) return 'today'
+        return 'in ' + remaining + 'd'
+      }
+    }
+    if (task.nextDueHours != null && eq.hours != null) {
+      if (task.dueStatus === 'overdue') {
+        const over = Math.round(eq.hours - task.nextDueHours)
+        if (over <= 0) return 'now'
+        return over + ' h ago'
+      } else {
+        const remaining = Math.round(task.nextDueHours - eq.hours)
+        if (remaining <= 0) return 'now'
+        return 'in ' + remaining + ' h'
+      }
+    }
+    return ''
+  }
+
+  function overdueScore(task: Task, eq: Equipment): number {
+    const now = Date.now()
+    const d = safeTaskDate(task.nextDueDate)
+    if (d) return now - d.getTime()
+    if (task.nextDueHours != null && eq.hours != null) return (eq.hours - task.nextDueHours) * 3600 * 1000
+    return -Infinity
+  }
+
+  function dueSoonScore(task: Task, eq: Equipment): number {
+    const now = Date.now()
+    const d = safeTaskDate(task.nextDueDate)
+    if (d) return d.getTime() - now
+    if (task.nextDueHours != null && eq.hours != null) return (task.nextDueHours - eq.hours) * 3600 * 1000
+    return Infinity
+  }
+
+  function cropText(s: string, maxLen = 30): string {
+    const chars = [...s]
+    return chars.length > maxLen ? chars.slice(0, maxLen).join('') + '…' : s
   }
 
   function taskName(id: number | undefined): string {
@@ -151,7 +201,7 @@ export const EquipmentsPage = component(() => {
 
   function renderCard(eq: Equipment) {
     const lastInv = latestIntervention(eq.id!)
-    const urgent = mostUrgentTask(eq.id!)
+    const tasks = state.tasksByEquipment[eq.id!] || []
     const hoursClass = isHoursVeryStale(eq.hoursUpdatedAt) ? 'very-stale' : ''
     const link = '/equipments/' + eq.id!
     var metaHtml
@@ -160,6 +210,43 @@ export const EquipmentsPage = component(() => {
       metaHtml = 'Last: ' + taskName(lastInv.taskId) + ', ' + formatDate(lastInv.date)
     } else {
       metaHtml = 'No intervention yet'
+    }
+
+    const overdueTasks = tasks.filter((t: Task) => t.dueStatus === 'overdue')
+    const dueSoonTasks = tasks.filter((t: Task) => t.dueStatus === 'due_soon')
+
+    let statusLabel = ''
+    let statusClass = ''
+    let statusText = ''
+
+    if (overdueTasks.length > 0) {
+      statusLabel = 'Overdue'
+      statusClass = 'due-indicator--overdue'
+      if (overdueTasks.length === 1) {
+        const t = overdueTasks[0]
+        const timing = taskTimingText(t, eq)
+        statusText = cropText(t.name || '') + (timing ? ' \u2014 ' + timing : '')
+      } else {
+        const worst = overdueTasks.reduce((a: Task, b: Task) => overdueScore(a, eq) >= overdueScore(b, eq) ? a : b)
+        const timing = taskTimingText(worst, eq)
+        statusText = overdueTasks.length + ' tasks' + (timing ? ' \u2014 oldest ' + timing : '')
+      }
+    } else if (dueSoonTasks.length > 0) {
+      statusLabel = 'Due soon'
+      statusClass = 'due-indicator--due-soon'
+      if (dueSoonTasks.length === 1) {
+        const t = dueSoonTasks[0]
+        const timing = taskTimingText(t, eq)
+        statusText = cropText(t.name || '') + (timing ? ' \u2014 ' + timing : '')
+      } else {
+        const soonest = dueSoonTasks.reduce((a: Task, b: Task) => dueSoonScore(a, eq) <= dueSoonScore(b, eq) ? a : b)
+        const timing = taskTimingText(soonest, eq)
+        statusText = dueSoonTasks.length + ' tasks' + (timing ? ' \u2014 soonest ' + timing : '')
+      }
+    } else if (tasks.length > 0) {
+      statusLabel = 'OK'
+      statusClass = 'due-indicator--ok'
+      statusText = 'All clear!'
     }
 
     return html`
@@ -176,12 +263,10 @@ export const EquipmentsPage = component(() => {
         </div>
       ` : null}
       <div class="equipment-card__meta">${metaHtml}</div>
-      ${urgent ? html`
+      ${statusLabel ? html`
         <div class="equipment-card__due">
-          <span class="${'due-indicator ' + (urgent.dueStatus === 'overdue' ? 'due-indicator--overdue' : urgent.dueStatus === 'due_soon' ? 'due-indicator--due-soon' : 'due-indicator--ok')}">
-            ${urgent.dueStatus === 'overdue' ? 'Overdue' : urgent.dueStatus === 'due_soon' ? 'Due soon' : 'OK'}
-          </span>
-          ${urgent.name}
+          <span class="${'due-indicator ' + statusClass}">${statusLabel}</span>
+          ${statusText}
         </div>
       ` : null}
     </a>
