@@ -414,3 +414,12 @@ Changes bundled in this release (since v0.3.0):
 - **Intervention photo attachments** (issue #25): upload, serve, delete photos attached to interventions
 - **"Same hours" dismissal** (issue #16): ghost button per stale row + dedicated `PUT /equipments/{id}/hours` endpoint that refreshes `hours_updated_at` even when the value is unchanged
 - **Version update notification** (issue #11): backend polls GitHub releases; frontend banner when a new version is available
+
+## 2026-06-08 — Mobile fixes & equipment status aggregation (issues #34, #36, #37, #38)
+
+Four fixes and features merged since v0.4.0:
+
+- **Freshness reminder dismiss** (issue #34): clicking "Same hours" on the dashboard now hides the row immediately without waiting for a page reload. Non-regression Playwright test added.
+- **Task layout mobile** (issue #36): task cards no longer overflow on small screens; layout and spacing adjusted.
+- **Equipment tab bar mobile** (issue #37): the tab bar on the equipment detail page now scrolls horizontally on mobile instead of wrapping.
+- **Equipment status aggregation** (issue #38): the Equipments page now shows an aggregated status badge per equipment (OK / Warning / Overdue) derived from its tasks' next due dates. Includes a follow-up refactor pass addressing code-review findings (reactive state, ISO string conversion for dates).
