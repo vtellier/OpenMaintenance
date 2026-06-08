@@ -44,7 +44,7 @@ export function formatFileSize(bytes: number | undefined): string {
   return mb.toFixed(mb < 10 ? 1 : 0) + ' MB'
 }
 
-export function formatHours(hours: number | undefined): string {
+export function formatHours(hours: number | null | undefined): string {
   if (hours == null) return ''
   return Math.round(hours).toLocaleString() + ' h'
 }

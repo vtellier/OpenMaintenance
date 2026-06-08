@@ -238,7 +238,7 @@ export function DashboardPage() {
             return html`<div class="dashboard-tasks">
               ${entries.map(([eqId, tasks]) => {
                 const eq = state.equipments.find(e => e.id === eqId)
-                if (!eq) return null
+                if (!eq) return html``
                 const eqDetailHref = '/equipments/' + eqId
                 return html`<div class="equipment-block">
                   <div class="equipment-block__header">
