@@ -1151,44 +1151,37 @@ code {
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .history-item {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 12px 16px;
+  display: grid;
+  grid-template-columns: 90px 1fr minmax(0, 1fr) auto;
+  align-items: center;
+  padding: 6px 12px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--card);
-  gap: 12px;
-}
-
-.history-item__main {
-  flex: 1;
-  min-width: 0;
-}
-
-.history-item__task {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0 0 2px;
+  gap: 0 12px;
 }
 
 .history-item__date {
   font-size: 12px;
   color: var(--muted);
-  margin: 0;
+  white-space: nowrap;
 }
 
-.history-item__details {
+.history-item__task {
   font-size: 13px;
-  color: var(--muted);
-  margin: 4px 0 0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.history-item__comments {
+.history-item__meta {
+  font-size: 12px;
+  color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1197,7 +1190,7 @@ code {
 .history-item__actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -1255,6 +1248,21 @@ code {
     gap: 6px;
     width: 100%;
   }
+
+  .history-item {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "task    actions"
+      "date    date"
+      "meta    meta";
+    padding: 8px 10px;
+    gap: 2px 8px;
+  }
+
+  .history-item__task { grid-area: task; }
+  .history-item__date { grid-area: date; }
+  .history-item__meta { grid-area: meta; white-space: normal; }
+  .history-item__actions { grid-area: actions; align-self: start; }
 
   .fab {
     position: fixed;
