@@ -56,7 +56,10 @@ export const EquipmentsPage = component(() => {
       for (const t of tasks) {
         const eid = t.equipmentId ?? 0
         if (!grouped[eid]) grouped[eid] = []
-        grouped[eid].push(t)
+        grouped[eid].push({
+          ...t,
+          nextDueDate: t.nextDueDate?.toISOString() as any,
+        })
       }
       state.tasksByEquipment = grouped
     } catch (err) {
