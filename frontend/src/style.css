@@ -210,6 +210,13 @@ button, a { font: inherit; }
   margin-bottom: 24px;
   border-bottom: 1px solid var(--border);
   padding-bottom: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sub-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .sub-tab {
@@ -221,6 +228,8 @@ button, a { font: inherit; }
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .sub-tab:hover {
