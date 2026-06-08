@@ -38,4 +38,4 @@ test-backend:
 dev:
 	@echo "Starting backend on :3001 and frontend on :5173 ..."
 	cd backend && go run . &
-	cd frontend && pnpm dev
+	cd frontend && pnpm dev --host
