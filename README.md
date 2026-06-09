@@ -149,6 +149,12 @@ Run the backend test suite:
 make test-backend
 ```
 
+Populate a running instance with a demo dataset (overdue / due-soon / OK statuses):
+
+```bash
+make seed
+```
+
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full development setup.
 
 ## License
