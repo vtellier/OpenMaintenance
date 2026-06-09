@@ -49,7 +49,39 @@ Follow these steps in order. Stop and report if any step fails.
    make seed
    ```
 
-6. **Print the access URLs** so the user can test on desktop and phone (same
+6. **Pull in the code-review feedback** so it can be addressed alongside manual
+   testing — do not ignore it. Fetch top-level reviews, inline comments, and
+   any ` ```suggestion ` blocks (covers human reviewers and review bots alike):
+
+   ```bash
+   # Top-level review verdicts + summary bodies
+   gh pr view $ARGUMENTS --json reviews \
+     --jq '.reviews[] | select(.body != "") | "[\(.author.login) \(.state)] \(.body)"'
+   # Inline, diff-anchored comments and suggestion blocks
+   gh api repos/{owner}/{repo}/pulls/$ARGUMENTS/comments \
+     --jq '.[] | "\(.path):\(.line // .original_line) — \(.user.login): \(.body)"'
+   ```
+
+   Prefer **unresolved** threads. To drop resolved/outdated ones, use the
+   review-thread state via GraphQL:
+
+   ```bash
+   read owner repo <<< "$(gh repo view --json owner,name -q '.owner.login+" "+.name')"
+   gh api graphql -F owner="$owner" -F repo="$repo" -F pr=$ARGUMENTS -f query='
+     query($owner:String!,$repo:String!,$pr:Int!){
+       repository(owner:$owner,name:$repo){ pullRequest(number:$pr){
+         reviewThreads(first:100){ nodes{ isResolved isOutdated
+           comments(first:5){ nodes{ author{login} path body } } } } } } }' \
+     --jq '.data.repository.pullRequest.reviewThreads.nodes[]
+            | select(.isResolved == false and .isOutdated == false)
+            | .comments.nodes[0] | "\(.path) — \(.author.login): \(.body)"'
+   ```
+
+   Read the diff context for each, then keep a short list of the **actionable,
+   unresolved** suggestions (ignore resolved, outdated, and pure-praise notes).
+   These are the items to consider while the user tests; offer to apply them.
+
+7. **Print the access URLs** so the user can test on desktop and phone (same
    Wi-Fi):
 
    ```bash
@@ -57,8 +89,10 @@ Follow these steps in order. Stop and report if any step fails.
    echo "Phone:   http://$(hostname -I | awk '{print $1}'):3001"
    ```
 
-7. Report: PR title, the background task id (so the user can ask for logs), and
-   the two URLs. The backend keeps running for testing — leave it up.
+8. Report: PR title, the background task id (so the user can ask for logs), the
+   two URLs, and a short bulleted list of the unresolved review suggestions to
+   address (or "no open review feedback"). The backend keeps running for
+   testing — leave it up.
 
 For details on driving the running app (screenshots, navigation), the
 `run-openmaintenance` skill applies.
