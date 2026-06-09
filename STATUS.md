@@ -423,3 +423,13 @@ Four fixes and features merged since v0.4.0:
 - **Task layout mobile** (issue #36): task cards no longer overflow on small screens; layout and spacing adjusted.
 - **Equipment tab bar mobile** (issue #37): the tab bar on the equipment detail page now scrolls horizontally on mobile instead of wrapping.
 - **Equipment status aggregation** (issue #38): the Equipments page now shows an aggregated status badge per equipment (OK / Warning / Overdue) derived from its tasks' next due dates. Includes a follow-up refactor pass addressing code-review findings (reactive state, ISO string conversion for dates).
+
+## 2026-06-09 — Dev-cycle tooling: demo seeder + run-skill fixes
+
+Reduced friction in the PR-review loop (no GitHub issue — developer tooling).
+
+- **Demo data seeder** (`backend/cmd/seed/main.go`, `make seed`): populates a *running* backend via the REST API (not raw SQL, so it survives schema migrations). 3 equipments (hour-tracked engine + two time-based), 8 tasks, 13 interventions including one exceptional. All dates are computed relative to "now", so the Dashboard always shows a deliberate Overdue / Due-soon / OK spread regardless of when it runs. Probes `/api/version` for readiness. Verified end-to-end against a live backend.
+- **`run-openmaintenance` skill fixes**: (1) start the backend as a Claude-tracked `run_in_background` task instead of a shell `&`, so logs stay visible via `BashOutput`; (2) seed + print the LAN URL (`hostname -I`) so the app opens on a phone on the same network; (3) corrected the readiness probe — the skill referenced a non-existent `/api/health`; it's now `/api/version`.
+- README: added `make seed` under Development.
+
+Note: ROADMAP not touched — this is dev tooling, not product scope.

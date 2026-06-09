@@ -1,4 +1,4 @@
-.PHONY: generate-openapi build build-backend build-backend-linux-amd64 build-backend-windows-amd64 build-frontend copy-frontend install-oapi-codegen dev test-backend
+.PHONY: generate-openapi build build-backend build-backend-linux-amd64 build-backend-windows-amd64 build-frontend copy-frontend install-oapi-codegen dev test-backend seed
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 
@@ -34,6 +34,12 @@ build: build-frontend copy-frontend build-backend
 
 test-backend:
 	cd backend && go test ./tests/...
+
+# Populate a *running* backend with a realistic demo dataset (overdue /
+# due-soon / OK statuses). Start the backend first. Override the target with
+# OM_BASE_URL=http://host:port for a remote instance.
+seed:
+	cd backend && go run ./cmd/seed
 
 dev:
 	@echo "Starting backend on :3001 and frontend on :5173 ..."
