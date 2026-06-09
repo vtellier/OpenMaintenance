@@ -26,6 +26,10 @@ import (
 
 var baseURL = envOr("OM_BASE_URL", "http://localhost:3001")
 
+// httpClient carries a timeout so the seeder fails loudly and fast instead of
+// hanging indefinitely if the backend stalls mid-request.
+var httpClient = &http.Client{Timeout: 10 * time.Second}
+
 func main() {
 	log.SetFlags(0)
 	if err := waitHealthy(); err != nil {
@@ -159,12 +163,15 @@ func post(path string, body map[string]any) int {
 	if err != nil {
 		log.Fatalf("seed: marshal %s: %v", path, err)
 	}
-	resp, err := http.Post(baseURL+path, "application/json", bytes.NewReader(payload))
+	resp, err := httpClient.Post(baseURL+path, "application/json", bytes.NewReader(payload))
 	if err != nil {
 		log.Fatalf("seed: POST %s: %v", path, err)
 	}
 	defer resp.Body.Close()
-	data, _ := io.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("seed: read %s response: %v", path, err)
+	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		log.Fatalf("seed: POST %s → %d: %s\n  payload: %s", path, resp.StatusCode, data, payload)
 	}
@@ -174,13 +181,16 @@ func post(path string, body map[string]any) int {
 	if err := json.Unmarshal(data, &out); err != nil {
 		log.Fatalf("seed: decode %s response: %v\n  body: %s", path, err, data)
 	}
+	if out.ID == 0 {
+		log.Fatalf("seed: %s response has no id\n  body: %s", path, data)
+	}
 	return out.ID
 }
 
 func waitHealthy() error {
 	var lastErr error
-	for i := 0; i < 20; i++ {
-		resp, err := http.Get(baseURL + "/api/version")
+	for i := 0; i < 20; i++ { // up to ~6 s; the backend is expected to be running already
+		resp, err := httpClient.Get(baseURL + "/api/version")
 		if err == nil {
 			resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
