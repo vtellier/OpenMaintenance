@@ -4,7 +4,7 @@ import { Task } from '@generated/api/models/Task'
 import { Intervention } from '@generated/api/models/Intervention'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { formatDate, formatHours } from '@/lib/format'
+import { formatDate, buildInterventionMeta } from '@/lib/format'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -319,18 +319,12 @@ export function HistoryPage() {
                   if (eq?.name) parts.push(eq.name)
                   if (task?.name) parts.push(task.name)
                 }
-                const metaParts: string[] = []
-                if (inv.hoursAt != null) metaParts.push(formatHours(inv.hoursAt))
-                if (inv.location) metaParts.push(inv.location)
-                if (inv.performedBy) metaParts.push(inv.performedBy)
-                if (inv.comments) metaParts.push(inv.comments)
-                if (inv.photoCount) metaParts.push('📷 ' + String(inv.photoCount) + (inv.photoCount === 1 ? ' photo' : ' photos'))
-                const metaStr = metaParts.join(' · ')
+                const metaStr = buildInterventionMeta(inv)
                 const itemClass = 'history-item' + (inv.taskId == null ? ' history-item--exceptional' : '')
                 return html`<div class="${itemClass}">
                   <span class="history-item__date">${dateStr}</span>
                   <span class="history-item__task">${parts.join(' / ')}</span>
-                  <span class="history-item__meta">${metaStr}</span>
+                  <span class="history-item__meta" title="${metaStr}">${metaStr}</span>
                   <div class="history-item__actions">
                     <button class="btn btn--small" @click="${() => onEditClick(inv)}">Edit</button>
                     <button class="btn btn--small btn--danger" @click="${() => onDeleteClick(inv)}">Del</button>

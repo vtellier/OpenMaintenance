@@ -5,7 +5,7 @@ import { Intervention } from '@generated/api/models/Intervention'
 import { FileInfo } from '@generated/api/models/FileInfo'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { relativeTime, formatHours, formatDate, formatFileSize, isHoursVeryStale, dueRelative } from '@/lib/format'
+import { relativeTime, formatHours, formatDate, formatFileSize, isHoursVeryStale, dueRelative, buildInterventionMeta } from '@/lib/format'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
 
@@ -708,17 +708,11 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               const dateStr = formatDate(inv.date)
               const taskLabel = inv.taskId == null ? (inv.exceptionalLabel ?? '') : getTaskName(inv.taskId)
               const itemClass = 'history-item' + (inv.taskId == null ? ' history-item--exceptional' : '')
-              const metaParts: string[] = []
-              if (inv.hoursAt != null) metaParts.push(formatHours(inv.hoursAt))
-              if (inv.location) metaParts.push(inv.location)
-              if (inv.performedBy) metaParts.push(inv.performedBy)
-              if (inv.comments) metaParts.push(inv.comments)
-              if (inv.photoCount) metaParts.push('📷 ' + String(inv.photoCount) + (inv.photoCount === 1 ? ' photo' : ' photos'))
-              const metaStr = metaParts.join(' · ')
+              const metaStr = buildInterventionMeta(inv)
               return html`<div class="${itemClass}">
                 <span class="history-item__date">${dateStr}</span>
                 <span class="history-item__task">${taskLabel}</span>
-                <span class="history-item__meta">${metaStr}</span>
+                <span class="history-item__meta" title="${metaStr}">${metaStr}</span>
                 <div class="history-item__actions">
                   <button class="btn btn--small" @click="${() => onEditFromHistory(inv)}">Edit</button>
                   <button class="btn btn--small btn--danger" @click="${() => onHistoryDeleteClick(inv)}">Del</button>
