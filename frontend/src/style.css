@@ -1148,21 +1148,42 @@ code {
 
 /* ── History list ── */
 
+/* Default (tablet / desktop ≥ 768px): plain table. See @media below for mobile cards. */
 .history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--card);
+}
+
+.history-header,
+.history-item {
+  display: grid;
+  grid-template-columns: 90px 1fr minmax(0, 1fr) 120px;
+  align-items: center;
+  padding: 6px 12px;
+  gap: 0 12px;
+}
+
+.history-header {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.history-header > span {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
 }
 
 .history-item {
-  display: grid;
-  grid-template-columns: 90px 1fr minmax(0, 1fr) auto;
-  align-items: center;
-  padding: 6px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--card);
-  gap: 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.history-item:last-child {
+  border-bottom: none;
 }
 
 .history-item__date {
@@ -1192,6 +1213,45 @@ code {
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+}
+
+/* Mobile (< 768px): stacked cards instead of the table. */
+@media (max-width: 767px) {
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+    background: none;
+  }
+
+  .history-header {
+    display: none;
+  }
+
+  .history-item {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "task    actions"
+      "date    date"
+      "meta    meta";
+    padding: 8px 10px;
+    gap: 2px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+  }
+
+  .history-item:last-child {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .history-item__task { grid-area: task; }
+  .history-item__date { grid-area: date; }
+  .history-item__meta { grid-area: meta; white-space: normal; }
+  .history-item__actions { grid-area: actions; align-self: start; }
 }
 
 /* ── History filters ── */
@@ -1248,21 +1308,6 @@ code {
     gap: 6px;
     width: 100%;
   }
-
-  .history-item {
-    grid-template-columns: 1fr auto;
-    grid-template-areas:
-      "task    actions"
-      "date    date"
-      "meta    meta";
-    padding: 8px 10px;
-    gap: 2px 8px;
-  }
-
-  .history-item__task { grid-area: task; }
-  .history-item__date { grid-area: date; }
-  .history-item__meta { grid-area: meta; white-space: normal; }
-  .history-item__actions { grid-area: actions; align-self: start; }
 
   .fab {
     position: fixed;

@@ -306,6 +306,12 @@ export function HistoryPage() {
           } else {
             const currentList = list
             listContent = html`<div class="history-list">
+              <div class="history-header">
+                <span class="history-item__date">Date</span>
+                <span class="history-item__task">Equipment / Task</span>
+                <span class="history-item__meta">Details</span>
+                <span class="history-item__actions-head"></span>
+              </div>
               ${() => currentList.map(inv => {
                 const dateStr = formatDate(inv.date)
                 const parts: string[] = []

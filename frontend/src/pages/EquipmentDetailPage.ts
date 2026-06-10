@@ -704,6 +704,12 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
             return html`<p class="page__empty">No history yet for this equipment.</p>`
           }
           return html`<div class="history-list">
+            <div class="history-header">
+              <span class="history-item__date">Date</span>
+              <span class="history-item__task">Task</span>
+              <span class="history-item__meta">Details</span>
+              <span class="history-item__actions-head"></span>
+            </div>
             ${() => sorted.map(inv => {
               const dateStr = formatDate(inv.date)
               const taskLabel = inv.taskId == null ? (inv.exceptionalLabel ?? '') : getTaskName(inv.taskId)
