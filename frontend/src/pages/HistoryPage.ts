@@ -4,7 +4,7 @@ import { Task } from '@generated/api/models/Task'
 import { Intervention } from '@generated/api/models/Intervention'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { formatDate, formatHours } from '@/lib/format'
+import { formatDate, buildInterventionMeta } from '@/lib/format'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -306,6 +306,12 @@ export function HistoryPage() {
           } else {
             const currentList = list
             listContent = html`<div class="history-list">
+              <div class="history-header">
+                <span class="history-item__date">Date</span>
+                <span class="history-item__task">Equipment / Task</span>
+                <span class="history-item__meta">Details</span>
+                <span class="history-item__actions-head"></span>
+              </div>
               ${() => currentList.map(inv => {
                 const dateStr = formatDate(inv.date)
                 const parts: string[] = []
@@ -319,17 +325,11 @@ export function HistoryPage() {
                   if (eq?.name) parts.push(eq.name)
                   if (task?.name) parts.push(task.name)
                 }
-                const itemClass = 'history-item' + (inv.taskId == null ? ' history-item--exceptional' : '')
-                return html`<div class="${itemClass}">
-                  <div class="history-item__main">
-                    <p class="history-item__date">${dateStr}</p>
-                    <p class="history-item__task">${parts.join(' / ')}</p>
-                    ${inv.hoursAt != null ? html`<p class="history-item__details">${formatHours(inv.hoursAt)}</p>` : null}
-                    ${inv.location ? html`<p class="history-item__details">${inv.location}</p>` : null}
-                    ${inv.performedBy ? html`<p class="history-item__details">${inv.performedBy}</p>` : null}
-                    ${inv.comments ? html`<p class="history-item__details history-item__comments">${inv.comments}</p>` : null}
-                    ${() => inv.photoCount ? html`<p class="history-item__details"><span class="photo-badge">📷 ${String(inv.photoCount)} photo${inv.photoCount === 1 ? '' : 's'}</span></p>` : null}
-                  </div>
+                const metaStr = buildInterventionMeta(inv)
+                return html`<div class="history-item">
+                  <span class="history-item__date">${dateStr}</span>
+                  <span class="history-item__task">${parts.join(' / ')}</span>
+                  <span class="history-item__meta" title="${metaStr}">${metaStr}</span>
                   <div class="history-item__actions">
                     <button class="btn btn--small" @click="${() => onEditClick(inv)}">Edit</button>
                     <button class="btn btn--small btn--danger" @click="${() => onDeleteClick(inv)}">Del</button>

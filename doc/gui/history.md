@@ -22,6 +22,17 @@ A reverse-chronological list of interventions. Each row shows:
 - **Comments** (truncated; full text on tap/click).
 - Actions: **Edit**, **Delete**.
 
+Exceptional interventions (logged without a task) appear in the list like any other entry — they are **not** visually distinguished from standard interventions.
+
+## Responsive layout
+
+The history list adapts to the viewport, with a single breakpoint at **768px**:
+
+- **Tablet and desktop (≥ 768px): plain table.** A bordered table with a header row (**Date · Task · Details**, with an empty cell above the actions) and a single divider between rows — no per-row card chrome. The *Details* column holds the combined meta string (hours · location · performed-by · comments · photo count), truncated with ellipsis; the full text remains available via the row's `title` on hover. Columns stay aligned across all rows.
+- **Mobile (< 768px): cards.** Each entry stays a stacked card (task + actions on top, date below, details wrapping underneath). The table header is hidden. This is the current mobile layout, unchanged.
+
+Both the global History screen and the per-equipment History tab use this same responsive behaviour.
+
 ## Filters
 
 A simple filter bar above the list:
@@ -50,18 +61,33 @@ The per-equipment History tab has the equipment filter implicit (pinned).
 
 ## Layout sketch
 
+### Tablet / desktop (≥ 768px) — table
+
 ```
-+------------------------------------------------------+
-|  History                            [+ Log intervention] |
-+------------------------------------------------------+
-|  Equipment: [ All ▾ ]   Date: [ — to — ]            |
-+------------------------------------------------------+
-|  12 Apr 2026  Main Engine  Oil change                |
-|               1245 h • Marina X                      |
-|                                          [Edit] [×] |
-|  ---------------------------------------------------|
-|  25 Jan 2026  Main Engine  Filter check              |
-|               1180 h                                 |
-|                                          [Edit] [×] |
-+------------------------------------------------------+
++----------------------------------------------------------------+
+|  History                                  [+ Log intervention]  |
++----------------------------------------------------------------+
+|  Equipment: [ All ▾ ]   Date: [ — to — ]                       |
++----------------------------------------------------------------+
+|  Date         Task          Details                            |
+|----------------------------------------------------------------|
+|  12 Apr 2026  Oil change     1245 h · Marina X       [Edit][×] |
+|  25 Jan 2026  Filter check   1180 h                  [Edit][×] |
++----------------------------------------------------------------+
+```
+
+### Mobile (< 768px) — cards
+
+```
++------------------------------------------+
+|  History            [+ Log intervention] |
++------------------------------------------+
+|  Oil change                   [Edit] [×] |
+|  12 Apr 2026                             |
+|  1245 h · Marina X                       |
+|  ----------------------------------------|
+|  Filter check                 [Edit] [×] |
+|  25 Jan 2026                             |
+|  1180 h                                  |
++------------------------------------------+
 ```

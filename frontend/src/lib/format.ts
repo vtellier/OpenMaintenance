@@ -1,3 +1,15 @@
+import { Intervention } from '@generated/api/models/Intervention'
+
+export function buildInterventionMeta(inv: Intervention): string {
+  const parts: string[] = []
+  if (inv.hoursAt != null) parts.push(formatHours(inv.hoursAt))
+  if (inv.location) parts.push(inv.location)
+  if (inv.performedBy) parts.push(inv.performedBy)
+  if (inv.comments) parts.push(inv.comments)
+  if (inv.photoCount) parts.push(`📷 ${inv.photoCount} photo${inv.photoCount === 1 ? '' : 's'}`)
+  return parts.join(' · ')
+}
+
 function safeDate(date: Date | string | undefined | null): Date | undefined {
   if (date == null) return undefined
   try {
