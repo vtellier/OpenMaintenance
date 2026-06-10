@@ -17,7 +17,7 @@ generate-openapi: install-oapi-codegen
 
 build-backend-linux-amd64:
 	cd backend && GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=$(VERSION)" -o bin/openmaintenance-$(VERSION) .
-	cp backend/bin/openmaintenance-$(VERSION) backend/bin/openmaintenance
+	cd backend/bin && ln -sf openmaintenance-$(VERSION) openmaintenance
 
 build-backend-windows-amd64:
 	cd backend && GOOS=windows GOARCH=amd64 go build -ldflags "-X main.Version=$(VERSION)" -o bin/openmaintenance-$(VERSION).exe .

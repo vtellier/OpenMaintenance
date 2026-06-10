@@ -68,7 +68,7 @@ make build
 
 ```bash
 sudo mkdir -p /opt/openmaintenance
-sudo cp backend/bin/openmaintenance-* /opt/openmaintenance/openmaintenance
+sudo cp backend/bin/openmaintenance /opt/openmaintenance/
 sudo useradd --system --no-create-home --home /opt/openmaintenance openmaintenance
 sudo chown -R openmaintenance:openmaintenance /opt/openmaintenance
 ```
