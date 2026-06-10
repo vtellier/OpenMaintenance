@@ -238,7 +238,10 @@ export function DashboardPage() {
             return html`<div class="dashboard-tasks">
               ${entries.map(([eqId, tasks]) => {
                 const eq = state.equipments.find(e => e.id === eqId)
-                if (!eq) { console.warn(`DashboardPage: tasks reference unknown equipment ${eqId}`); return html`` }
+                if (!eq) {
+                  console.warn(`DashboardPage: tasks reference unknown equipment ${eqId}`)
+                  return html``
+                }
                 const eqDetailHref = '/equipments/' + eqId
                 return html`<div class="equipment-block">
                   <div class="equipment-block__header">

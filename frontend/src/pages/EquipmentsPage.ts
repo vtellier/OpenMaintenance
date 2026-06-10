@@ -61,7 +61,7 @@ export const EquipmentsPage = component(() => {
           nextDueDate: t.nextDueDate?.toISOString(),
         })
       }
-      state.tasksByEquipment = grouped
+      state.tasksByEquipment = grouped as Record<number, Task[]>
     } catch (err) {
       state.error = 'Failed to load equipments'
     } finally {
@@ -143,7 +143,7 @@ export const EquipmentsPage = component(() => {
     return chars.length > maxLen ? chars.slice(0, maxLen).join('') + '…' : s
   }
 
-  function taskName(id: number | undefined): string {
+  function taskName(id: number | null | undefined): string {
     for (const tasks of Object.values(state.tasksByEquipment)) {
       const t = tasks.find((tt: Task) => tt.id === id)
       if (t) return t.name || ''
