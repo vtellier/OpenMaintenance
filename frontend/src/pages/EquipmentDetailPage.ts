@@ -713,9 +713,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
             ${() => sorted.map(inv => {
               const dateStr = formatDate(inv.date)
               const taskLabel = inv.taskId == null ? (inv.exceptionalLabel ?? '') : getTaskName(inv.taskId)
-              const itemClass = 'history-item' + (inv.taskId == null ? ' history-item--exceptional' : '')
               const metaStr = buildInterventionMeta(inv)
-              return html`<div class="${itemClass}">
+              return html`<div class="history-item">
                 <span class="history-item__date">${dateStr}</span>
                 <span class="history-item__task">${taskLabel}</span>
                 <span class="history-item__meta" title="${metaStr}">${metaStr}</span>

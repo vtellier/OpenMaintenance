@@ -22,11 +22,13 @@ A reverse-chronological list of interventions. Each row shows:
 - **Comments** (truncated; full text on tap/click).
 - Actions: **Edit**, **Delete**.
 
+Exceptional interventions (logged without a task) appear in the list like any other entry — they are **not** visually distinguished from standard interventions.
+
 ## Responsive layout
 
 The history list adapts to the viewport, with a single breakpoint at **768px**:
 
-- **Tablet and desktop (≥ 768px): plain table.** A bordered table with a sticky-feeling header row (**Date · Task · Details · ✎**) and a single divider between rows — no per-row card chrome. The *Details* column holds the combined meta string (hours · location · performed-by · comments · photo count), truncated with ellipsis; the full text remains available via the row's `title` on hover. Columns stay aligned across all rows.
+- **Tablet and desktop (≥ 768px): plain table.** A bordered table with a header row (**Date · Task · Details**, with an empty cell above the actions) and a single divider between rows — no per-row card chrome. The *Details* column holds the combined meta string (hours · location · performed-by · comments · photo count), truncated with ellipsis; the full text remains available via the row's `title` on hover. Columns stay aligned across all rows.
 - **Mobile (< 768px): cards.** Each entry stays a stacked card (task + actions on top, date below, details wrapping underneath). The table header is hidden. This is the current mobile layout, unchanged.
 
 Both the global History screen and the per-equipment History tab use this same responsive behaviour.

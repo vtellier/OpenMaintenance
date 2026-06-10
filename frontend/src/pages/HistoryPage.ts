@@ -326,8 +326,7 @@ export function HistoryPage() {
                   if (task?.name) parts.push(task.name)
                 }
                 const metaStr = buildInterventionMeta(inv)
-                const itemClass = 'history-item' + (inv.taskId == null ? ' history-item--exceptional' : '')
-                return html`<div class="${itemClass}">
+                return html`<div class="history-item">
                   <span class="history-item__date">${dateStr}</span>
                   <span class="history-item__task">${parts.join(' / ')}</span>
                   <span class="history-item__meta" title="${metaStr}">${metaStr}</span>

@@ -928,11 +928,6 @@ code {
   cursor: not-allowed;
 }
 
-.history-item--exceptional {
-  border-left: 3px solid var(--accent);
-  padding-left: 8px;
-}
-
 /* Toggle switch */
 
 .toggle-row {
