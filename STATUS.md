@@ -1,5 +1,27 @@
 # Session Summary
 
+## 2026-06-10 — CI & Release Engineering + v0.5.0 (issues #31, #43, PRs #47 #48)
+
+Closed two open PRs, fixed lingering CI gaps, and shipped v0.5.0.
+
+**PR #48 — TypeScript typecheck in CI (issue #31)**
+- Added `pnpm run typecheck` step to the `build-frontend` CI job — previously Vite built successfully while hiding TS errors.
+- Deleted dead `WelcomeCard.ts` (imported `../data/loadWelcomeCard` which never existed).
+- Fixed `DashboardPage`: `entries.map()` could return `null`; changed to empty template `html\`\`` so Arrow.js doesn't reject the array. Added `console.warn` (split across lines per review).
+- Fixed `EquipmentsPage`: widened `taskName` parameter from `number | undefined` to `number | null | undefined` to match `Intervention.taskId`; cast grouped tasks as `Record<number, Task[]>` (dates are serialised to strings before storing in reactive state).
+- Fixed `format.ts`: widened `formatHours` parameter to accept `number | null | undefined`.
+
+**PR #47 — Versioned release binary filenames (issue #43)**
+- Rebased onto updated main after PR #48 merged.
+- `Makefile`: replaced `cp` with `ln -sf` for the unversioned Linux alias (lighter; review feedback).
+- `README.md`: replaced fragile `openmaintenance-*` glob with `cp backend/bin/openmaintenance` (review feedback).
+- `pipeline.yml`: added a "Rename binaries for release" step that renames downloaded artifacts to `openmaintenance-${{ github.ref_name }}[.exe]` before the GitHub Release upload — completing the missing piece the bot lacked permission to push.
+
+**v0.5.0 release**
+- Tagged and pushed `v0.5.0` from main. Pipeline ran clean on first attempt.
+- Release assets: `openmaintenance-v0.5.0` (Linux) and `openmaintenance-v0.5.0.exe` (Windows).
+- Changelog covers all 4 PRs since v0.4.1: seeder tooling (#46), history layout (#44), typecheck fix (#48), versioned binaries (#47).
+
 ## 2026-06-06 — Intervention photos (issue #25)
 
 Implemented photo attachments for interventions, the next slice of the file-storage design after equipment documents (#3). Reuses the `filestore` package, the `FileInfo` schema, and the handler/db/test patterns from #3.
