@@ -26,8 +26,9 @@ OpenMaintenance ships as a **single binary** — no runtime, no database server,
 1. Download the binary for your platform from the [releases page](https://github.com/vtellier/OpenMaintenance/releases).
 2. Run it:
    ```bash
-   ./openmaintenance
+   ./openmaintenance-vX.Y.Z
    ```
+   Replace `vX.Y.Z` with the version you downloaded (e.g. `v1.2.3`).
 3. Open your browser at `http://localhost:3001`.
 
 On first run, the binary creates two files next to itself:
@@ -105,10 +106,10 @@ The app is now running at `http://localhost:3001`. The database and config file 
 
 ### Run on Windows
 
-1. Download `openmaintenance.exe` from the [releases page](https://github.com/vtellier/OpenMaintenance/releases).
+1. Download `openmaintenance-vX.Y.Z.exe` from the [releases page](https://github.com/vtellier/OpenMaintenance/releases) (replace `vX.Y.Z` with the actual version, e.g. `v1.2.3`).
 2. Open a terminal (PowerShell or Command Prompt) in the directory where you saved the file and run:
    ```
-   .\openmaintenance.exe
+   .\openmaintenance-vX.Y.Z.exe
    ```
 3. Open your browser at `http://localhost:3001`.
 

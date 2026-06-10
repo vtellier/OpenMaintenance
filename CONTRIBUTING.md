@@ -115,7 +115,7 @@ git tag v1.2.3
 git push origin v1.2.3
 ```
 
-CI/CD picks up the tag and produces a versioned binary. Between releases, builds show `v1.2.3-N-gSHA` (N commits after the tag). Uncommitted changes append `-dirty`.
+CI/CD picks up the tag and produces versioned release binaries named `openmaintenance-vX.Y.Z` (Linux) and `openmaintenance-vX.Y.Z.exe` (Windows). Between releases, local builds show `v1.2.3-N-gSHA` (N commits after the tag) in the filename. Uncommitted changes append `-dirty`.
 
 ## Coding agents
 

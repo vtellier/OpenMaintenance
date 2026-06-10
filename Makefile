@@ -16,10 +16,12 @@ generate-openapi: install-oapi-codegen
 	$(OAPI_CODEGEN) -generate types,server -package generated backend/api/openapi.yaml > backend/internal/generated/openapi.gen.go
 
 build-backend-linux-amd64:
-	cd backend && GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=$(VERSION)" -o bin/openmaintenance .
+	cd backend && GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=$(VERSION)" -o bin/openmaintenance-$(VERSION) .
+	cd backend/bin && ln -sf openmaintenance-$(VERSION) openmaintenance
 
 build-backend-windows-amd64:
-	cd backend && GOOS=windows GOARCH=amd64 go build -ldflags "-X main.Version=$(VERSION)" -o bin/openmaintenance.exe .
+	cd backend && GOOS=windows GOARCH=amd64 go build -ldflags "-X main.Version=$(VERSION)" -o bin/openmaintenance-$(VERSION).exe .
+	cp backend/bin/openmaintenance-$(VERSION).exe backend/bin/openmaintenance.exe
 
 build-backend: build-backend-linux-amd64
 
