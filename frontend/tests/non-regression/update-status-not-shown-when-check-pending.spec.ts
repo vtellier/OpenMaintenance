@@ -62,3 +62,11 @@ test('settings page shows "up to date" only when the check completed and confirm
 
   await expect(page.locator('.settings-about__uptodate')).toBeVisible()
 })
+
+test('settings page does not show "up to date" when the update check API call fails', async ({ page }) => {
+  await page.route('**/api/update-status', route => route.abort())
+
+  await page.goto('/settings')
+
+  await expect(page.locator('.settings-about__uptodate')).not.toBeVisible()
+})
