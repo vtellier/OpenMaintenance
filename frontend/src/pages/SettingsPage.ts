@@ -26,9 +26,6 @@ systemApi.getUpdateStatus()
     // or failed — we cannot confirm the app is up to date yet.
     updateState.checked = latestVersion !== '' || updateAvailable
   })
-  .catch(() => {
-    updateState.checked = true
-  })
 
 function setTheme(t: Theme) {
   theme.value = t
