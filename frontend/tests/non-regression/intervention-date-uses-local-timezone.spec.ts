@@ -25,5 +25,5 @@ test('intervention form defaults to local date in a negative-UTC-offset timezone
   await page.goto('/history')
   await page.getByRole('button', { name: '+ Log intervention' }).click()
 
-  await expect(page.locator('input[type="date"]')).toHaveValue('2026-06-21')
+  await expect(page.locator('.modal input[type="date"]')).toHaveValue('2026-06-21')
 })

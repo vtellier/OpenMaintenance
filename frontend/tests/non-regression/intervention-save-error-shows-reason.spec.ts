@@ -22,7 +22,7 @@ test('saving an intervention with a future date shows the specific backend error
   await modal.locator('select').nth(0).selectOption(String(eq.id))
   await page.getByLabel('Exceptional intervention').check()
   await page.getByPlaceholder('e.g. Replaced broken impeller').fill('Future test')
-  await page.locator('input[type="date"]').fill('2099-12-31')
+  await page.locator('.modal input[type="date"]').fill('2099-12-31')
 
   await page.getByRole('button', { name: 'Save' }).click()
 
