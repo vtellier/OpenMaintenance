@@ -28,6 +28,15 @@ Changes take effect immediately without a page reload.
 - Link to the project repository.
 - License.
 
+### Backup
+
+Read-only section — shows the current backup configuration and lists existing backup files.
+
+- **Status**: Enabled / Disabled (reflects the `backup.enabled` config value)
+- **Backup directory**: Absolute path where backup files are stored
+- **Retention**: How many backups are kept (0 = unlimited)
+- **Backup files**: Table listing existing `.bak` files with name, size, and creation date (newest first). Shows "No backups yet" when the list is empty. Hidden when backup is disabled.
+
 ## Future settings (out of scope for v1)
 
 - "Due soon" window (currently fixed at 30 days for time-based tasks).
@@ -51,6 +60,14 @@ Changes take effect immediately without a page reload.
 |    Time format     ( ) 24-hour   ( ) 12-hour         |
 |    First day       ( ) Monday    ( ) Sunday          |
 |    Number format   [ 1,234.5        v ]              |
+|                                                      |
+|  Backup                                              |
+|    Status     Enabled                                |
+|    Directory  /data/backups                          |
+|    Retention  7 backups                              |
+|                                                      |
+|    maintenance.20260622-140000.bak   1.2 MB   Today  |
+|    maintenance.20260621-140000.bak   1.1 MB   1d ago |
 |                                                      |
 |  About                                               |
 |    OpenMaintenance v0.1.0                            |

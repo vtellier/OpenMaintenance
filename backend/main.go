@@ -76,7 +76,14 @@ func main() {
 		return nil
 	})
 
-	h := &handlers.Handler{DB: database, Version: Version, BaseDir: baseDir}
+	h := &handlers.Handler{
+		DB:            database,
+		Version:       Version,
+		BaseDir:       baseDir,
+		BackupEnabled: cfg.Backup.Enabled,
+		BackupPath:    cfg.Backup.Path,
+		BackupKeep:    cfg.Backup.Keep,
+	}
 	// Pre-populate CurrentVersion so the API always returns a valid version
 	// string even before the background GitHub check completes.
 	h.SetUpdateStatus(updater.UpdateStatus{CurrentVersion: Version})

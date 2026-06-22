@@ -160,6 +160,12 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] Versioned release binary filenames: build targets produce `openmaintenance-vX.Y.Z` alongside the unversioned alias; release job renames before uploading to GitHub Releases
 - [x] Delete dead `WelcomeCard.ts` component (imported a module that never existed)
 
+## Milestone 20 — Backup Visibility in Settings (issue #55)
+
+- [x] New `GET /api/backups` endpoint returning backup config (enabled, path, keep) and file list
+- [x] Backup section in Settings page: status, directory, retention, and list of existing `.bak` files
+- [x] Spec: `doc/gui/settings.md`
+
 ## Future (post-V1)
 
 - Configurable "due soon" window

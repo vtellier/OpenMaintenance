@@ -1,5 +1,26 @@
 # Session Summary
 
+## 2026-06-22 — Backup visibility in Settings (issue #55)
+
+Added a Backup section to the Settings page so users can see where backups are stored and list existing backup files.
+
+**Backend:**
+- New `GET /api/backups` endpoint returning backup config (`enabled`, `path`, `keep`) and a list of `.bak` files in the backup directory (name, size, creation timestamp), newest first.
+- `Handler` struct now carries `BackupEnabled`, `BackupPath` (absolute), and `BackupKeep` fields — populated from `config.yaml` at startup.
+- `main.go` resolves the backup path to an absolute path so the API always shows the full path regardless of whether it was configured as relative.
+- New `backend/internal/handlers/backup.go` implements `GetBackupStatus`.
+
+**Frontend (`SettingsPage.ts`):**
+- New Backup section (between Appearance and About) showing status, directory, retention policy, and a list of backup files with name, size, and relative timestamp.
+- Loads asynchronously via `systemApi.getBackupStatus()`; hidden while loading.
+- File list is hidden when backup is disabled; shows "No backups yet." when the directory is empty.
+
+**Spec:** `doc/gui/settings.md` updated with Backup section and layout sketch.
+
+Branch: `claude/issue-55-20260622-1407` — PR pending
+
+
+
 ## 2026-06-10 — CI & Release Engineering + v0.5.0 (issues #31, #43, PRs #47 #48)
 
 Closed two open PRs, fixed lingering CI gaps, and shipped v0.5.0.
