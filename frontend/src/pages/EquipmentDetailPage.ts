@@ -667,7 +667,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
                   ${() => {
                     const task = state.tasks.find(tt => tt.id === t.id)
                     const ds = task?.dueStatus ?? 'ok'
-                    const relStr = dueRelative(task?.nextDueDate, task?.nextDueHours)
+                    const relStr = dueRelative(task?.nextDueDate, task?.nextDueHours, ds)
                     if (ds === 'overdue') return html`<p class="task-row__meta"><span class="due-indicator due-indicator--overdue">Overdue \u2014 ${relStr}</span></p>`
                     if (ds === 'due_soon') return html`<p class="task-row__meta"><span class="due-indicator due-indicator--due-soon">Due soon \u2014 ${relStr}</span></p>`
                     return html`<p class="task-row__meta"><span class="due-indicator due-indicator--ok">OK</span></p>`

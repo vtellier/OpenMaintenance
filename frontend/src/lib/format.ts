@@ -80,15 +80,17 @@ export function isHoursStale(date: Date | string | undefined | null): boolean {
   return days > STALE_HOURS_THRESHOLD_DAYS
 }
 
-export function dueRelative(nextDueDate: Date | string | undefined | null, nextDueHours: number | undefined): string {
+export function dueRelative(nextDueDate: Date | string | undefined | null, nextDueHours: number | undefined, dueStatus?: string): string {
   const d = safeDate(nextDueDate)
   if (d) {
     const now = Date.now()
     const diff = d.getTime() - now
     const days = Math.round(diff / (1000 * 60 * 60 * 24))
-    if (days < 0) return 'overdue by ' + Math.abs(days) + 'd'
+    if (days < 0) return Math.abs(days) + 'd ago'
     if (days === 0) return 'due today'
-    return 'in ' + days + 'd'
+    // Date is in the future. If the task is already overdue (by hours), skip
+    // showing the future date — fall through to the hours check below instead.
+    if (dueStatus !== 'overdue') return 'in ' + days + 'd'
   }
   if (nextDueHours != null) {
     return 'at ' + Math.round(nextDueHours).toLocaleString() + ' h'

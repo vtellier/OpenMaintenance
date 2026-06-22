@@ -252,7 +252,7 @@ export function DashboardPage() {
                     ${tasks.map(t => {
                       const dueClass = 'due-indicator due-indicator--' + (t.dueStatus === 'overdue' ? 'overdue' : 'due-soon')
                       const dueLabel = t.dueStatus === 'overdue' ? 'Overdue' : 'Due soon'
-                      const dueRelativeStr = dueRelative(t.nextDueDate, t.nextDueHours)
+                      const dueRelativeStr = dueRelative(t.nextDueDate, t.nextDueHours, t.dueStatus)
                       return html`<div class="task-row">
                         <div class="task-row__info">
                           <p class="task-row__name">${t.name}</p>
