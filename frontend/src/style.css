@@ -379,6 +379,53 @@ code {
   text-decoration: underline;
 }
 
+/* ── Backup file list ── */
+
+.backup-files {
+  margin-top: 12px;
+}
+
+.backup-files__empty {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.backup-file-list {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.backup-file-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.backup-file-item:last-child {
+  border-bottom: none;
+}
+
+.backup-file-item__name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg);
+}
+
+.backup-file-item__size,
+.backup-file-item__date {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 /* ── Dashboard ── */
 
 .hours-banner {

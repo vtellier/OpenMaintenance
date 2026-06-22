@@ -33,6 +33,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UpdateStatus'
+  /backups:
+    get:
+      operationId: getBackupStatus
+      summary: Get backup configuration and list of existing backup files
+      tags:
+        - System
+      responses:
+        '200':
+          description: Backup status and file list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupStatus'
   /equipments:
     get:
       operationId: listEquipments
@@ -919,6 +932,47 @@ components:
           type: string
           description: GitHub release page URL. Empty if no update is available.
           example: "https://github.com/vtellier/OpenMaintenance/releases/tag/v0.3.0"
+    BackupStatus:
+      type: object
+      required:
+        - enabled
+        - path
+        - keep
+        - files
+      properties:
+        enabled:
+          type: boolean
+          description: Whether automatic backups are enabled
+        path:
+          type: string
+          description: Absolute path to the backup directory
+        keep:
+          type: integer
+          description: Number of backups to retain (0 = unlimited)
+        files:
+          type: array
+          description: List of existing backup files, newest first
+          items:
+            $ref: '#/components/schemas/BackupFile'
+    BackupFile:
+      type: object
+      required:
+        - name
+        - size
+        - created_at
+      properties:
+        name:
+          type: string
+          description: Filename of the backup
+          example: "maintenance.20260622-140000.bak"
+        size:
+          type: integer
+          format: int64
+          description: Size of the backup file in bytes
+        created_at:
+          type: string
+          format: date-time
+          description: When the backup file was created
     InterventionInput:
       type: object
       required:

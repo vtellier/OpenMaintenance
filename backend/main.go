@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -76,7 +78,23 @@ func main() {
 		return nil
 	})
 
-	h := &handlers.Handler{DB: database, Version: Version, BaseDir: baseDir}
+	backupPath := cfg.Backup.Path
+	if !filepath.IsAbs(backupPath) {
+		exe, err := os.Executable()
+		if err != nil {
+			log.Fatal(err)
+		}
+		backupPath = filepath.Join(filepath.Dir(exe), backupPath)
+	}
+
+	h := &handlers.Handler{
+		DB:            database,
+		Version:       Version,
+		BaseDir:       baseDir,
+		BackupEnabled: cfg.Backup.Enabled,
+		BackupPath:    backupPath,
+		BackupKeep:    cfg.Backup.Keep,
+	}
 	// Pre-populate CurrentVersion so the API always returns a valid version
 	// string even before the background GitHub check completes.
 	h.SetUpdateStatus(updater.UpdateStatus{CurrentVersion: Version})

@@ -12,6 +12,9 @@ type Handler struct {
 	DB             *sql.DB
 	Version        string
 	BaseDir        string // directory that contains the files/ tree
+	BackupEnabled  bool
+	BackupPath     string // absolute path to the backup directory
+	BackupKeep     int
 	updateStatus   updater.UpdateStatus
 	updateStatusMu sync.RWMutex
 }
