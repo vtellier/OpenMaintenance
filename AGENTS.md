@@ -88,6 +88,7 @@ Servers run on:
 - Open a PR once the work is ready; the PR description must reference the issue (`Closes #N`)
 - **Small chores** (docs, typos, minor formatting) may be committed directly to `main` without an issue or PR
 - **Always ask** before executing any `gh` command
+- When I ask you to monitor a PR, use the command `gh --watch` to wait for the jobs to finish
 
 ### Git and documentation
 - Update `README.md` after every change (keep it short, no code examples)
