@@ -96,6 +96,16 @@ export function dueRelative(nextDueDate: Date | string | undefined | null, nextD
   return ''
 }
 
+export async function extractErrorMessage(err: unknown, fallback: string): Promise<string> {
+  if (err && typeof err === 'object' && 'response' in err) {
+    try {
+      const json = await (err as { response: Response }).response.json()
+      if (typeof json.error === 'string') return json.error
+    } catch { /* ignore */ }
+  }
+  return fallback
+}
+
 export function isHoursVeryStale(date: Date | string | undefined | null): boolean {
   const d = safeDate(date)
   if (!d) return true

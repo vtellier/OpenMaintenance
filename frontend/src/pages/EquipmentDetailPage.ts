@@ -5,7 +5,7 @@ import { Intervention } from '@generated/api/models/Intervention'
 import { FileInfo } from '@generated/api/models/FileInfo'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { relativeTime, formatHours, formatDate, formatFileSize, isHoursVeryStale, dueRelative, buildInterventionMeta, todayLocal } from '@/lib/format'
+import { relativeTime, formatHours, formatDate, formatFileSize, isHoursVeryStale, dueRelative, buildInterventionMeta, todayLocal, extractErrorMessage } from '@/lib/format'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
 
@@ -22,16 +22,6 @@ function mapEquipment(eq: any): Equipment {
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
 const interventionApi = new InterventionApi(apiConfig)
-
-async function extractErrorMessage(err: unknown, fallback: string): Promise<string> {
-  if (err && typeof err === 'object' && 'response' in err) {
-    try {
-      const json = await (err as { response: Response }).response.json()
-      if (typeof json.error === 'string') return json.error
-    } catch { /* ignore */ }
-  }
-  return fallback
-}
 
 export function EquipmentDetailPage(idParam: string, tabParam: string) {
   const equipmentId = parseInt(idParam, 10)
