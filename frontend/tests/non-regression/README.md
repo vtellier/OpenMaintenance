@@ -48,3 +48,5 @@ The DB is wiped (via the REST API) before the run. See
 | `confirm-tracks-modal-only-on-toggle.spec.ts` | "Enable hour-meter tracking?" modal appeared on every save when hour-meter was already enabled (issue #9) | — |
 | `freshness-reminder-dismiss-immediate.spec.ts` | "Same hours" dismissal kept stale row visible until page reload — static Arrow.js expressions not reactive (issue #34) | — |
 | `update-status-not-shown-when-check-pending.spec.ts` | Settings page showed "✓ Up to date" when GitHub check hadn't completed (empty latestVersion treated as confirmed up-to-date) (issue #49) | — |
+| `intervention-date-uses-local-timezone.spec.ts` | Intervention form pre-fills the next UTC day instead of the local date in negative-UTC-offset timezones (issue #51) | — |
+| `intervention-save-error-shows-reason.spec.ts` | Saving intervention with future date showed generic error instead of backend reason (issue #51) | — |

@@ -1,5 +1,13 @@
 import { Intervention } from '@generated/api/models/Intervention'
 
+// Returns today's date in YYYY-MM-DD using the browser's local timezone.
+// new Date().toISOString() is always UTC, which gives the wrong date in
+// timezones with a negative UTC offset when it is late evening locally.
+export function todayLocal(): string {
+  const now = new Date()
+  return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0')
+}
+
 export function buildInterventionMeta(inv: Intervention): string {
   const parts: string[] = []
   if (inv.hoursAt != null) parts.push(formatHours(inv.hoursAt))
@@ -86,6 +94,16 @@ export function dueRelative(nextDueDate: Date | string | undefined | null, nextD
     return 'at ' + Math.round(nextDueHours).toLocaleString() + ' h'
   }
   return ''
+}
+
+export async function extractErrorMessage(err: unknown, fallback: string): Promise<string> {
+  if (err && typeof err === 'object' && 'response' in err) {
+    try {
+      const json = await (err as { response: Response }).response.json()
+      if (typeof json.error === 'string') return json.error
+    } catch { /* ignore */ }
+  }
+  return fallback
 }
 
 export function isHoursVeryStale(date: Date | string | undefined | null): boolean {

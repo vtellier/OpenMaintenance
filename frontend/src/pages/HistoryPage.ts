@@ -4,7 +4,7 @@ import { Task } from '@generated/api/models/Task'
 import { Intervention } from '@generated/api/models/Intervention'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { formatDate, buildInterventionMeta } from '@/lib/format'
+import { formatDate, buildInterventionMeta, todayLocal, extractErrorMessage } from '@/lib/format'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -134,7 +134,7 @@ export function HistoryPage() {
       state.taskId = null
       state.isExceptional = false
       state.exceptionalLabel = ''
-      state.date = new Date().toISOString().substring(0, 10)
+      state.date = todayLocal()
       state.hours = 0
       state.location = ''
       state.performedBy = ''
@@ -209,8 +209,8 @@ export function HistoryPage() {
         }
         state.showForm = false
         await load()
-      } catch {
-        state.error = 'Failed to save intervention'
+      } catch (err: unknown) {
+        state.error = await extractErrorMessage(err, 'Failed to save intervention')
       } finally {
         state.saving = false
       }

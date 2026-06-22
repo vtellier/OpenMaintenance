@@ -5,7 +5,7 @@ import { Intervention } from '@generated/api/models/Intervention'
 import { FileInfo } from '@generated/api/models/FileInfo'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { relativeTime, formatHours, formatDate, formatFileSize, isHoursVeryStale, dueRelative, buildInterventionMeta } from '@/lib/format'
+import { relativeTime, formatHours, formatDate, formatFileSize, isHoursVeryStale, dueRelative, buildInterventionMeta, todayLocal, extractErrorMessage } from '@/lib/format'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
 
@@ -330,7 +330,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       state.showQuickLog = true
       state.quickTaskId = task.id ?? null
       state.quickTaskName = task.name ?? ''
-      state.quickDate = new Date().toISOString().substring(0, 10)
+      state.quickDate = todayLocal()
       state.quickHours = state.equipment?.hours ?? 0
       state.quickPerformedBy = ''
       state.quickComments = ''
@@ -361,8 +361,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
         })
         state.showQuickLog = false
         await load()
-      } catch {
-        state.quickError = 'Failed to save intervention'
+      } catch (err: unknown) {
+        state.quickError = await extractErrorMessage(err, 'Failed to save intervention')
       } finally {
         state.quickSaving = false
       }
@@ -377,7 +377,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       state.taskId = null
       state.isExceptional = false
       state.exceptionalLabel = ''
-      state.date = new Date().toISOString().substring(0, 10)
+      state.date = todayLocal()
       state.hours = state.equipment?.hours ?? 0
       state.location = ''
       state.performedBy = ''
@@ -447,8 +447,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
         }
         state.showFullForm = false
         await load()
-      } catch {
-        state.error = 'Failed to save intervention'
+      } catch (err: unknown) {
+        state.error = await extractErrorMessage(err, 'Failed to save intervention')
       } finally {
         state.saving = false
       }
