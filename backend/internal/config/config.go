@@ -54,31 +54,32 @@ func Load() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("config: cannot determine executable path: %w", err)
 	}
-	path := filepath.Join(filepath.Dir(exe), "config.yaml")
-
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		if err := os.WriteFile(path, []byte(defaultYAML), 0644); err != nil {
-			return nil, fmt.Errorf("config: cannot write default config.yaml: %w", err)
-		}
-		cfg := defaults
-		return &cfg, nil
-	}
-
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("config: cannot read config.yaml: %w", err)
-	}
+	exeDir := filepath.Dir(exe)
+	cfgPath := filepath.Join(exeDir, "config.yaml")
 
 	cfg := defaults
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("config: invalid config.yaml: %w", err)
+	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
+		if err := os.WriteFile(cfgPath, []byte(defaultYAML), 0644); err != nil {
+			return nil, fmt.Errorf("config: cannot write default config.yaml: %w", err)
+		}
+	} else {
+		data, err := os.ReadFile(cfgPath)
+		if err != nil {
+			return nil, fmt.Errorf("config: cannot read config.yaml: %w", err)
+		}
+		if err := yaml.Unmarshal(data, &cfg); err != nil {
+			return nil, fmt.Errorf("config: invalid config.yaml: %w", err)
+		}
+		if cfg.Server.Port < 1 || cfg.Server.Port > 65535 {
+			return nil, fmt.Errorf("config: server.port %d is not a valid port number", cfg.Server.Port)
+		}
+		if cfg.Database.Path == "" {
+			return nil, fmt.Errorf("config: database.path must not be empty")
+		}
 	}
 
-	if cfg.Server.Port < 1 || cfg.Server.Port > 65535 {
-		return nil, fmt.Errorf("config: server.port %d is not a valid port number", cfg.Server.Port)
-	}
-	if cfg.Database.Path == "" {
-		return nil, fmt.Errorf("config: database.path must not be empty")
+	if !filepath.IsAbs(cfg.Backup.Path) {
+		cfg.Backup.Path = filepath.Join(exeDir, cfg.Backup.Path)
 	}
 
 	return &cfg, nil

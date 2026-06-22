@@ -7,8 +7,6 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -78,21 +76,12 @@ func main() {
 		return nil
 	})
 
-	backupPath := cfg.Backup.Path
-	if !filepath.IsAbs(backupPath) {
-		exe, err := os.Executable()
-		if err != nil {
-			log.Fatal(err)
-		}
-		backupPath = filepath.Join(filepath.Dir(exe), backupPath)
-	}
-
 	h := &handlers.Handler{
 		DB:            database,
 		Version:       Version,
 		BaseDir:       baseDir,
 		BackupEnabled: cfg.Backup.Enabled,
-		BackupPath:    backupPath,
+		BackupPath:    cfg.Backup.Path,
 		BackupKeep:    cfg.Backup.Keep,
 	}
 	// Pre-populate CurrentVersion so the API always returns a valid version

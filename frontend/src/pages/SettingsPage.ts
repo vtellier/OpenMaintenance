@@ -42,7 +42,7 @@ systemApi.getBackupStatus()
     backupState.path = status.path
     backupState.keep = status.keep
     backupState.files = (status.files ?? []).map(f => {
-      const d = f.createdAt as unknown
+      const d = f.createdAt as unknown // generated client deserializes date-time fields as Date objects, not strings
       const createdAt = d instanceof Date ? d.toISOString() : String(d ?? '')
       return { name: f.name, size: f.size, createdAt }
     })

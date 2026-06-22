@@ -29,14 +29,6 @@ func BackupDB(dbPath string, cfg BackupConfig) error {
 	}
 
 	backupDir := cfg.Path
-	if !filepath.IsAbs(backupDir) {
-		exe, err := os.Executable()
-		if err != nil {
-			return fmt.Errorf("backup: cannot determine executable path: %w", err)
-		}
-		backupDir = filepath.Join(filepath.Dir(exe), backupDir)
-	}
-
 	if err := os.MkdirAll(backupDir, 0755); err != nil {
 		return fmt.Errorf("backup: cannot create backup directory: %w", err)
 	}
