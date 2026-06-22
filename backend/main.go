@@ -77,6 +77,9 @@ func main() {
 	})
 
 	h := &handlers.Handler{DB: database, Version: Version, BaseDir: baseDir}
+	// Pre-populate CurrentVersion so the API always returns a valid version
+	// string even before the background GitHub check completes.
+	h.SetUpdateStatus(updater.UpdateStatus{CurrentVersion: Version})
 	generated.RegisterHandlersWithBaseURL(e, h, "/api")
 
 	go func() {

@@ -17,13 +17,14 @@ const updateState = reactive({
 
 systemApi.getUpdateStatus()
   .then(status => {
-    updateState.updateAvailable = status.updateAvailable
-    updateState.latestVersion = status.latestVersion ?? ''
+    const latestVersion = status.latestVersion ?? ''
+    const updateAvailable = status.updateAvailable
+    updateState.updateAvailable = updateAvailable
+    updateState.latestVersion = latestVersion
     updateState.releaseUrl = status.releaseUrl ?? ''
-    updateState.checked = true
-  })
-  .catch(() => {
-    updateState.checked = true
+    // An empty latestVersion means the background GitHub check is still running
+    // or failed — we cannot confirm the app is up to date yet.
+    updateState.checked = latestVersion !== '' || updateAvailable
   })
 
 function setTheme(t: Theme) {
