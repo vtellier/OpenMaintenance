@@ -42,6 +42,7 @@ cd frontend && pnpm dev
 | Regen OpenAPI Go stubs | `make generate-openapi` | repo root |
 | Regen TS API client | `pnpm run generate:api` | `frontend/` |
 | Run frontend tests | `pnpm test` | `frontend/` |
+| Run backend tests | `go test ./...` | `backend/` |
 
 ## Repository structure
 
@@ -57,6 +58,7 @@ OpenMaintenance/
 │   │   ├── logic/            # Business logic (due status, etc.)
 │   │   └── models/           # Go data models
 │   ├── static/               # Auto-generated — do not edit
+│   ├── tests/                # Black-box HTTP tests (package tests)
 │   └── main.go
 ├── frontend/
 │   ├── generated/            # Auto-generated — do not edit
@@ -91,9 +93,21 @@ Before writing any code, update the relevant file in `doc/` to describe the new 
 - `frontend/generated/`
 - `backend/static/`
 
-### Frontend bugs
+### Bug fixes — test at the right layer
 
-Every frontend bug fix must be accompanied by a Playwright non-regression spec in `frontend/tests/non-regression/`. Run `pnpm test` before committing — all specs must pass.
+Every bug fix must be accompanied by a test that fails on the unfixed code. Pin the bug at the **lowest layer that can produce it**:
+
+| Where the bug lives | Failing test goes in | Style | Run with |
+|---|---|---|---|
+| Business logic (`internal/logic/`, `internal/db/` query behaviour) | `backend/internal/<pkg>/*_test.go`, next to the code | table-driven, no HTTP | `cd backend && go test ./...` |
+| API contract / handler (status codes, validation, response shape, cascades) | `backend/tests/*_test.go` | `httptest` via the existing `newTestServer(t)` harness | `make test-backend` |
+| Frontend rendering / interaction / reactivity | `frontend/tests/non-regression/*.spec.ts` | Playwright | `pnpm test` from `frontend/` |
+
+Add a Playwright spec on top of a backend test only when the UI can regress independently of the backend.
+
+`backend/tests/` is a black-box `package tests`; the shared harness `newTestServer(t)` and the `seedEquipment` / `seedHourEquipment` helpers live there already — reuse them rather than writing a new one. Note that `make test-backend` currently runs `go test ./tests/...` only, so run `go test ./...` from `backend/` when you add an in-package test.
+
+All existing tests must still pass before you commit.
 
 ### Git
 

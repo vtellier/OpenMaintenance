@@ -30,6 +30,7 @@ The backend serves the frontend as embedded static files. The frontend TypeScrip
 ### Fixing a bug
 1. Load the bug-fix skill: `.agents/skills/bug-fix/SKILL.md`
 2. Follow every step in order — do not skip the failing test step
+3. Step 3.5 classifies the bug by layer (business logic / API / frontend); that choice decides which test skill to load and where the failing test goes — pin the bug at the lowest layer that can produce it
 
 ### Modifying the API
 1. Edit `backend/api/openapi.yaml` first
@@ -54,6 +55,7 @@ The backend serves the frontend as embedded static files. The frontend TypeScrip
 | Regen OpenAPI (Go) | `make generate-openapi` | repo root |
 | Regen API client (TS) | `pnpm run generate:api` | `frontend/` |
 | Run frontend tests | `pnpm test` | `frontend/` |
+| Run backend tests | `go test ./...` | `backend/` |
 
 Servers run on:
 - Backend: `http://localhost:3001`
@@ -65,9 +67,10 @@ Servers run on:
 
 | Skill | File | When to use |
 |-------|------|-------------|
-| Bug fix | `.agents/skills/bug-fix/SKILL.md` | Entry point for every bug fix |
+| Bug fix | `.agents/skills/bug-fix/SKILL.md` | Entry point for every bug fix — classifies the bug by layer |
 | Arrow.js | `.agents/skills/arrow-js/SKILL.md` | Any frontend code change |
-| Non-regression tests | `.agents/skills/non-regression-test/SKILL.md` | Playwright test mechanics (called by bug-fix skill) |
+| Go tests | `.agents/skills/go-test/SKILL.md` | Backend branch: table-driven logic tests and `httptest` handler tests (called by bug-fix skill) |
+| Non-regression tests | `.agents/skills/non-regression-test/SKILL.md` | Frontend branch: Playwright test mechanics (called by bug-fix skill) |
 
 ## Rules
 
@@ -79,7 +82,7 @@ Servers run on:
 
 ### Bug fixes
 - Always load `.agents/skills/bug-fix/SKILL.md` first — it owns the full workflow
-- Never apply a fix before a failing non-regression test is in place
+- Never apply a fix before a failing test **at the right layer** is in place — Go test for business logic, `httptest` for the API contract, Playwright for frontend rendering/interaction
 - Always two commits: one for the failing test, one for the fix — never combine them
 
 ### GitHub workflow
