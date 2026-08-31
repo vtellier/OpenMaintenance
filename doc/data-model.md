@@ -11,7 +11,7 @@ A component of the maintained system (e.g. "Main Engine", "Family Car", "House H
 | `id`              | int       | yes      | Auto-generated                                          |
 | `name`            | string    | yes      | e.g. "Main Engine"                                      |
 | `description`     | string    | no       | Optional free text                                      |
-| `commissioned_at` | date      | no       | Date the equipment was put into service. Used for informational purposes only. |
+| `commissioned_at` | date      | no       | Date the equipment was put into service (`YYYY-MM-DD`). Used as the date baseline for tasks that have never been performed — see [Derived: "due" status](#derived-due-status). |
 | `tracks_hours`    | boolean   | yes      | Whether this equipment uses an hour-meter (default: false) |
 | `hours`           | number    | no       | Current hour-meter value. Only relevant if `tracks_hours` is true. |
 | `hours_updated_at`| timestamp | no       | Timestamp of the last hour-meter update. Only relevant if `tracks_hours` is true. |
@@ -100,11 +100,27 @@ Exactly one of `task_id` or `exceptional_label` must be provided (they are mutua
 
 For each Task we compute a status used in the UI:
 
-- **Overdue** — the time-based or hour-based interval has been exceeded since the last intervention (or since the equipment was created if there is no intervention yet).
+- **Overdue** — the time-based or hour-based interval has been exceeded since the baseline (see below).
 - **Due soon** — within a configurable window before the next trigger (default: 30 days; for hour-based, an equivalent margin).
 - **OK** — not due soon.
 
-The "next due" date is computed from the most recent intervention on that task (or the equipment's creation date if no intervention exists yet).
+If a task defines both intervals, the **worst** of the two statuses wins.
+
+### Date baseline precedence
+
+The date a time-based interval is counted from — and therefore the "next due" date — is resolved in this order:
+
+1. **The most recent intervention's `date`** on that task — the task was actually performed then.
+2. **The equipment's `commissioned_at`**, when it is set and is a valid `YYYY-MM-DD` date — the equipment has been in service (and therefore accumulating wear) since then, even though nothing has been logged yet.
+3. **The equipment's `created_at`** as the final fallback — when the equipment entered the app.
+
+Rules 2 and 3 matter: `created_at` is only the moment the record was entered into this app, which is usually much later than the equipment entered service. Falling back to it directly would make a never-performed task on an old equipment look **OK**, hiding maintenance that is in fact long overdue.
+
+A `commissioned_at` that is absent, empty, or unparseable falls through to `created_at`. It must never be treated as a zero date, which would report every task as overdue.
+
+### Hours baseline
+
+The hour-meter baseline comes from the most recent intervention's `hours_at`, or `0` when the task has never been performed. `commissioned_at` plays no part here — an hour-meter reading, not a date, is what an hour-based interval is measured against.
 
 ## File attachment tables
 

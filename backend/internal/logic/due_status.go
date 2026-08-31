@@ -9,15 +9,40 @@ import (
 const hoursDueSoonMargin = 10.0
 const monthsDueSoonMargin = 30 * 24 * time.Hour
 
+// commissionedAtLayout is the storage format of equipments.commissioned_at
+// (a TEXT column holding a plain calendar date).
+const commissionedAtLayout = "2006-01-02"
+
+// dateBaseline returns the date a task's time-based interval is counted from.
+//
+// Precedence:
+//  1. the last intervention's date — the task was actually performed then;
+//  2. the equipment's commissioned_at — when the equipment entered service;
+//  3. the equipment's created_at — when the row was inserted in this app.
+//
+// commissioned_at is optional and free-form enough to be unusable (nil, empty
+// or malformed); in that case we fall through to created_at rather than
+// yielding a zero time, which would make every task look overdue.
+func dateBaseline(equipment models.Equipment, lastIntervention *models.Intervention) time.Time {
+	if lastIntervention != nil {
+		return lastIntervention.Date
+	}
+
+	if equipment.CommissionedAt != nil {
+		if commissioned, err := time.Parse(commissionedAtLayout, *equipment.CommissionedAt); err == nil && !commissioned.IsZero() {
+			return commissioned
+		}
+	}
+
+	return equipment.CreatedAt
+}
+
 func ComputeDueStatus(task models.Task, equipment models.Equipment, lastIntervention *models.Intervention) (status string, nextDueDate string, nextDueHours *float64) {
-	baselineDate := equipment.CreatedAt
+	baselineDate := dateBaseline(equipment, lastIntervention)
 	var baselineHours float64
 
-	if lastIntervention != nil {
-		baselineDate = lastIntervention.Date
-		if lastIntervention.HoursAt != nil {
-			baselineHours = *lastIntervention.HoursAt
-		}
+	if lastIntervention != nil && lastIntervention.HoursAt != nil {
+		baselineHours = *lastIntervention.HoursAt
 	}
 
 	now := time.Now()
