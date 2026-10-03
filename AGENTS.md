@@ -101,7 +101,8 @@ Single-context: one root `CONTEXT.md` plus ADRs in `doc/adr/`. See `doc/agents/d
 - Branch name: `type/issue-N-short-slug` (e.g. `fix/issue-9-confirm-loop`, `feat/issue-12-add-equipment`)
 - Open a PR once the work is ready; the PR description must reference the issue (`Closes #N`)
 - **Small chores** (docs, typos, minor formatting) may be committed directly to `main` without an issue or PR
-- **Always ask** before executing any `gh` command
+- You may run `gh` commands, create branches, and push them without asking first
+- **Never push to `main`** without asking first
 - When I ask you to monitor a PR, use the command `gh --watch` to wait for the jobs to finish
 
 ### Git and documentation

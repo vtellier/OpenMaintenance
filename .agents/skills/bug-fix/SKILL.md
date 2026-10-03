@@ -45,4 +45,3 @@ Run `make build` from the repo root to confirm no build regressions.
 
 - One commit for the failing test, one commit for the fix (or a single combined commit if they are trivial — ask the user).
 - Open a PR referencing the issue (`Closes #N`).
-- Always ask for confirmation before running any `gh` command.
