@@ -69,6 +69,20 @@ Servers run on:
 | Arrow.js | `.agents/skills/arrow-js/SKILL.md` | Any frontend code change |
 | Non-regression tests | `.agents/skills/non-regression-test/SKILL.md` | Playwright test mechanics (called by bug-fix skill) |
 
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues for `vtellier/OpenMaintenance`, via the `gh` CLI. See `doc/agents/issue-tracker.md`.
+
+### Triage labels
+
+Uses the five default label strings: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `doc/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one root `CONTEXT.md` plus ADRs in `doc/adr/`. See `doc/agents/domain.md`.
+
 ## Rules
 
 ### Code quality
