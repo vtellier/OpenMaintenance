@@ -476,3 +476,19 @@ Reduced friction in the PR-review loop (no GitHub issue — developer tooling).
 - README: added `make seed` under Development.
 
 Note: ROADMAP not touched — this is dev tooling, not product scope.
+
+## 2026-10-03 — Agent-skill config & architecture review (issues #65–#75)
+
+No product code changed this session.
+
+- **Agent-skill config** (`2df26a8`): added an `## Agent skills` block to `AGENTS.md` and `doc/agents/` (`issue-tracker.md` → GitHub, `triage-labels.md` → default labels, `domain.md` → single-context, ADRs in `doc/adr/`). Created the `ready-for-agent` and `needs-info` labels on GitHub.
+- **Architecture review** (hot spots from the last 80 commits): six deepening candidates found; the four Strong ones were broken into tickets. Each refactor ticket absorbs the bugs found in its area, with a non-regression test landing first (bug-fix workflow).
+  - Due status: #66 fixed-clock tests → #67 report the driving trigger → #68 one urgency ranking
+  - Hour-meter: #69 one module owns every reading change → #70 delete/edit recompute rule (**needs-info**: decision pending)
+  - Calendar dates: #65 Vitest → #71 one frontend calendar-date module → #72 plain dates in API and storage
+  - Intervention logging: #73 the form owns its logic → #74 quick log uses it
+  - Standalone bug: #75 moving an intervention to another equipment's task loses its photos
+- Bugs reproduced against a running backend: metadata edit resets hour-meter freshness and can lower the reading (#69); deleting an intervention leaves hours unchanged (#70); intervention dates show a day early in UTC+ timezones (#71); photos lost on move (#75). Found by inspection: the Equipments page timing and ranking (#67, #68), Dashboard quick log missing the #51 fixes (#71, #74), and the History edit form losing its equipment (#73).
+- Not ticketed (Worth exploring): pulling data loading out of the pages; moving the file-upload code into the attachment module.
+
+Can start now: #65, #66, #69, #75.
