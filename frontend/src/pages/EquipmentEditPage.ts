@@ -2,6 +2,7 @@ import { component, html, reactive } from '@arrow-js/core'
 import { EquipmentApi, TaskApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { iconPicker } from '@/components/IconPicker'
+import { extractErrorMessage } from '@/lib/format'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -19,6 +20,9 @@ export function EquipmentEditPage(idParam: string) {
       tracksHours: false,
       originalTracksHours: false,
       hours: 0,
+      // Floor for the initial reading when turning the hour-meter on: the
+      // reading kept from an earlier tracking period (the meter cannot go back).
+      minHours: 0,
       loaded: false,
       saving: false,
       error: null as string | null,
@@ -35,6 +39,7 @@ export function EquipmentEditPage(idParam: string) {
         state.tracksHours = eq.tracksHours ?? false
         state.originalTracksHours = state.tracksHours
         state.hours = eq.hours ?? 0
+        state.minHours = eq.hours ?? 0
       } catch {
         state.error = 'Failed to load equipment'
       } finally {
@@ -44,8 +49,13 @@ export function EquipmentEditPage(idParam: string) {
 
     load()
 
+    // The form only asks for hours while turning the hour-meter on. Once it is
+    // on, the reading changes through "Update hours", never through this form.
+    const turningOn = () => state.tracksHours && !state.originalTracksHours
+    const hoursTooLow = () => turningOn() && state.hours < state.minHours
+
     async function onSubmit(skipConfirmCheck = false) {
-      if (!state.name.trim()) return
+      if (!state.name.trim() || hoursTooLow()) return
       state.saving = true
       state.error = null
 
@@ -72,12 +82,12 @@ export function EquipmentEditPage(idParam: string) {
             icon: state.icon.trim() || undefined,
             commissionedAt: state.commissionedAt ? new Date(state.commissionedAt + 'T12:00:00') : undefined,
             tracksHours: state.tracksHours,
-            hours: state.tracksHours ? state.hours : undefined,
+            hours: turningOn() ? state.hours : undefined,
           },
         })
         window.location.href = backHref
-      } catch {
-        state.error = 'Failed to save equipment'
+      } catch (err) {
+        state.error = await extractErrorMessage(err, 'Failed to save equipment')
         state.saving = false
       }
     }
@@ -92,7 +102,7 @@ export function EquipmentEditPage(idParam: string) {
         return html`
           <h1>Edit equipment</h1>
 
-          ${state.error ? html`<div class="flash flash--error">${state.error}</div>` : null}
+          ${() => state.error ? html`<div class="flash flash--error">${state.error}</div>` : null}
 
           <div class="form-page">
             <div class="form-field">
@@ -119,15 +129,16 @@ export function EquipmentEditPage(idParam: string) {
                 <span class="toggle-slider"></span>
               </label>
             </div>
-            ${() => state.tracksHours ? html`
+            ${() => turningOn() ? html`
               <div class="form-field">
                 <label class="form-field__label">Current hours</label>
-                <input type="number" min="0" .value="${() => String(state.hours)}" @input="${(e: Event) => { state.hours = Number((e.target as HTMLInputElement).value) }}" />
+                <input type="number" min="${() => String(state.minHours)}" .value="${() => String(state.hours)}" @input="${(e: Event) => { state.hours = Number((e.target as HTMLInputElement).value) }}" />
+                ${() => state.minHours > 0 ? html`<p class="form-field__hint">Last reading: ${String(state.minHours)} h. The hour-meter cannot go backwards.</p>` : null}
               </div>
             ` : null}
             <div class="form__actions">
               <a href="${backHref}" class="btn">Cancel</a>
-              <button class="btn btn--accent" @click="${() => onSubmit()}" disabled="${() => state.saving || !state.name.trim()}">
+              <button class="btn btn--accent" @click="${() => onSubmit()}" disabled="${() => state.saving || !state.name.trim() || hoursTooLow()}">
                 ${() => state.saving ? 'Saving...' : 'Save'}
               </button>
             </div>

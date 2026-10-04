@@ -501,7 +501,6 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
             icon,
             commissionedAt: eq.commissionedAt ? new Date(eq.commissionedAt + 'T12:00:00') : undefined,
             tracksHours: eq.tracksHours,
-            hours: eq.tracksHours ? (eq.hours ?? 0) : undefined,
           },
         })
       } catch {
