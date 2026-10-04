@@ -5,6 +5,10 @@ import { defineConfig } from 'vite'
 
 const arrowPackages = ['@arrow-js/core', '@arrow-js/framework']
 
+// Timezones the unit tests run under: UTC, two east of it (UTC+1/+2 and
+// UTC+14) and two west (UTC−5/−4 and UTC−11).
+const TEST_TIMEZONES = ['UTC', 'Europe/Paris', 'Pacific/Kiritimati', 'America/New_York', 'Pacific/Pago_Pago']
+
 function getVersion(): string {
   try {
     return execSync('git describe --tags --always --dirty', { encoding: 'utf8' }).trim()
@@ -40,5 +44,14 @@ export default defineConfig({
   // Playwright specs live in tests/ and must stay out of Vitest's reach.
   test: {
     include: ['src/**/*.test.ts'],
+    // Every unit test runs once in the machine's timezone ('local') and once
+    // per timezone below, east and west of UTC, so date code cannot depend on
+    // where it runs. TZ only takes effect for a whole process, hence the
+    // 'forks' pool: worker threads would all share the parent's timezone.
+    pool: 'forks',
+    projects: [
+      { extends: true, test: { name: 'local' } },
+      ...TEST_TIMEZONES.map(tz => ({ extends: true, test: { name: tz, env: { TZ: tz } } })),
+    ],
   },
 })
