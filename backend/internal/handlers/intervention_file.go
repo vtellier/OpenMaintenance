@@ -252,8 +252,15 @@ func (h *Handler) saveInterventionMovingPhotos(inv *models.Intervention) error {
 		if newPath == p.FilePath {
 			continue // already in place; copying onto itself would truncate it
 		}
+		src := filestore.Abs(h.BaseDir, p.FilePath)
+		if _, err := os.Stat(src); os.IsNotExist(err) {
+			// Already gone from disk: nothing to copy, but the row still
+			// follows the intervention so it can be deleted through the API.
+			newPaths[p.FilePath] = newPath
+			continue
+		}
 		dst := filestore.Abs(h.BaseDir, newPath)
-		if err := filestore.CopyFile(filestore.Abs(h.BaseDir, p.FilePath), dst); err != nil {
+		if err := filestore.CopyFile(src, dst); err != nil {
 			removeCopies()
 			return fmt.Errorf("move photos to the new equipment: %w", err)
 		}
