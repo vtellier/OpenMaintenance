@@ -36,6 +36,10 @@ func midnight(year int, month time.Month, day int) time.Time {
 	return at(year, month, day, 0, 0)
 }
 
+// utcMinus4 is a fixed location west of UTC (e.g. US Eastern summer time),
+// for the cases where the user's timezone matters.
+var utcMinus4 = time.FixedZone("UTC-4", -4*60*60)
+
 func monthsTask(months int) models.Task {
 	return models.Task{MonthsInterval: intPtr(months)}
 }
@@ -569,6 +573,30 @@ func TestComputeDueStatusMonthsBoundaries(t *testing.T) {
 			equipment: noMeter(),
 			last:      done(at(2026, time.January, 14, 22, 0)),
 			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-14"},
+		},
+		{
+			// Current behaviour: commissioned_at is parsed as 00:00 UTC, so
+			// for a user in UTC-4 the task turns overdue at 20:00 local time
+			// the evening before the date shown as next due.
+			name: "commissioned_at baseline, evening before the due date in UTC-4",
+			now:  time.Date(2026, time.July, 14, 20, 30, 0, 0, utcMinus4),
+			task: task,
+			equipment: models.Equipment{
+				CommissionedAt: strPtr("2026-01-15"),
+				CreatedAt:      equipmentCreatedAt,
+			},
+			want: dueStatusWant{status: "overdue", nextDueDate: "2026-07-15"},
+		},
+		{
+			// Contrast: the same calendar date logged as an intervention from
+			// a UTC-4 browser is stored as 04:00 UTC (local midnight), so on
+			// that same evening the task is still only due soon.
+			name:      "intervention baseline, evening before the due date in UTC-4",
+			now:       time.Date(2026, time.July, 14, 20, 30, 0, 0, utcMinus4),
+			task:      task,
+			equipment: noMeter(),
+			last:      done(time.Date(2026, time.January, 15, 0, 0, 0, 0, utcMinus4).UTC()),
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-15"},
 		},
 	})
 }
