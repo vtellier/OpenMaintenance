@@ -56,3 +56,4 @@ If both are already running (e.g. `make dev`), they are reused as-is.
 | `equipments-most-urgent-task-across-triggers.spec.ts` | Equipments page picked the wrong most urgent task: a task overdue by hours ranked least overdue when its calendar due date was in the future, and hours past due were compared as clock hours (issue #68) | — |
 | `tasks-ordered-by-urgency.spec.ts` | Dashboard and Equipment detail ordered tasks by status only (creation order within a status), not by urgency across triggers (issue #68) | — |
 | `date-shifts-back-east-of-utc.spec.ts` | East of UTC, a saved intervention date (UTC+2) or commissioning date (UTC+14) showed one day early, and each edit-and-save moved it back another day (issue #71) | — |
+| `dashboard-quick-log-defaults-to-local-date.spec.ts` | Dashboard quick log pre-filled the UTC date instead of the local date (issue #71) | — |
