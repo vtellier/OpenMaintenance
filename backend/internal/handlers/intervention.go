@@ -3,10 +3,12 @@ package handlers
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	dbpackage "github.com/vtellier/OpenMaintenance/internal/db"
+	"github.com/vtellier/OpenMaintenance/internal/hourmeter"
 	"github.com/vtellier/OpenMaintenance/internal/models"
 )
 
@@ -60,7 +62,9 @@ func (h *Handler) CreateIntervention(ctx echo.Context) error {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
 
-	updateEquipmentHoursFromIntervention(h.DB, intervention)
+	if err := hourmeter.RecordIntervention(h.DB, intervention); err != nil {
+		log.Printf("record hour-meter reading of intervention %d: %v", intervention.ID, err)
+	}
 
 	return ctx.JSON(201, intervention)
 }
@@ -97,7 +101,9 @@ func (h *Handler) UpdateIntervention(ctx echo.Context, id int) error {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
 
-	updateEquipmentHoursFromIntervention(h.DB, intervention)
+	if err := hourmeter.RecordIntervention(h.DB, intervention); err != nil {
+		log.Printf("record hour-meter reading of intervention %d: %v", intervention.ID, err)
+	}
 
 	return ctx.JSON(200, intervention)
 }
@@ -140,22 +146,4 @@ func populateEquipmentIDFromTask(db *sql.DB, intervention *models.Intervention) 
 	}
 	intervention.EquipmentID = &task.EquipmentID
 	return nil
-}
-
-func updateEquipmentHoursFromIntervention(db *sql.DB, intervention *models.Intervention) {
-	if intervention.HoursAt == nil || intervention.EquipmentID == nil {
-		return
-	}
-
-	equipment, err := dbpackage.GetEquipment(db, *intervention.EquipmentID)
-	if err != nil {
-		return
-	}
-
-	if equipment.Hours == nil || *intervention.HoursAt > *equipment.Hours {
-		now := time.Now()
-		equipment.Hours = intervention.HoursAt
-		equipment.HoursUpdatedAt = &now
-		dbpackage.UpdateEquipment(db, equipment)
-	}
 }
