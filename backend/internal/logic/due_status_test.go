@@ -19,12 +19,16 @@ func daysAgo(days int) time.Time {
 	return time.Now().AddDate(0, 0, -days)
 }
 
-// TestComputeDueStatusDateBaseline documents the date-baseline precedence used
-// by the scheduling engine:
+// TestComputeDueStatusDateBaseline documents the date baseline used by the
+// scheduling engine:
 //
 //  1. the last intervention's date
 //  2. equipment.CommissionedAt when set and parseable
-//  3. equipment.CreatedAt as the final fallback
+//  3. otherwise there is no date baseline: nobody knows when the task is due,
+//     so it is reported "overdue" with no next due date.
+//
+// equipment.CreatedAt is never used as a baseline: it is only when the row was
+// inserted into the app.
 //
 // Non-regression for issue #59: an equipment commissioned years ago with a task
 // that has never been performed must not be reported as "ok" just because the
@@ -54,26 +58,28 @@ func TestComputeDueStatusDateBaseline(t *testing.T) {
 			wantNextDueSet: true,
 		},
 		{
-			name: "no intervention and no commissioned_at falls back to created_at",
+			name: "no intervention and no commissioned_at is overdue with no next due date",
 			task: models.Task{MonthsInterval: intPtr(6)},
 			equipment: models.Equipment{
 				CommissionedAt: nil,
 				CreatedAt:      time.Now(),
 			},
 			last:           nil,
-			wantStatus:     "ok",
-			wantNextDue:    time.Now().AddDate(0, 6, 0).Format("2006-01-02"),
+			wantStatus:     "overdue",
+			wantNextDue:    "",
 			wantNextDueSet: true,
 		},
 		{
-			name: "no intervention and old created_at is still overdue",
+			name: "no intervention and no commissioned_at ignores a recent created_at",
 			task: models.Task{MonthsInterval: intPtr(6)},
 			equipment: models.Equipment{
 				CommissionedAt: nil,
-				CreatedAt:      daysAgo(400),
+				CreatedAt:      time.Now(),
 			},
-			last:       nil,
-			wantStatus: "overdue",
+			last:           nil,
+			wantStatus:     "overdue",
+			wantNextDue:    "",
+			wantNextDueSet: true,
 		},
 		{
 			name: "intervention date wins over commissioned_at",
@@ -98,35 +104,39 @@ func TestComputeDueStatusDateBaseline(t *testing.T) {
 			wantStatus: "ok",
 		},
 		{
-			name: "empty commissioned_at falls back to created_at",
+			name: "empty commissioned_at is treated as unset",
 			task: models.Task{MonthsInterval: intPtr(6)},
 			equipment: models.Equipment{
 				CommissionedAt: strPtr(""),
-				CreatedAt:      time.Now(),
+				CreatedAt:      daysAgo(400),
 			},
-			last:       nil,
-			wantStatus: "ok",
+			last:           nil,
+			wantStatus:     "overdue",
+			wantNextDue:    "",
+			wantNextDueSet: true,
 		},
 		{
-			name: "malformed commissioned_at falls back to created_at",
+			name: "malformed commissioned_at is treated as unset",
 			task: models.Task{MonthsInterval: intPtr(6)},
 			equipment: models.Equipment{
 				CommissionedAt: strPtr("not-a-date"),
-				CreatedAt:      time.Now(),
+				CreatedAt:      daysAgo(400),
 			},
-			last:       nil,
-			wantStatus: "ok",
+			last:           nil,
+			wantStatus:     "overdue",
+			wantNextDue:    "",
+			wantNextDueSet: true,
 		},
 		{
-			name: "malformed commissioned_at does not produce a zero baseline",
+			name: "malformed commissioned_at does not produce a zero-date next due",
 			task: models.Task{MonthsInterval: intPtr(6)},
 			equipment: models.Equipment{
 				CommissionedAt: strPtr("31/12/2023"),
 				CreatedAt:      time.Now(),
 			},
 			last:           nil,
-			wantStatus:     "ok",
-			wantNextDue:    time.Now().AddDate(0, 6, 0).Format("2006-01-02"),
+			wantStatus:     "overdue",
+			wantNextDue:    "",
 			wantNextDueSet: true,
 		},
 		{
