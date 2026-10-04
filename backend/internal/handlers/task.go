@@ -26,6 +26,7 @@ func (h *Handler) enrichTask(task *models.Task) {
 	task.DueTrigger = due.Trigger
 	task.DueInDays = due.DueInDays
 	task.DueInHours = due.DueInHours
+	task.Urgency = due.Urgency
 }
 
 func (h *Handler) ListTasks(ctx echo.Context) error {

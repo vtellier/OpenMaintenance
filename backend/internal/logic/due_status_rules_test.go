@@ -10,8 +10,8 @@ import (
 
 // Fixed-clock tests for ComputeDueStatus: every rule of the due status
 // (Overdue / Due soon / OK, next due date, next due hours, driving trigger,
-// days and hours to go) checked at pinned instants instead of whenever the
-// test happens to run.
+// days and hours to go, urgency) checked at pinned instants instead of
+// whenever the test happens to run.
 //
 // The cases pin the CURRENT behaviour. Where it is surprising, or the spec in
 // doc/data-model.md does not say, the case carries a "Current behaviour:"
@@ -83,6 +83,13 @@ type dueStatusWant struct {
 	trigger      string   // "" when no rule applies
 	dueInDays    *int     // nil when the months rule does not apply or has no baseline
 	dueInHours   *float64 // nil when the hours rule does not apply
+	urgency      *float64 // nil when no rule gives a fraction (months without a baseline gives none)
+}
+
+// frac is an expected urgency: elapsed / interval, in calendar days for the
+// months rule and in hours for the hours rule.
+func frac(elapsed, interval float64) *float64 {
+	return floatPtr(elapsed / interval)
 }
 
 type dueStatusCase struct {
@@ -123,6 +130,7 @@ func runDueStatusCases(t *testing.T, cases []dueStatusCase) {
 				t.Errorf("dueInDays = %d, want %d", *got.DueInDays, *tc.want.dueInDays)
 			}
 			checkOptionalFloat(t, "dueInHours", got.DueInHours, tc.want.dueInHours)
+			checkOptionalFloat(t, "urgency", got.Urgency, tc.want.urgency)
 		})
 	}
 }
@@ -149,7 +157,7 @@ func TestComputeDueStatusMonthsOnly(t *testing.T) {
 			task:      monthsTask(6),
 			equipment: noMeter(),
 			last:      done(midnight(2026, time.March, 1)),
-			want:      dueStatusWant{status: "ok", nextDueDate: "2026-09-01", trigger: TriggerMonths, dueInDays: intPtr(78)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2026-09-01", trigger: TriggerMonths, dueInDays: intPtr(78), urgency: frac(106, 184)},
 		},
 		{
 			name:      "due soon inside the 30-day window",
@@ -157,7 +165,7 @@ func TestComputeDueStatusMonthsOnly(t *testing.T) {
 			task:      monthsTask(6),
 			equipment: noMeter(),
 			last:      done(midnight(2025, time.December, 25)),
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-06-25", trigger: TriggerMonths, dueInDays: intPtr(10)},
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-06-25", trigger: TriggerMonths, dueInDays: intPtr(10), urgency: frac(172, 182)},
 		},
 		{
 			name:      "overdue past the due date",
@@ -165,7 +173,7 @@ func TestComputeDueStatusMonthsOnly(t *testing.T) {
 			task:      monthsTask(6),
 			equipment: noMeter(),
 			last:      done(midnight(2025, time.November, 1)),
-			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-05-01", trigger: TriggerMonths, dueInDays: intPtr(-45)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-05-01", trigger: TriggerMonths, dueInDays: intPtr(-45), urgency: frac(226, 181)},
 		},
 		{
 			name:      "hour reading plays no part",
@@ -173,7 +181,7 @@ func TestComputeDueStatusMonthsOnly(t *testing.T) {
 			task:      monthsTask(6),
 			equipment: meter(5000),
 			last:      doneAt(midnight(2026, time.March, 1), 0),
-			want:      dueStatusWant{status: "ok", nextDueDate: "2026-09-01", trigger: TriggerMonths, dueInDays: intPtr(78)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2026-09-01", trigger: TriggerMonths, dueInDays: intPtr(78), urgency: frac(106, 184)},
 		},
 	})
 }
@@ -186,7 +194,7 @@ func TestComputeDueStatusHoursOnly(t *testing.T) {
 			task:      hoursTask(100),
 			equipment: meter(520),
 			last:      doneAt(midnight(2026, time.March, 1), 500),
-			want:      dueStatusWant{status: "ok", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(80)},
+			want:      dueStatusWant{status: "ok", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(80), urgency: frac(20, 100)},
 		},
 		{
 			name:      "due soon inside the 10 h margin",
@@ -194,7 +202,7 @@ func TestComputeDueStatusHoursOnly(t *testing.T) {
 			task:      hoursTask(100),
 			equipment: meter(595),
 			last:      doneAt(midnight(2026, time.March, 1), 500),
-			want:      dueStatusWant{status: "due_soon", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(5)},
+			want:      dueStatusWant{status: "due_soon", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(5), urgency: frac(95, 100)},
 		},
 		{
 			name:      "overdue past the due reading",
@@ -202,7 +210,7 @@ func TestComputeDueStatusHoursOnly(t *testing.T) {
 			task:      hoursTask(100),
 			equipment: meter(650),
 			last:      doneAt(midnight(2026, time.March, 1), 500),
-			want:      dueStatusWant{status: "overdue", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(-50)},
+			want:      dueStatusWant{status: "overdue", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(-50), urgency: frac(150, 100)},
 		},
 		{
 			name:      "fractional readings",
@@ -210,7 +218,7 @@ func TestComputeDueStatusHoursOnly(t *testing.T) {
 			task:      hoursTask(100),
 			equipment: meter(600.4),
 			last:      doneAt(midnight(2026, time.March, 1), 500.5),
-			want:      dueStatusWant{status: "due_soon", nextDueHours: floatPtr(600.5), trigger: TriggerHours, dueInHours: floatPtr(0.1)},
+			want:      dueStatusWant{status: "due_soon", nextDueHours: floatPtr(600.5), trigger: TriggerHours, dueInHours: floatPtr(0.1), urgency: frac(99.9, 100)},
 		},
 		{
 			name:      "time elapsed plays no part",
@@ -218,7 +226,7 @@ func TestComputeDueStatusHoursOnly(t *testing.T) {
 			task:      hoursTask(100),
 			equipment: meter(520),
 			last:      doneAt(midnight(2016, time.January, 1), 500),
-			want:      dueStatusWant{status: "ok", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(80)},
+			want:      dueStatusWant{status: "ok", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(80), urgency: frac(20, 100)},
 		},
 		{
 			// No reading on the equipment yet: the next due reading is known,
@@ -236,17 +244,19 @@ func TestComputeDueStatusHoursOnly(t *testing.T) {
 
 // Both intervals: the task is due whenever either condition is met first, so
 // the worse of the two statuses wins and both next-due values are returned.
-// The rule with the worse status drives the task; months drives on a tie.
-// Both amounts are returned whatever drives.
+// The rule with the worse status drives the task; on the same status, the one
+// further through its interval; months if equally far. Both amounts are
+// returned whatever drives, and the urgency is the greater fraction.
 func TestComputeDueStatusBothIntervals(t *testing.T) {
 	runDueStatusCases(t, []dueStatusCase{
 		{
-			name:      "both ok, months drive on a tie",
+			// Months 106/184 days, hours 20/100 h.
+			name:      "both ok, months further through its interval drive",
 			now:       testNow,
 			task:      bothTask(6, 100),
 			equipment: meter(520),
 			last:      doneAt(midnight(2026, time.March, 1), 500),
-			want:      dueStatusWant{status: "ok", nextDueDate: "2026-09-01", nextDueHours: floatPtr(600), trigger: TriggerMonths, dueInDays: intPtr(78), dueInHours: floatPtr(80)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2026-09-01", nextDueHours: floatPtr(600), trigger: TriggerMonths, dueInDays: intPtr(78), dueInHours: floatPtr(80), urgency: frac(106, 184)},
 		},
 		{
 			name:      "months due soon, hours ok",
@@ -254,7 +264,7 @@ func TestComputeDueStatusBothIntervals(t *testing.T) {
 			task:      bothTask(6, 100),
 			equipment: meter(520),
 			last:      doneAt(midnight(2025, time.December, 25), 500),
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-06-25", nextDueHours: floatPtr(600), trigger: TriggerMonths, dueInDays: intPtr(10), dueInHours: floatPtr(80)},
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-06-25", nextDueHours: floatPtr(600), trigger: TriggerMonths, dueInDays: intPtr(10), dueInHours: floatPtr(80), urgency: frac(172, 182)},
 		},
 		{
 			name:      "hours due soon, months ok",
@@ -262,7 +272,7 @@ func TestComputeDueStatusBothIntervals(t *testing.T) {
 			task:      bothTask(6, 100),
 			equipment: meter(595),
 			last:      doneAt(midnight(2026, time.March, 1), 500),
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-09-01", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInDays: intPtr(78), dueInHours: floatPtr(5)},
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-09-01", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInDays: intPtr(78), dueInHours: floatPtr(5), urgency: frac(95, 100)},
 		},
 		{
 			name:      "months overdue, hours ok",
@@ -270,7 +280,7 @@ func TestComputeDueStatusBothIntervals(t *testing.T) {
 			task:      bothTask(6, 100),
 			equipment: meter(520),
 			last:      doneAt(midnight(2025, time.November, 1), 500),
-			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-05-01", nextDueHours: floatPtr(600), trigger: TriggerMonths, dueInDays: intPtr(-45), dueInHours: floatPtr(80)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-05-01", nextDueHours: floatPtr(600), trigger: TriggerMonths, dueInDays: intPtr(-45), dueInHours: floatPtr(80), urgency: frac(226, 181)},
 		},
 		{
 			// The next due date is still in the future: the date alone does
@@ -281,7 +291,7 @@ func TestComputeDueStatusBothIntervals(t *testing.T) {
 			task:      bothTask(6, 100),
 			equipment: meter(650),
 			last:      doneAt(midnight(2026, time.March, 1), 500),
-			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-09-01", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInDays: intPtr(78), dueInHours: floatPtr(-50)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-09-01", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInDays: intPtr(78), dueInHours: floatPtr(-50), urgency: frac(150, 100)},
 		},
 		{
 			name:      "months overdue, hours due soon",
@@ -289,7 +299,7 @@ func TestComputeDueStatusBothIntervals(t *testing.T) {
 			task:      bothTask(6, 100),
 			equipment: meter(595),
 			last:      doneAt(midnight(2025, time.November, 1), 500),
-			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-05-01", nextDueHours: floatPtr(600), trigger: TriggerMonths, dueInDays: intPtr(-45), dueInHours: floatPtr(5)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-05-01", nextDueHours: floatPtr(600), trigger: TriggerMonths, dueInDays: intPtr(-45), dueInHours: floatPtr(5), urgency: frac(226, 181)},
 		},
 		{
 			name:      "months due soon, hours overdue",
@@ -297,23 +307,68 @@ func TestComputeDueStatusBothIntervals(t *testing.T) {
 			task:      bothTask(6, 100),
 			equipment: meter(650),
 			last:      doneAt(midnight(2025, time.December, 25), 500),
-			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-06-25", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInDays: intPtr(10), dueInHours: floatPtr(-50)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-06-25", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInDays: intPtr(10), dueInHours: floatPtr(-50), urgency: frac(150, 100)},
 		},
 		{
-			name:      "both due soon, months drive on a tie",
+			// Months 172/182 days (0.945), hours 95/100 h (0.95).
+			name:      "both due soon, hours further through its interval drive",
 			now:       testNow,
 			task:      bothTask(6, 100),
 			equipment: meter(595),
 			last:      doneAt(midnight(2025, time.December, 25), 500),
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-06-25", nextDueHours: floatPtr(600), trigger: TriggerMonths, dueInDays: intPtr(10), dueInHours: floatPtr(5)},
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-06-25", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInDays: intPtr(10), dueInHours: floatPtr(5), urgency: frac(95, 100)},
 		},
 		{
-			name:      "both overdue, months drive on a tie",
+			// Months 180/181 days (0.994), hours 95/100 h (0.95).
+			name:      "both due soon, months further through its interval drive",
+			now:       at(2026, time.July, 14, 12, 0),
+			task:      bothTask(6, 100),
+			equipment: meter(595),
+			last:      doneAt(midnight(2026, time.January, 15), 500),
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-15", nextDueHours: floatPtr(600), trigger: TriggerMonths, dueInDays: intPtr(1), dueInHours: floatPtr(5), urgency: frac(180, 181)},
+		},
+		{
+			// Months 226/181 days (1.25), hours 150/100 h (1.5): 45 days
+			// past is more clock time than 50 h, but a smaller share of the
+			// interval.
+			name:      "both overdue, hours further past its interval drive",
 			now:       testNow,
 			task:      bothTask(6, 100),
 			equipment: meter(650),
 			last:      doneAt(midnight(2025, time.November, 1), 500),
-			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-05-01", nextDueHours: floatPtr(600), trigger: TriggerMonths, dueInDays: intPtr(-45), dueInHours: floatPtr(-50)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-05-01", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInDays: intPtr(-45), dueInHours: floatPtr(-50), urgency: frac(150, 100)},
+		},
+		{
+			// Months 226/181 days (1.25), hours 100/100 h (1).
+			name:      "both overdue, months further past its interval drive",
+			now:       testNow,
+			task:      bothTask(6, 100),
+			equipment: meter(600),
+			last:      doneAt(midnight(2025, time.November, 1), 500),
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-05-01", nextDueHours: floatPtr(600), trigger: TriggerMonths, dueInDays: intPtr(-45), dueInHours: floatPtr(0), urgency: frac(226, 181)},
+		},
+		{
+			// Months 92/184 days, hours 50/100 h: both exactly half-way.
+			name:      "both ok and equally far, months drive",
+			now:       at(2026, time.June, 1, 12, 0),
+			task:      bothTask(6, 100),
+			equipment: meter(550),
+			last:      doneAt(midnight(2026, time.March, 1), 500),
+			want:      dueStatusWant{status: "ok", nextDueDate: "2026-09-01", nextDueHours: floatPtr(600), trigger: TriggerMonths, dueInDays: intPtr(92), dueInHours: floatPtr(50), urgency: frac(1, 2)},
+		},
+		{
+			// Current behaviour: the due-soon margins (30 days, 10 h) do not
+			// scale with the interval. Hours is due soon at 95/100 h and
+			// drives; months, on a 10-year interval, is still ok at 3617/3652
+			// days but further through it. The urgency is the greater
+			// fraction, so it comes from the rule that does not drive. The
+			// task still ranks as due soon: the status comes first.
+			name:      "hours due soon drive, months ok but further through its interval",
+			now:       testNow,
+			task:      bothTask(120, 100),
+			equipment: meter(595),
+			last:      doneAt(midnight(2016, time.July, 20), 500),
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-20", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInDays: intPtr(35), dueInHours: floatPtr(5), urgency: frac(3617, 3652)},
 		},
 		{
 			// Without a reading the hours rule does not apply, so months drive
@@ -323,7 +378,7 @@ func TestComputeDueStatusBothIntervals(t *testing.T) {
 			task:      bothTask(6, 100),
 			equipment: models.Equipment{TracksHours: true, CreatedAt: equipmentCreatedAt},
 			last:      doneAt(midnight(2026, time.March, 1), 500),
-			want:      dueStatusWant{status: "ok", nextDueDate: "2026-09-01", nextDueHours: floatPtr(600), trigger: TriggerMonths, dueInDays: intPtr(78)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2026-09-01", nextDueHours: floatPtr(600), trigger: TriggerMonths, dueInDays: intPtr(78), urgency: frac(106, 184)},
 		},
 	})
 }
@@ -341,7 +396,7 @@ func TestComputeDueStatusNoInterventionYet(t *testing.T) {
 				CommissionedAt: strPtr("2025-12-01"),
 				CreatedAt:      at(2026, time.June, 1, 10, 0),
 			},
-			want: dueStatusWant{status: "overdue", nextDueDate: "2026-06-01", trigger: TriggerMonths, dueInDays: intPtr(-14)},
+			want: dueStatusWant{status: "overdue", nextDueDate: "2026-06-01", trigger: TriggerMonths, dueInDays: intPtr(-14), urgency: frac(196, 182)},
 		},
 		{
 			// Per #62: equipment.created_at is never a baseline, however recent.
@@ -367,8 +422,9 @@ func TestComputeDueStatusNoInterventionYet(t *testing.T) {
 		},
 		{
 			// The missing date baseline only affects the months rule: the hours
-			// rule still reports its next due hours and its amount, and the
-			// task is overdue because of the months rule (the hours rule is ok).
+			// rule still reports its next due hours, its amount and its
+			// fraction, which is then the task's urgency. The task is overdue
+			// because of the months rule (the hours rule is ok).
 			name: "both intervals, no date baseline, hours ok: months drives, overdue, no amount",
 			now:  testNow,
 			task: bothTask(6, 100),
@@ -377,11 +433,12 @@ func TestComputeDueStatusNoInterventionYet(t *testing.T) {
 				Hours:       floatPtr(10),
 				CreatedAt:   at(2026, time.June, 1, 10, 0),
 			},
-			want: dueStatusWant{status: "overdue", nextDueHours: floatPtr(100), trigger: TriggerMonths, dueInHours: floatPtr(90)},
+			want: dueStatusWant{status: "overdue", nextDueHours: floatPtr(100), trigger: TriggerMonths, dueInHours: floatPtr(90), urgency: frac(10, 100)},
 		},
 		{
-			// An overdue hours rule has a concrete amount, so it drives rather
-			// than the months rule that is overdue with nothing to count.
+			// An overdue hours rule has a concrete amount and a fraction, so it
+			// drives rather than the months rule that is overdue with nothing
+			// to count.
 			name: "both intervals, no date baseline, hours overdue: hours drives",
 			now:  testNow,
 			task: bothTask(6, 100),
@@ -390,7 +447,7 @@ func TestComputeDueStatusNoInterventionYet(t *testing.T) {
 				Hours:       floatPtr(130),
 				CreatedAt:   at(2026, time.June, 1, 10, 0),
 			},
-			want: dueStatusWant{status: "overdue", nextDueHours: floatPtr(100), trigger: TriggerHours, dueInHours: floatPtr(-30)},
+			want: dueStatusWant{status: "overdue", nextDueHours: floatPtr(100), trigger: TriggerHours, dueInHours: floatPtr(-30), urgency: frac(130, 100)},
 		},
 		{
 			// Hours only due soon is a better status than the months overdue.
@@ -402,7 +459,7 @@ func TestComputeDueStatusNoInterventionYet(t *testing.T) {
 				Hours:       floatPtr(95),
 				CreatedAt:   at(2026, time.June, 1, 10, 0),
 			},
-			want: dueStatusWant{status: "overdue", nextDueHours: floatPtr(100), trigger: TriggerMonths, dueInHours: floatPtr(5)},
+			want: dueStatusWant{status: "overdue", nextDueHours: floatPtr(100), trigger: TriggerMonths, dueInHours: floatPtr(5), urgency: frac(95, 100)},
 		},
 		{
 			// The hours rule has no reading to compare, so it has no status:
@@ -421,7 +478,7 @@ func TestComputeDueStatusNoInterventionYet(t *testing.T) {
 			now:       testNow,
 			task:      hoursTask(100),
 			equipment: meter(95),
-			want:      dueStatusWant{status: "due_soon", nextDueHours: floatPtr(100), trigger: TriggerHours, dueInHours: floatPtr(5)},
+			want:      dueStatusWant{status: "due_soon", nextDueHours: floatPtr(100), trigger: TriggerHours, dueInHours: floatPtr(5), urgency: frac(95, 100)},
 		},
 		{
 			// Per spec: never performed means counted from 0, not from the
@@ -430,7 +487,7 @@ func TestComputeDueStatusNoInterventionYet(t *testing.T) {
 			now:       testNow,
 			task:      hoursTask(100),
 			equipment: meter(1200),
-			want:      dueStatusWant{status: "overdue", nextDueHours: floatPtr(100), trigger: TriggerHours, dueInHours: floatPtr(-1100)},
+			want:      dueStatusWant{status: "overdue", nextDueHours: floatPtr(100), trigger: TriggerHours, dueInHours: floatPtr(-1100), urgency: frac(1200, 100)},
 		},
 		{
 			name: "both intervals, hours drive",
@@ -442,7 +499,7 @@ func TestComputeDueStatusNoInterventionYet(t *testing.T) {
 				CommissionedAt: strPtr("2026-05-01"),
 				CreatedAt:      at(2026, time.June, 1, 10, 0),
 			},
-			want: dueStatusWant{status: "overdue", nextDueDate: "2026-11-01", nextDueHours: floatPtr(100), trigger: TriggerHours, dueInDays: intPtr(139), dueInHours: floatPtr(-50)},
+			want: dueStatusWant{status: "overdue", nextDueDate: "2026-11-01", nextDueHours: floatPtr(100), trigger: TriggerHours, dueInDays: intPtr(139), dueInHours: floatPtr(-50), urgency: frac(150, 100)},
 		},
 	})
 }
@@ -456,7 +513,7 @@ func TestComputeDueStatusInterventionWithoutHourReading(t *testing.T) {
 			task:      monthsTask(6),
 			equipment: noMeter(),
 			last:      done(midnight(2026, time.March, 1)),
-			want:      dueStatusWant{status: "ok", nextDueDate: "2026-09-01", trigger: TriggerMonths, dueInDays: intPtr(78)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2026-09-01", trigger: TriggerMonths, dueInDays: intPtr(78), urgency: frac(106, 184)},
 		},
 		{
 			// Current behaviour: the hours baseline falls back to 0, as if the
@@ -468,7 +525,7 @@ func TestComputeDueStatusInterventionWithoutHourReading(t *testing.T) {
 			task:      hoursTask(100),
 			equipment: meter(1200),
 			last:      done(midnight(2026, time.June, 1)),
-			want:      dueStatusWant{status: "overdue", nextDueHours: floatPtr(100), trigger: TriggerHours, dueInHours: floatPtr(-1100)},
+			want:      dueStatusWant{status: "overdue", nextDueHours: floatPtr(100), trigger: TriggerHours, dueInHours: floatPtr(-1100), urgency: frac(1200, 100)},
 		},
 		{
 			// Current behaviour: same as above, the months rule is ok but the
@@ -478,7 +535,7 @@ func TestComputeDueStatusInterventionWithoutHourReading(t *testing.T) {
 			task:      bothTask(6, 100),
 			equipment: meter(1200),
 			last:      done(midnight(2026, time.June, 1)),
-			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-12-01", nextDueHours: floatPtr(100), trigger: TriggerHours, dueInDays: intPtr(169), dueInHours: floatPtr(-1100)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-12-01", nextDueHours: floatPtr(100), trigger: TriggerHours, dueInDays: intPtr(169), dueInHours: floatPtr(-1100), urgency: frac(1200, 100)},
 		},
 	})
 }
@@ -503,7 +560,7 @@ func TestComputeDueStatusEquipmentNotTrackingHours(t *testing.T) {
 			task:      bothTask(6, 100),
 			equipment: notTracking,
 			last:      doneAt(midnight(2026, time.March, 1), 0),
-			want:      dueStatusWant{status: "ok", nextDueDate: "2026-09-01", trigger: TriggerMonths, dueInDays: intPtr(78)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2026-09-01", trigger: TriggerMonths, dueInDays: intPtr(78), urgency: frac(106, 184)},
 		},
 		{
 			name:      "both intervals, only months counts (overdue)",
@@ -511,7 +568,7 @@ func TestComputeDueStatusEquipmentNotTrackingHours(t *testing.T) {
 			task:      bothTask(6, 100),
 			equipment: notTracking,
 			last:      doneAt(midnight(2025, time.November, 1), 0),
-			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-05-01", trigger: TriggerMonths, dueInDays: intPtr(-45)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-05-01", trigger: TriggerMonths, dueInDays: intPtr(-45), urgency: frac(226, 181)},
 		},
 		{
 			// The API rejects a task without any interval; pinned anyway.
@@ -541,7 +598,7 @@ func TestComputeDueStatusMonthsBoundaries(t *testing.T) {
 			task:      task,
 			equipment: noMeter(),
 			last:      last,
-			want:      dueStatusWant{status: "ok", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(31)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(31), urgency: frac(150, 181)},
 		},
 		{
 			name:      "exactly when the due-soon window opens",
@@ -549,7 +606,7 @@ func TestComputeDueStatusMonthsBoundaries(t *testing.T) {
 			task:      task,
 			equipment: noMeter(),
 			last:      last,
-			want:      dueStatusWant{status: "ok", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(30)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(30), urgency: frac(151, 181)},
 		},
 		{
 			name:      "just inside the due-soon window",
@@ -557,7 +614,7 @@ func TestComputeDueStatusMonthsBoundaries(t *testing.T) {
 			task:      task,
 			equipment: noMeter(),
 			last:      last,
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(30)},
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(30), urgency: frac(151, 181)},
 		},
 		{
 			// Current behaviour: reaching the due instant is not overdue yet
@@ -568,7 +625,7 @@ func TestComputeDueStatusMonthsBoundaries(t *testing.T) {
 			task:      task,
 			equipment: noMeter(),
 			last:      last,
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(0)},
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(0), urgency: frac(181, 181)},
 		},
 		{
 			name:      "just past the due instant",
@@ -576,7 +633,7 @@ func TestComputeDueStatusMonthsBoundaries(t *testing.T) {
 			task:      task,
 			equipment: noMeter(),
 			last:      last,
-			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(0)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(0), urgency: frac(181, 181)},
 		},
 		{
 			// Current behaviour: the task is overdue for (almost) all of the
@@ -586,7 +643,7 @@ func TestComputeDueStatusMonthsBoundaries(t *testing.T) {
 			task:      task,
 			equipment: noMeter(),
 			last:      last,
-			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(0)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(0), urgency: frac(181, 181)},
 		},
 		{
 			// Same instant as "exactly at the due instant", read in UTC+14:
@@ -596,7 +653,7 @@ func TestComputeDueStatusMonthsBoundaries(t *testing.T) {
 			task:      task,
 			equipment: noMeter(),
 			last:      last,
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(0)},
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(0), urgency: frac(181, 181)},
 		},
 		{
 			// The margin is 30 days, not one month: due 2026-08-10, so the
@@ -606,7 +663,7 @@ func TestComputeDueStatusMonthsBoundaries(t *testing.T) {
 			task:      task,
 			equipment: noMeter(),
 			last:      done(midnight(2026, time.February, 10)),
-			want:      dueStatusWant{status: "ok", nextDueDate: "2026-08-10", trigger: TriggerMonths, dueInDays: intPtr(31)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2026-08-10", trigger: TriggerMonths, dueInDays: intPtr(31), urgency: frac(150, 181)},
 		},
 		{
 			// Current behaviour: a 1-month interval is at most 31 days, so the
@@ -617,7 +674,7 @@ func TestComputeDueStatusMonthsBoundaries(t *testing.T) {
 			task:      monthsTask(1),
 			equipment: noMeter(),
 			last:      done(midnight(2026, time.February, 1)),
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-03-01", trigger: TriggerMonths, dueInDays: intPtr(28)},
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-03-01", trigger: TriggerMonths, dueInDays: intPtr(28), urgency: frac(0, 28)},
 		},
 		{
 			name:      "1-month task ok on the day it is done in a 31-day month",
@@ -625,7 +682,7 @@ func TestComputeDueStatusMonthsBoundaries(t *testing.T) {
 			task:      monthsTask(1),
 			equipment: noMeter(),
 			last:      done(midnight(2026, time.January, 1)),
-			want:      dueStatusWant{status: "ok", nextDueDate: "2026-02-01", trigger: TriggerMonths, dueInDays: intPtr(31)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2026-02-01", trigger: TriggerMonths, dueInDays: intPtr(31), urgency: frac(0, 31)},
 		},
 		{
 			name:      "1-month task due soon the day after it is done in a 31-day month",
@@ -633,7 +690,7 @@ func TestComputeDueStatusMonthsBoundaries(t *testing.T) {
 			task:      monthsTask(1),
 			equipment: noMeter(),
 			last:      done(midnight(2026, time.January, 1)),
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-02-01", trigger: TriggerMonths, dueInDays: intPtr(30)},
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-02-01", trigger: TriggerMonths, dueInDays: intPtr(30), urgency: frac(1, 31)},
 		},
 		{
 			// commissioned_at is a plain calendar date parsed as 00:00 UTC, like
@@ -643,14 +700,14 @@ func TestComputeDueStatusMonthsBoundaries(t *testing.T) {
 			now:       due.Add(-time.Nanosecond),
 			task:      task,
 			equipment: models.Equipment{CommissionedAt: strPtr("2026-01-15"), CreatedAt: equipmentCreatedAt},
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(1)},
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(1), urgency: frac(180, 181)},
 		},
 		{
 			name:      "commissioned_at baseline, just after the due instant",
 			now:       due.Add(time.Nanosecond),
 			task:      task,
 			equipment: models.Equipment{CommissionedAt: strPtr("2026-01-15"), CreatedAt: equipmentCreatedAt},
-			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(0)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(0), urgency: frac(181, 181)},
 		},
 		{
 			// Current behaviour: an intervention dated 2026-01-15 by a browser
@@ -662,7 +719,7 @@ func TestComputeDueStatusMonthsBoundaries(t *testing.T) {
 			task:      task,
 			equipment: noMeter(),
 			last:      done(at(2026, time.January, 14, 22, 0)),
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-14", trigger: TriggerMonths, dueInDays: intPtr(29)},
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-14", trigger: TriggerMonths, dueInDays: intPtr(29), urgency: frac(152, 181)},
 		},
 		{
 			// Current behaviour: commissioned_at is parsed as 00:00 UTC, so
@@ -677,7 +734,7 @@ func TestComputeDueStatusMonthsBoundaries(t *testing.T) {
 				CommissionedAt: strPtr("2026-01-15"),
 				CreatedAt:      equipmentCreatedAt,
 			},
-			want: dueStatusWant{status: "overdue", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(0)},
+			want: dueStatusWant{status: "overdue", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(0), urgency: frac(181, 181)},
 		},
 		{
 			// Contrast: the same calendar date logged as an intervention from
@@ -688,7 +745,7 @@ func TestComputeDueStatusMonthsBoundaries(t *testing.T) {
 			task:      task,
 			equipment: noMeter(),
 			last:      done(time.Date(2026, time.January, 15, 0, 0, 0, 0, utcMinus4).UTC()),
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(0)},
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(0), urgency: frac(181, 181)},
 		},
 	})
 }
@@ -707,7 +764,7 @@ func TestComputeDueStatusDaysAreCalendarDays(t *testing.T) {
 			task:      task,
 			equipment: noMeter(),
 			last:      last,
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(1)},
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(1), urgency: frac(180, 181)},
 		},
 		{
 			name:      "last instant of the day before",
@@ -715,7 +772,7 @@ func TestComputeDueStatusDaysAreCalendarDays(t *testing.T) {
 			task:      task,
 			equipment: noMeter(),
 			last:      last,
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(1)},
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(1), urgency: frac(180, 181)},
 		},
 		{
 			name:      "last instant of the due date",
@@ -723,7 +780,7 @@ func TestComputeDueStatusDaysAreCalendarDays(t *testing.T) {
 			task:      task,
 			equipment: noMeter(),
 			last:      last,
-			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(0)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(0), urgency: frac(181, 181)},
 		},
 		{
 			name:      "first instant of the day after",
@@ -731,7 +788,7 @@ func TestComputeDueStatusDaysAreCalendarDays(t *testing.T) {
 			task:      task,
 			equipment: noMeter(),
 			last:      last,
-			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(-1)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(-1), urgency: frac(182, 181)},
 		},
 		{
 			// Same instant as "first instant of the day after", read in UTC-4,
@@ -742,7 +799,7 @@ func TestComputeDueStatusDaysAreCalendarDays(t *testing.T) {
 			task:      task,
 			equipment: noMeter(),
 			last:      last,
-			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(-1)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-07-15", trigger: TriggerMonths, dueInDays: intPtr(-1), urgency: frac(182, 181)},
 		},
 		{
 			name:      "a year ahead across a leap day",
@@ -750,7 +807,7 @@ func TestComputeDueStatusDaysAreCalendarDays(t *testing.T) {
 			task:      monthsTask(12),
 			equipment: noMeter(),
 			last:      done(midnight(2027, time.March, 1)),
-			want:      dueStatusWant{status: "ok", nextDueDate: "2028-03-01", trigger: TriggerMonths, dueInDays: intPtr(366)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2028-03-01", trigger: TriggerMonths, dueInDays: intPtr(366), urgency: frac(0, 366)},
 		},
 		{
 			name:      "years past",
@@ -758,7 +815,7 @@ func TestComputeDueStatusDaysAreCalendarDays(t *testing.T) {
 			task:      task,
 			equipment: noMeter(),
 			last:      done(midnight(2016, time.June, 15)),
-			want:      dueStatusWant{status: "overdue", nextDueDate: "2016-12-15", trigger: TriggerMonths, dueInDays: intPtr(-3469)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2016-12-15", trigger: TriggerMonths, dueInDays: intPtr(-3469), urgency: frac(3652, 183)},
 		},
 	})
 }
@@ -775,7 +832,7 @@ func TestComputeDueStatusMonthEndArithmetic(t *testing.T) {
 			task:      monthsTask(1),
 			equipment: noMeter(),
 			last:      done(midnight(2026, time.January, 31)),
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-03-03", trigger: TriggerMonths, dueInDays: intPtr(2)},
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-03-03", trigger: TriggerMonths, dueInDays: intPtr(2), urgency: frac(29, 31)},
 		},
 		{
 			name:      "Jan 31 + 1 month in a leap year is Mar 2",
@@ -783,7 +840,7 @@ func TestComputeDueStatusMonthEndArithmetic(t *testing.T) {
 			task:      monthsTask(1),
 			equipment: noMeter(),
 			last:      done(midnight(2028, time.January, 31)),
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2028-03-02", trigger: TriggerMonths, dueInDays: intPtr(1)},
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2028-03-02", trigger: TriggerMonths, dueInDays: intPtr(1), urgency: frac(30, 31)},
 		},
 		{
 			name:      "Aug 31 + 6 months is Mar 3",
@@ -791,7 +848,7 @@ func TestComputeDueStatusMonthEndArithmetic(t *testing.T) {
 			task:      monthsTask(6),
 			equipment: noMeter(),
 			last:      done(midnight(2025, time.August, 31)),
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-03-03", trigger: TriggerMonths, dueInDays: intPtr(1)},
+			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-03-03", trigger: TriggerMonths, dueInDays: intPtr(1), urgency: frac(183, 184)},
 		},
 		{
 			name:      "Mar 31 + 6 months is Oct 1",
@@ -799,7 +856,7 @@ func TestComputeDueStatusMonthEndArithmetic(t *testing.T) {
 			task:      monthsTask(6),
 			equipment: noMeter(),
 			last:      done(midnight(2026, time.March, 31)),
-			want:      dueStatusWant{status: "ok", nextDueDate: "2026-10-01", trigger: TriggerMonths, dueInDays: intPtr(108)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2026-10-01", trigger: TriggerMonths, dueInDays: intPtr(108), urgency: frac(76, 184)},
 		},
 		{
 			name:      "Feb 29 + 12 months is Mar 1",
@@ -807,7 +864,7 @@ func TestComputeDueStatusMonthEndArithmetic(t *testing.T) {
 			task:      monthsTask(12),
 			equipment: noMeter(),
 			last:      done(midnight(2028, time.February, 29)),
-			want:      dueStatusWant{status: "ok", nextDueDate: "2029-03-01", trigger: TriggerMonths, dueInDays: intPtr(273)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2029-03-01", trigger: TriggerMonths, dueInDays: intPtr(273), urgency: frac(93, 366)},
 		},
 		{
 			name:      "Jan 31 + 12 months is Jan 31",
@@ -815,7 +872,7 @@ func TestComputeDueStatusMonthEndArithmetic(t *testing.T) {
 			task:      monthsTask(12),
 			equipment: noMeter(),
 			last:      done(midnight(2026, time.January, 31)),
-			want:      dueStatusWant{status: "ok", nextDueDate: "2027-01-31", trigger: TriggerMonths, dueInDays: intPtr(230)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2027-01-31", trigger: TriggerMonths, dueInDays: intPtr(230), urgency: frac(135, 365)},
 		},
 		{
 			// The last day of February maps to the 28th, not to the month end.
@@ -824,7 +881,7 @@ func TestComputeDueStatusMonthEndArithmetic(t *testing.T) {
 			task:      monthsTask(6),
 			equipment: noMeter(),
 			last:      done(midnight(2026, time.February, 28)),
-			want:      dueStatusWant{status: "ok", nextDueDate: "2026-08-28", trigger: TriggerMonths, dueInDays: intPtr(74)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2026-08-28", trigger: TriggerMonths, dueInDays: intPtr(74), urgency: frac(107, 181)},
 		},
 	})
 }
@@ -842,7 +899,7 @@ func TestComputeDueStatusHoursBoundaries(t *testing.T) {
 			task:      task,
 			equipment: meter(589.99),
 			last:      last,
-			want:      dueStatusWant{status: "ok", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(10.01)},
+			want:      dueStatusWant{status: "ok", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(10.01), urgency: frac(89.99, 100)},
 		},
 		{
 			name:      "exactly at the due-soon margin",
@@ -850,7 +907,7 @@ func TestComputeDueStatusHoursBoundaries(t *testing.T) {
 			task:      task,
 			equipment: meter(590),
 			last:      last,
-			want:      dueStatusWant{status: "due_soon", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(10)},
+			want:      dueStatusWant{status: "due_soon", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(10), urgency: frac(90, 100)},
 		},
 		{
 			name:      "just below the due reading",
@@ -858,7 +915,7 @@ func TestComputeDueStatusHoursBoundaries(t *testing.T) {
 			task:      task,
 			equipment: meter(599.99),
 			last:      last,
-			want:      dueStatusWant{status: "due_soon", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(0.01)},
+			want:      dueStatusWant{status: "due_soon", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(0.01), urgency: frac(99.99, 100)},
 		},
 		{
 			// Reaching the due reading is overdue (compare "exactly at the due
@@ -869,7 +926,7 @@ func TestComputeDueStatusHoursBoundaries(t *testing.T) {
 			task:      task,
 			equipment: meter(600),
 			last:      last,
-			want:      dueStatusWant{status: "overdue", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(0)},
+			want:      dueStatusWant{status: "overdue", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(0), urgency: frac(100, 100)},
 		},
 		{
 			name:      "just past the due reading",
@@ -877,7 +934,7 @@ func TestComputeDueStatusHoursBoundaries(t *testing.T) {
 			task:      task,
 			equipment: meter(600.01),
 			last:      last,
-			want:      dueStatusWant{status: "overdue", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(-0.01)},
+			want:      dueStatusWant{status: "overdue", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInHours: floatPtr(-0.01), urgency: frac(100.01, 100)},
 		},
 		{
 			// Current behaviour: the margin is a fixed 10 h whatever the
@@ -888,7 +945,7 @@ func TestComputeDueStatusHoursBoundaries(t *testing.T) {
 			task:      hoursTask(10),
 			equipment: meter(500),
 			last:      last,
-			want:      dueStatusWant{status: "due_soon", nextDueHours: floatPtr(510), trigger: TriggerHours, dueInHours: floatPtr(10)},
+			want:      dueStatusWant{status: "due_soon", nextDueHours: floatPtr(510), trigger: TriggerHours, dueInHours: floatPtr(10), urgency: frac(0, 10)},
 		},
 		{
 			name:      "11 h interval is ok right after being done",
@@ -896,7 +953,62 @@ func TestComputeDueStatusHoursBoundaries(t *testing.T) {
 			task:      hoursTask(11),
 			equipment: meter(500),
 			last:      last,
-			want:      dueStatusWant{status: "ok", nextDueHours: floatPtr(511), trigger: TriggerHours, dueInHours: floatPtr(11)},
+			want:      dueStatusWant{status: "ok", nextDueHours: floatPtr(511), trigger: TriggerHours, dueInHours: floatPtr(11), urgency: frac(0, 11)},
+		},
+	})
+}
+
+// Urgency edge cases: the fraction of the interval elapsed is not clamped, and
+// a rule whose interval is not positive gives none. The task form requires
+// intervals of at least 1, the API does not.
+func TestComputeDueStatusUrgencyEdges(t *testing.T) {
+	runDueStatusCases(t, []dueStatusCase{
+		{
+			// Commissioned a month from now: due 2027-01-15, 184 days after
+			// it, and today is 30 days before it.
+			name: "baseline ahead of today gives a negative fraction",
+			now:  testNow,
+			task: monthsTask(6),
+			equipment: models.Equipment{
+				CommissionedAt: strPtr("2026-07-15"),
+				CreatedAt:      equipmentCreatedAt,
+			},
+			want: dueStatusWant{status: "ok", nextDueDate: "2027-01-15", trigger: TriggerMonths, dueInDays: intPtr(214), urgency: frac(-30, 184)},
+		},
+		{
+			name:      "zero hours interval gives no fraction",
+			now:       testNow,
+			task:      hoursTask(0),
+			equipment: meter(550),
+			last:      doneAt(midnight(2026, time.March, 1), 500),
+			want:      dueStatusWant{status: "overdue", nextDueHours: floatPtr(500), trigger: TriggerHours, dueInHours: floatPtr(-50)},
+		},
+		{
+			name:      "zero months interval gives no fraction",
+			now:       testNow,
+			task:      monthsTask(0),
+			equipment: noMeter(),
+			last:      done(midnight(2026, time.March, 1)),
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-03-01", trigger: TriggerMonths, dueInDays: intPtr(-106)},
+		},
+		{
+			// Both overdue; only months gives a fraction, so it drives and
+			// sets the urgency.
+			name:      "zero hours interval, the months fraction drives",
+			now:       testNow,
+			task:      bothTask(6, 0),
+			equipment: meter(550),
+			last:      doneAt(midnight(2025, time.November, 1), 500),
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-05-01", nextDueHours: floatPtr(500), trigger: TriggerMonths, dueInDays: intPtr(-45), dueInHours: floatPtr(-50), urgency: frac(226, 181)},
+		},
+		{
+			// Both overdue; only hours gives a fraction, so it drives.
+			name:      "zero months interval, the hours fraction drives",
+			now:       testNow,
+			task:      bothTask(0, 100),
+			equipment: meter(650),
+			last:      doneAt(midnight(2026, time.March, 1), 500),
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-03-01", nextDueHours: floatPtr(600), trigger: TriggerHours, dueInDays: intPtr(-106), dueInHours: floatPtr(-50), urgency: frac(150, 100)},
 		},
 	})
 }

@@ -15,6 +15,7 @@ type Task struct {
 	DueTrigger     string    `json:"due_trigger,omitempty"`
 	DueInDays      *int      `json:"due_in_days,omitempty"`
 	DueInHours     *float64  `json:"due_in_hours,omitempty"`
+	Urgency        *float64  `json:"urgency,omitempty"`
 	CreatedAt      time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt      time.Time `db:"updated_at" json:"updated_at"`
 }
