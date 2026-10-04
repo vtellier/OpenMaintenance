@@ -38,8 +38,23 @@ For each equipment block:
 
 For each task row:
 - Task name.
-- Urgency indicator: **color** (red = overdue, amber = due soon) + **relative time** ("overdue by 3 days", "in 12 days", "in 80 hours").
+- Urgency indicator: **color** (red = overdue, amber = due soon) + status label + **timing text** (see below), e.g. *"Overdue — 3d ago"*, *"Due soon — in 12d"*, *"Due soon — in 80 h"*.
 - Quick action: **"Mark done"** button → opens the quick log form (see [interventions.md](./interventions.md)).
+
+#### Timing text
+
+The relative time after the status label. It is rendered from the task's driving trigger and amount (`due_trigger`, `due_in_days`, `due_in_hours`, see [data-model.md](../data-model.md#driving-trigger-and-amount)), never guessed by the page from the next due date. The Dashboard, the Equipments list card and the Equipment detail Tasks tab all use the same text.
+
+| Driving trigger | Amount                          | Text          |
+|-----------------|---------------------------------|---------------|
+| months          | `due_in_days` < 0               | *"3d ago"*    |
+| months          | `due_in_days` = 0               | *"today"*     |
+| months          | `due_in_days` > 0               | *"in 12d"*    |
+| hours           | `due_in_hours` rounds below 0   | *"120 h ago"* |
+| hours           | `due_in_hours` rounds to 0      | *"now"*       |
+| hours           | `due_in_hours` rounds above 0   | *"in 8 h"*    |
+
+Hours are rounded to the nearest whole hour and use the same number format as the hour-meter value (*"1,500 h ago"*). A task overdue by hours shows the hours, even when its calendar due date is still ahead.
 
 ## Filtering / scope
 
@@ -93,11 +108,11 @@ Note: the hour-meter freshness banner is independent of the tasks empty state. I
 +------------------------------------------------------+
 |                                                      |
 |  ● Main Engine                       (1245 h)        |
-|    🔴 Oil change         overdue by 3 days  [Done]   |
-|    🟡 Filter check       in 12 days         [Done]   |
+|    🔴 Oil change         Overdue — 3d ago   [Done]   |
+|    🟡 Filter check       Due soon — in 12d  [Done]   |
 |                                                      |
 |  ● Family Car                                        |
-|    🔴 Tire rotation      overdue by 1 month [Done]   |
+|    🔴 Tire rotation      Overdue — 34d ago  [Done]   |
 |                                                      |
 +------------------------------------------------------+
 ```

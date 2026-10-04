@@ -123,6 +123,33 @@ For each Task we compute a status used in the UI:
 
 If a task defines both intervals, the **worst** of the two statuses wins.
 
+### Driving trigger and amount
+
+Alongside the status, the API says **which trigger drives it** and **by how much**, so no client has to guess the trigger by comparing the next due date with today.
+
+| Field          | Type                 | Meaning |
+|----------------|----------------------|---------|
+| `due_trigger`  | `months` \| `hours`  | The interval that drives `due_status`. Absent when no rule applies. |
+| `due_in_days`  | integer              | Whole calendar days from today to `next_due_date`. Positive while the date is ahead (`12` = in 12 days), `0` on the due date itself, negative once it is past (`-3` = due 3 days ago). Present whenever the months rule applies. |
+| `due_in_hours` | number               | `next_due_hours` minus the equipment's current hour-meter reading. Positive while the reading is below it (`8` = in 8 h), negative once it is reached or passed (`-120` = due 120 h ago). Not rounded. Present whenever the hours rule applies. |
+
+A rule **applies** when it can give a status:
+
+- the **months** rule, when the task has a `months_interval`;
+- the **hours** rule, when the task has an `hours_interval`, the equipment tracks hours, and the equipment has a current reading (`hours`). Without a reading, `next_due_hours` is still returned, but there is nothing to compare it with: no status and no `due_in_hours`.
+
+Which trigger drives:
+
+1. Only one rule applies: that one.
+2. Both apply: the one with the **worse** status, the one that sets `due_status`.
+3. Both give the same status (both overdue, both due soon, or both OK): **months**. The calendar amount is always current, while the hours amount is only as fresh as the last hour-meter reading.
+
+`due_trigger` is also set when the task is OK. Both amounts are returned when both rules apply; the timing text shown to the user uses the driving one (see [gui/dashboard.md](./gui/dashboard.md#timing-text)).
+
+The sign of the driving amount always agrees with the status: an **overdue** task has a driving amount `≤ 0`, a **due soon** or **OK** task has one `≥ 0`.
+
+**Calendar days, not 24-hour periods.** `due_in_days` subtracts two calendar dates: the `next_due_date` and today's date, both read in the timezone `next_due_date` is computed in (currently UTC). A task due on the 15th is "in 5 days" all day on the 10th, and `0` all day on the 15th, whether or not it has already turned overdue that day.
+
 ### Date baseline precedence
 
 The date a time-based interval is counted from — and therefore the "next due" date — is resolved in this order:

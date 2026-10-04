@@ -146,7 +146,7 @@ The following categories of text are translated into all supported languages:
 
 ### Status and relative-time strings
 - Relative time: "just now", "Xm ago", "Xh ago", "Xd ago", "Xmo ago", "Xy ago", "never"
-- Due status: "overdue by Xd", "overdue by Xmo", "due today", "in Xd", "at X h", "OK"
+- Due status: "Overdue", "Due soon", "OK", and the timing text "Xd ago", "today", "in Xd", "X h ago", "now", "in X h" (see [gui/dashboard.md](./gui/dashboard.md#timing-text))
 
 ### Empty states
 - "No equipments yet. Add your first one."
