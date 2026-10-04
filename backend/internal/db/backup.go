@@ -282,11 +282,12 @@ func backupExt(name string) string {
 }
 
 // backupTime parses the timestamp embedded in a backup name
-// (<stem>.<YYYYMMDD-HHMMSS><ext>) and falls back to the file's mtime.
+// (<stem>.<YYYYMMDD-HHMMSS><ext>, written in server local time) and falls
+// back to the file's mtime.
 func backupTime(name, ext string, fallback time.Time) time.Time {
 	trimmed := strings.TrimSuffix(name, ext)
 	if i := strings.LastIndex(trimmed, "."); i >= 0 {
-		if t, err := time.Parse(backupTimestampLayout, trimmed[i+1:]); err == nil {
+		if t, err := time.ParseInLocation(backupTimestampLayout, trimmed[i+1:], time.Local); err == nil {
 			return t
 		}
 	}
