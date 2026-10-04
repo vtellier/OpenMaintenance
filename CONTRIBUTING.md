@@ -13,7 +13,7 @@ The backend embeds the compiled frontend and serves it as static files. The Type
 ## Prerequisites
 
 - Go 1.21+
-- Node.js + pnpm
+- Node.js 22.12+ (required by Vitest) + pnpm
 - `oapi-codegen` (`go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest`)
 
 ## Running locally
