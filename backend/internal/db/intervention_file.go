@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/vtellier/OpenMaintenance/internal/models"
@@ -107,6 +108,10 @@ type execer interface {
 // file_path of its photos (old path -> new path) in one transaction. Used when
 // an intervention moves to another equipment and its photos move with it, so
 // the intervention and its photo rows never disagree on the equipment.
+//
+// Every old path must still match a row; if one does not (the photos changed
+// concurrently, e.g. another move or a delete), nothing is saved and
+// ErrInterventionFilesChanged is returned.
 func UpdateInterventionWithFilePaths(db *sql.DB, intervention *models.Intervention, newPaths map[string]string) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -118,12 +123,22 @@ func UpdateInterventionWithFilePaths(db *sql.DB, intervention *models.Interventi
 		return err
 	}
 	for oldPath, newPath := range newPaths {
-		if _, err := tx.Exec(
+		res, err := tx.Exec(
 			`UPDATE intervention_files SET file_path = ? WHERE intervention_id = ? AND file_path = ?`,
 			newPath, intervention.ID, oldPath,
-		); err != nil {
+		)
+		if err != nil {
 			return err
+		}
+		if n, err := res.RowsAffected(); err != nil {
+			return err
+		} else if n != 1 {
+			return ErrInterventionFilesChanged
 		}
 	}
 	return tx.Commit()
 }
+
+// ErrInterventionFilesChanged reports that an intervention's photo rows no
+// longer match what a move read before copying the files.
+var ErrInterventionFilesChanged = errors.New("the intervention's photos changed during the move; try again")

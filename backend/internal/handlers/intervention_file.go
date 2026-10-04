@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -227,6 +229,11 @@ func (h *Handler) removeInterventionFilesDir(equipmentID, interventionID int) {
 // the originals after it), never a dangling row.
 func (h *Handler) saveInterventionMovingPhotos(inv *models.Intervention) error {
 	before, err := dbpackage.GetIntervention(h.DB, inv.ID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		// Without the current equipment we cannot tell whether photos must
+		// move; saving anyway could strand them.
+		return err
+	}
 	if err != nil || before.EquipmentID == nil || inv.EquipmentID == nil ||
 		*before.EquipmentID == *inv.EquipmentID {
 		return dbpackage.UpdateIntervention(h.DB, inv)
@@ -256,6 +263,7 @@ func (h *Handler) saveInterventionMovingPhotos(inv *models.Intervention) error {
 		if _, err := os.Stat(src); os.IsNotExist(err) {
 			// Already gone from disk: nothing to copy, but the row still
 			// follows the intervention so it can be deleted through the API.
+			// Any other stat error is left to CopyFile, which reports it.
 			newPaths[p.FilePath] = newPath
 			continue
 		}

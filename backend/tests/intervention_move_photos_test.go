@@ -299,6 +299,27 @@ func TestInterventionFile_MoveRollsBackWhenCopyFails(t *testing.T) {
 	assertPhotoStayed(t, m)
 }
 
+// A move whose photo rows changed between the read and the commit (e.g. a
+// concurrent move or delete) is rejected as a whole rather than half applied.
+func TestInterventionFile_MoveRollsBackWhenPhotosChangeConcurrently(t *testing.T) {
+	m := setupInterventionWithPhoto(t)
+
+	// Simulate another writer: as soon as the intervention row is updated, its
+	// photo rows no longer have the paths the move read.
+	if _, err := m.h.DB.Exec(`CREATE TRIGGER concurrent_photo_change
+		AFTER UPDATE ON interventions
+		BEGIN UPDATE intervention_files SET file_path = file_path || '.moved'
+		      WHERE intervention_id = NEW.id; END`); err != nil {
+		t.Fatalf("create trigger: %v", err)
+	}
+
+	rec := putIntervention(t, m.e, m.invID, moveScenarios[0].body(m.eq2, m.task2))
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("move: expected 500, got %d (%s)", rec.Code, rec.Body.String())
+	}
+	assertPhotoStayed(t, m)
+}
+
 // A move whose DB transaction fails is rejected as a whole: the intervention
 // row is not half-updated, and the copies already made are removed.
 func TestInterventionFile_MoveRollsBackWhenDBFails(t *testing.T) {
