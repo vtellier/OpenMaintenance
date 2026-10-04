@@ -37,7 +37,8 @@ build: build-frontend copy-frontend build-backend
 # The main package embeds backend/static (//go:embed), so anything that
 # compiles it — go build, go vet, go test ./... — needs that directory to hold
 # at least one file. It is a build artifact (see copy-frontend) and is absent
-# from a fresh clone or CI checkout, so drop in a placeholder when empty.
+# from a fresh clone or CI checkout, so drop in a placeholder when
+# backend/static has no index.html.
 static-placeholder:
 	@if [ ! -f backend/static/index.html ]; then \
 		mkdir -p backend/static; \
@@ -53,7 +54,7 @@ vet-backend: static-placeholder
 	cd backend && go vet ./...
 
 fmt-check-backend:
-	@unformatted=$$(gofmt -l backend); \
+	@unformatted=$$(gofmt -l backend) || exit 1; \
 	if [ -n "$$unformatted" ]; then \
 		echo "These files are not gofmt-formatted (run: gofmt -w <file>):"; \
 		echo "$$unformatted"; \
