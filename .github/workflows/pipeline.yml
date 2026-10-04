@@ -55,6 +55,10 @@ jobs:
         working-directory: frontend
         run: pnpm run typecheck
 
+      - name: Run frontend unit tests
+        working-directory: frontend
+        run: pnpm test:unit
+
       - name: Copy frontend to backend/static
         run: make copy-frontend
 
