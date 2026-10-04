@@ -6,6 +6,7 @@ import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { relativeTime, formatHours, isHoursStale, isHoursVeryStale } from '@/lib/format'
 import { dueTimingText } from '@/lib/dueTiming'
+import { byUrgency } from '@/lib/urgency'
 import { equipmentAvatar } from '@/components/EquipmentAvatar'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -168,19 +169,11 @@ export function DashboardPage() {
           grouped.get(eqId)!.push(task)
         }
 
-        const order = { overdue: 0, due_soon: 1 }
-        for (const [, tasks] of grouped) {
-          tasks.sort((a, b) => {
-            return (order[a.dueStatus as keyof typeof order] ?? 2) - (order[b.dueStatus as keyof typeof order] ?? 2)
-          })
-        }
+        for (const [, tasks] of grouped) tasks.sort(byUrgency)
 
+        // Blocks in the order of their most urgent task.
         const entries = [...grouped.entries()]
-        entries.sort(([, tasksA], [, tasksB]) => {
-          const hasOverdueA = tasksA.some(t => t.dueStatus === 'overdue') ? 0 : 1
-          const hasOverdueB = tasksB.some(t => t.dueStatus === 'overdue') ? 0 : 1
-          return hasOverdueA - hasOverdueB
-        })
+        entries.sort(([, tasksA], [, tasksB]) => byUrgency(tasksA[0], tasksB[0]))
 
         const hasDueTasks = entries.length > 0
         const hasEquipments = state.equipments.length > 0

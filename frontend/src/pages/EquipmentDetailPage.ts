@@ -7,6 +7,7 @@ import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { relativeTime, formatHours, formatDate, formatFileSize, isHoursVeryStale, buildInterventionMeta, todayLocal, extractErrorMessage } from '@/lib/format'
 import { dueTimingText } from '@/lib/dueTiming'
+import { byUrgency } from '@/lib/urgency'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
 
@@ -182,10 +183,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
     }
 
     function sortedTasks(): Task[] {
-      const order = { overdue: 0, due_soon: 1, ok: 2 }
-      return [...state.tasks].sort((a, b) => {
-        return (order[a.dueStatus as keyof typeof order] ?? 2) - (order[b.dueStatus as keyof typeof order] ?? 2)
-      })
+      return [...state.tasks].sort(byUrgency)
     }
 
     const tracksHours = () => state.equipment?.tracksHours ?? false

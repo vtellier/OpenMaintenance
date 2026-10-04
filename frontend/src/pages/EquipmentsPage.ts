@@ -6,6 +6,7 @@ import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { relativeTime, formatHours, formatDate, isHoursVeryStale } from '@/lib/format'
 import { dueTimingText } from '@/lib/dueTiming'
+import { byUrgency } from '@/lib/urgency'
 import { equipmentAvatar } from '@/components/EquipmentAvatar'
 import { iconPicker } from '@/components/IconPicker'
 
@@ -84,32 +85,6 @@ export const EquipmentsPage = component(() => {
       }
     }
     return latest
-  }
-
-  function safeTaskDate(date: Date | string | undefined | null): Date | null {
-    if (date == null) return null
-    try {
-      const d = new Date(date)
-      return isNaN(d.getTime()) ? null : d
-    } catch {
-      return null
-    }
-  }
-
-  function overdueScore(task: Task, eq: Equipment): number {
-    const now = Date.now()
-    const d = safeTaskDate(task.nextDueDate)
-    if (d) return now - d.getTime()
-    if (task.nextDueHours != null && eq.hours != null) return (eq.hours - task.nextDueHours) * 3600 * 1000
-    return -Infinity
-  }
-
-  function dueSoonScore(task: Task, eq: Equipment): number {
-    const now = Date.now()
-    const d = safeTaskDate(task.nextDueDate)
-    if (d) return d.getTime() - now
-    if (task.nextDueHours != null && eq.hours != null) return (task.nextDueHours - eq.hours) * 3600 * 1000
-    return Infinity
   }
 
   function cropText(s: string, maxLen = 30): string {
@@ -201,9 +176,9 @@ export const EquipmentsPage = component(() => {
         const timing = dueTimingText(t)
         statusText = cropText(t.name || '') + (timing ? ' \u2014 ' + timing : '')
       } else {
-        const worst = overdueTasks.reduce((a: Task, b: Task) => overdueScore(a, eq) >= overdueScore(b, eq) ? a : b)
-        const timing = dueTimingText(worst)
-        statusText = overdueTasks.length + ' tasks' + (timing ? ' \u2014 oldest ' + timing : '')
+        const mostUrgent = [...overdueTasks].sort(byUrgency)[0]
+        const timing = dueTimingText(mostUrgent)
+        statusText = overdueTasks.length + ' tasks' + (timing ? ' \u2014 most urgent ' + timing : '')
       }
     } else if (dueSoonTasks.length > 0) {
       statusLabel = 'Due soon'
@@ -213,9 +188,9 @@ export const EquipmentsPage = component(() => {
         const timing = dueTimingText(t)
         statusText = cropText(t.name || '') + (timing ? ' \u2014 ' + timing : '')
       } else {
-        const soonest = dueSoonTasks.reduce((a: Task, b: Task) => dueSoonScore(a, eq) <= dueSoonScore(b, eq) ? a : b)
-        const timing = dueTimingText(soonest)
-        statusText = dueSoonTasks.length + ' tasks' + (timing ? ' \u2014 soonest ' + timing : '')
+        const mostUrgent = [...dueSoonTasks].sort(byUrgency)[0]
+        const timing = dueTimingText(mostUrgent)
+        statusText = dueSoonTasks.length + ' tasks' + (timing ? ' \u2014 most urgent ' + timing : '')
       }
     } else if (tasks.length > 0) {
       statusLabel = 'OK'
