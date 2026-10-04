@@ -153,12 +153,15 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 
 - [x] Aggregated status badge per equipment on the Equipments page (OK / Warning / Overdue) derived from task due dates
 
-## Milestone 19 — CI & Release Engineering (issues #31, #43)
+## Milestone 19 — CI & Release Engineering (issues #31, #43, #61)
 
 - [x] Add `pnpm run typecheck` step to the `build-frontend` CI job so TypeScript errors are caught on every PR
 - [x] Fix pre-existing TypeScript errors surfaced by the new typecheck gate (`DashboardPage`, `EquipmentsPage`, `format.ts`)
 - [x] Versioned release binary filenames: build targets produce `openmaintenance-vX.Y.Z` alongside the unversioned alias; release job renames before uploading to GitHub Releases
 - [x] Delete dead `WelcomeCard.ts` component (imported a module that never existed)
+- [x] CI quality gates (issue #61, absorbs #32): `gofmt` and `go vet` in `test-backend`, `make test-backend` widened to `go test ./...`
+- [x] New `test-frontend` CI job running the Playwright suite; Playwright `webServer` starts the backend and Vite dev server (or reuses them if already running); `build-backend` now depends on it
+- [x] Fix two Playwright specs whose data leaked between tests (`freshness-reminder-dismiss-immediate`, `mark-done-modal-stays-open`)
 
 ## Milestone 20 — Backup Visibility in Settings (issue #55)
 
