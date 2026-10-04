@@ -253,6 +253,27 @@ func TestInterventionFile_EditOnSameEquipmentLeavesPhotos(t *testing.T) {
 	assertPhotoStayed(t, m)
 }
 
+// A photo whose file is already gone from disk does not block the move: its
+// row follows the intervention, so it can still be deleted through the API.
+func TestInterventionFile_MoveWithPhotoMissingOnDisk(t *testing.T) {
+	m := setupInterventionWithPhoto(t)
+	missing := filepath.Join(interventionPhotoDir(m.baseDir, m.eq1, m.invID), m.photo.Name)
+	if err := os.Remove(missing); err != nil {
+		t.Fatalf("remove photo from disk: %v", err)
+	}
+
+	rec := putIntervention(t, m.e, m.invID, moveScenarios[0].body(m.eq2, m.task2))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("move: expected 200, got %d (%s)", rec.Code, rec.Body.String())
+	}
+
+	delRec := httptest.NewRecorder()
+	m.e.ServeHTTP(delRec, httptest.NewRequest(http.MethodDelete, m.photo.Url, nil))
+	if delRec.Code != http.StatusNoContent {
+		t.Errorf("delete dangling photo after move: expected 204, got %d (%s)", delRec.Code, delRec.Body.String())
+	}
+}
+
 // A move whose photo copy fails is rejected as a whole: the intervention stays
 // on its equipment and its photo stays reachable.
 func TestInterventionFile_MoveRollsBackWhenCopyFails(t *testing.T) {
