@@ -17,12 +17,18 @@ test('same hours dismissal removes stale row immediately without page reload', a
 
   await page.goto('/')
 
+  // Scope to this test's own equipment: other specs in the run also create
+  // hour-tracking equipments, so the dashboard shows several stale rows.
+  const staleRow = page.locator('.hours-banner__row--stale', {
+    hasText: 'Freshness Dismiss Equipment',
+  })
+
   // The stale row must be visible before the action
-  await expect(page.locator('.hours-banner__row--stale')).toBeVisible()
+  await expect(staleRow).toBeVisible()
 
   // Act: dismiss the freshness reminder
-  await page.getByRole('button', { name: 'Same hours' }).click()
+  await staleRow.getByRole('button', { name: 'Same hours' }).click()
 
   // Assert: the stale row disappears immediately — no page reload needed
-  await expect(page.locator('.hours-banner__row--stale')).not.toBeVisible()
+  await expect(staleRow).not.toBeVisible()
 })

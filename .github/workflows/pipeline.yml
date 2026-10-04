@@ -22,6 +22,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -85,15 +86,97 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      # Before code generation, so the generated stubs are never the thing that
+      # fails the formatting gate.
+      - name: Check gofmt
+        run: make fmt-check-backend
 
       - name: Generate OpenAPI Go stubs
         run: make generate-openapi
 
+      - name: Vet backend
+        run: make vet-backend
+
+      # `go test ./...` — includes in-package tests such as internal/updater.
       - name: Run backend tests
         run: make test-backend
 
+  test-frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generate OpenAPI Go stubs
+        run: make generate-openapi
+
+      # The main package //go:embed's backend/static, a build artifact that is
+      # not in the checkout. The Playwright run uses the Vite dev server, so a
+      # stub is enough for the backend to compile.
+      - name: Create backend/static placeholder
+        run: make static-placeholder
+
+      # Warm the Go build cache so Playwright's `go run .` starts promptly, and
+      # so a compile error is reported here rather than as a webServer timeout.
+      - name: Build backend
+        working-directory: backend
+        run: go build ./...
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate TypeScript API client
+        working-directory: frontend
+        run: pnpm run generate:api
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+
+      - name: Install Playwright Chromium
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps chromium
+
+      # playwright.config.ts starts the backend (:3001) and the Vite dev server
+      # (:5173) itself via `webServer`, then wipes the DB in the global setup.
+      - name: Run Playwright non-regression suite
+        working-directory: frontend
+        run: pnpm test
+
+      - name: Upload Playwright results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: frontend/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
   build-backend:
-    needs: [build-frontend, test-backend]
+    needs: [build-frontend, test-backend, test-frontend]
     runs-on: ubuntu-24.04
     strategy:
       matrix:
@@ -115,6 +198,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
 
       - name: Download frontend static files
         uses: actions/download-artifact@v4

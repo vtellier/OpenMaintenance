@@ -145,10 +145,18 @@ To use a custom icon, replace `preferences-system` with the absolute path to a `
 
 ## Development
 
-Run the backend test suite:
+Run the backend test suite, formatting check and vet — the same gates CI enforces:
 
 ```bash
 make test-backend
+make fmt-check-backend
+make vet-backend
+```
+
+Run the Playwright non-regression suite (it starts the backend and the dev server itself, or reuses them if they are already running). Warning: it uses `backend/maintenance.db`, the same database as `make dev`, and deletes every equipment in it:
+
+```bash
+cd frontend && pnpm test
 ```
 
 Populate a running instance with a demo dataset (overdue / due-soon / OK statuses):

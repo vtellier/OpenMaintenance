@@ -5,21 +5,21 @@ asserts the fixed behavior. If the spec fails again, the bug is back.
 
 ## Running
 
-Both servers must already be running:
-
 ```sh
-# terminal 1
-cd backend && go run .
-
-# terminal 2
-cd frontend && pnpm dev
-
-# terminal 3
 cd frontend && pnpm test
 ```
 
-The DB is wiped (via the REST API) before the run. See
-`frontend/tests/global-setup.ts`.
+Playwright's `webServer` (see `frontend/playwright.config.ts`) starts the
+backend (`go run .`, :3001) and the Vite dev server (`pnpm dev`, :5173) itself.
+If both are already running (e.g. `make dev`), they are reused as-is.
+
+> **Warning: this deletes your data.** When Playwright starts the backend
+> itself, that backend uses `backend/maintenance.db` — the same database as
+> `make dev`. The global setup (`frontend/tests/global-setup.ts`) then deletes
+> every equipment in it via the REST API (cascading to tasks and
+> interventions). Running the suite against already-running dev servers did
+> exactly the same. Back up `backend/maintenance.db` first if it holds data
+> you want to keep.
 
 ## Adding a new test
 

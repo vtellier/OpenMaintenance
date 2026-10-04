@@ -38,15 +38,15 @@ func Test_isNewer(t *testing.T) {
 		latest, current string
 		want            bool
 	}{
-		{"v0.5.0", "v0.4.1", true},  // minor bump — the reported bug scenario
-		{"v0.4.2", "v0.4.1", true},  // patch bump
-		{"v1.0.0", "v0.9.9", true},  // major bump
-		{"v0.4.1", "v0.4.1", false}, // same version
-		{"v0.4.0", "v0.4.1", false}, // older patch
-		{"v0.4.1", "v0.5.0", false}, // older minor
-		{"v0.9.9", "v1.0.0", false}, // older major
+		{"v0.5.0", "v0.4.1", true},   // minor bump — the reported bug scenario
+		{"v0.4.2", "v0.4.1", true},   // patch bump
+		{"v1.0.0", "v0.9.9", true},   // major bump
+		{"v0.4.1", "v0.4.1", false},  // same version
+		{"v0.4.0", "v0.4.1", false},  // older patch
+		{"v0.4.1", "v0.5.0", false},  // older minor
+		{"v0.9.9", "v1.0.0", false},  // older major
 		{"invalid", "v0.4.1", false}, // unparseable latest
-		{"v0.4.1", "dev", false},    // unparseable current (dev build)
+		{"v0.4.1", "dev", false},     // unparseable current (dev build)
 	}
 	for _, tt := range tests {
 		t.Run(tt.latest+"_vs_"+tt.current, func(t *testing.T) {

@@ -10,13 +10,13 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/vtellier/OpenMaintenance/internal/config"
 	"github.com/vtellier/OpenMaintenance/internal/db"
 	"github.com/vtellier/OpenMaintenance/internal/filestore"
 	"github.com/vtellier/OpenMaintenance/internal/generated"
 	"github.com/vtellier/OpenMaintenance/internal/handlers"
 	"github.com/vtellier/OpenMaintenance/internal/updater"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // Version is injected at build time via -ldflags "-X main.Version=..."

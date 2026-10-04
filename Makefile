@@ -1,4 +1,4 @@
-.PHONY: generate-openapi build build-backend build-backend-linux-amd64 build-backend-windows-amd64 build-frontend copy-frontend install-oapi-codegen dev test-backend seed
+.PHONY: generate-openapi build build-backend build-backend-linux-amd64 build-backend-windows-amd64 build-frontend copy-frontend install-oapi-codegen dev test-backend vet-backend fmt-check-backend static-placeholder seed
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 
@@ -34,8 +34,32 @@ copy-frontend:
 
 build: build-frontend copy-frontend build-backend
 
-test-backend:
-	cd backend && go test ./tests/...
+# The main package embeds backend/static (//go:embed), so anything that
+# compiles it — go build, go vet, go test ./... — needs that directory to hold
+# at least one file. It is a build artifact (see copy-frontend) and is absent
+# from a fresh clone or CI checkout, so drop in a placeholder when
+# backend/static has no index.html.
+static-placeholder:
+	@if [ ! -f backend/static/index.html ]; then \
+		mkdir -p backend/static; \
+		echo '<!doctype html><title>OpenMaintenance</title>' > backend/static/index.html; \
+	fi
+
+# ./... rather than ./tests/... so in-package tests (e.g. internal/updater)
+# actually run.
+test-backend: static-placeholder
+	cd backend && go test ./...
+
+vet-backend: static-placeholder
+	cd backend && go vet ./...
+
+fmt-check-backend:
+	@unformatted=$$(gofmt -l backend) || exit 1; \
+	if [ -n "$$unformatted" ]; then \
+		echo "These files are not gofmt-formatted (run: gofmt -w <file>):"; \
+		echo "$$unformatted"; \
+		exit 1; \
+	fi
 
 # Populate a *running* backend with a realistic demo dataset (overdue /
 # due-soon / OK statuses). Start the backend first. Override the target with
