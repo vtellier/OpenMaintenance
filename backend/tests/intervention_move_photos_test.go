@@ -8,11 +8,13 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/vtellier/OpenMaintenance/internal/generated"
+	"github.com/vtellier/OpenMaintenance/internal/handlers"
 	"github.com/vtellier/OpenMaintenance/internal/models"
 )
 
@@ -86,17 +88,19 @@ var moveScenarios = []moveScenario{
 	},
 }
 
-// movedIntervention is an intervention logged with one photo on equipment eq1,
-// then edited onto equipment eq2 through the API.
-type movedIntervention struct {
-	e        *echo.Echo
-	baseDir  string
-	eq1, eq2 int
-	invID    int
-	photo    generated.FileInfo
+// photoFixture is an intervention logged with one photo on equipment eq1
+// (task1), next to a second equipment eq2 with its own task2.
+type photoFixture struct {
+	e            *echo.Echo
+	h            *handlers.Handler
+	baseDir      string
+	eq1, eq2     int
+	task1, task2 int
+	invID        int
+	photo        generated.FileInfo
 }
 
-func setupMovedIntervention(t *testing.T, sc moveScenario) movedIntervention {
+func setupInterventionWithPhoto(t *testing.T) photoFixture {
 	t.Helper()
 	e, h, baseDir := newTestServer(t)
 	eq1 := seedEquipment(t, h)
@@ -114,7 +118,17 @@ func setupMovedIntervention(t *testing.T, sc moveScenario) movedIntervention {
 		t.Fatalf("decode upload response: %v", err)
 	}
 
-	rec = putIntervention(t, e, invID, sc.body(eq2, task2))
+	return photoFixture{e: e, h: h, baseDir: baseDir, eq1: eq1, eq2: eq2,
+		task1: task1, task2: task2, invID: invID, photo: photo}
+}
+
+// setupMovedIntervention builds a photoFixture, then edits the intervention
+// onto eq2 through the API.
+func setupMovedIntervention(t *testing.T, sc moveScenario) photoFixture {
+	t.Helper()
+	m := setupInterventionWithPhoto(t)
+
+	rec := putIntervention(t, m.e, m.invID, sc.body(m.eq2, m.task2))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("move: expected 200, got %d (%s)", rec.Code, rec.Body.String())
 	}
@@ -122,11 +136,40 @@ func setupMovedIntervention(t *testing.T, sc moveScenario) movedIntervention {
 	if err := json.Unmarshal(rec.Body.Bytes(), &moved); err != nil {
 		t.Fatalf("decode move response: %v", err)
 	}
-	if moved.EquipmentID == nil || *moved.EquipmentID != eq2 {
-		t.Fatalf("move: equipment_id = %v, want %d", moved.EquipmentID, eq2)
+	if moved.EquipmentID == nil || *moved.EquipmentID != m.eq2 {
+		t.Fatalf("move: equipment_id = %v, want %d", moved.EquipmentID, m.eq2)
+	}
+	return m
+}
+
+// assertPhotoStayed checks that the intervention is still on eq1/task1 and its
+// photo is still served from eq1's directory, with nothing under eq2.
+func assertPhotoStayed(t *testing.T, m photoFixture) {
+	t.Helper()
+	invRec := httptest.NewRecorder()
+	m.e.ServeHTTP(invRec, httptest.NewRequest(http.MethodGet, "/api/interventions/"+itoa(m.invID), nil))
+	var got models.Intervention
+	json.Unmarshal(invRec.Body.Bytes(), &got)
+	if got.EquipmentID == nil || *got.EquipmentID != m.eq1 || got.TaskID == nil || *got.TaskID != m.task1 {
+		t.Errorf("intervention = equipment %v / task %v, want equipment %d / task %d",
+			got.EquipmentID, got.TaskID, m.eq1, m.task1)
+	}
+	if got.PhotoCount != 1 {
+		t.Errorf("photo_count = %d, want 1", got.PhotoCount)
 	}
 
-	return movedIntervention{e: e, baseDir: baseDir, eq1: eq1, eq2: eq2, invID: invID, photo: photo}
+	getRec := httptest.NewRecorder()
+	m.e.ServeHTTP(getRec, httptest.NewRequest(http.MethodGet, m.photo.Url, nil))
+	if getRec.Code != http.StatusOK {
+		t.Errorf("serve: expected 200, got %d (%s)", getRec.Code, getRec.Body.String())
+	}
+
+	if n := countFiles(t, interventionPhotoDir(m.baseDir, m.eq1, m.invID)); n != 1 {
+		t.Errorf("files under the original equipment = %d, want 1", n)
+	}
+	if n := countFiles(t, filepath.Join(m.baseDir, "files", "equipments", itoa(m.eq2))); n != 0 {
+		t.Errorf("files under the other equipment = %d, want 0", n)
+	}
 }
 
 func TestInterventionFile_MoveToOtherEquipmentKeepsPhotos(t *testing.T) {
@@ -194,4 +237,63 @@ func TestInterventionFile_DeleteMovedInterventionRemovesPhotos(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestInterventionFile_EditOnSameEquipmentLeavesPhotos(t *testing.T) {
+	m := setupInterventionWithPhoto(t)
+
+	rec := putIntervention(t, m.e, m.invID, map[string]any{
+		"task_id":  m.task1,
+		"date":     time.Now().Add(-time.Hour).Format(time.RFC3339),
+		"comments": "edited",
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("edit: expected 200, got %d (%s)", rec.Code, rec.Body.String())
+	}
+	assertPhotoStayed(t, m)
+}
+
+// A move whose photo copy fails is rejected as a whole: the intervention stays
+// on its equipment and its photo stays reachable.
+func TestInterventionFile_MoveRollsBackWhenCopyFails(t *testing.T) {
+	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+		t.Skip("relies on POSIX directory permissions, which root bypasses")
+	}
+	m := setupInterventionWithPhoto(t)
+
+	// Make the new equipment's directory read-only so the copy cannot land.
+	eq2Dir := filepath.Join(m.baseDir, "files", "equipments", itoa(m.eq2))
+	if err := os.MkdirAll(eq2Dir, 0755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.Chmod(eq2Dir, 0555); err != nil {
+		t.Fatalf("chmod: %v", err)
+	}
+	t.Cleanup(func() { os.Chmod(eq2Dir, 0755) })
+
+	rec := putIntervention(t, m.e, m.invID, moveScenarios[0].body(m.eq2, m.task2))
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("move: expected 500, got %d (%s)", rec.Code, rec.Body.String())
+	}
+	assertPhotoStayed(t, m)
+}
+
+// A move whose DB transaction fails is rejected as a whole: the intervention
+// row is not half-updated, and the copies already made are removed.
+func TestInterventionFile_MoveRollsBackWhenDBFails(t *testing.T) {
+	m := setupInterventionWithPhoto(t)
+
+	// Fail the photo path rewrite, which runs after the intervention row was
+	// updated in the same transaction.
+	if _, err := m.h.DB.Exec(`CREATE TRIGGER fail_photo_move
+		BEFORE UPDATE OF file_path ON intervention_files
+		BEGIN SELECT RAISE(ABORT, 'injected failure'); END`); err != nil {
+		t.Fatalf("create trigger: %v", err)
+	}
+
+	rec := putIntervention(t, m.e, m.invID, moveScenarios[0].body(m.eq2, m.task2))
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("move: expected 500, got %d (%s)", rec.Code, rec.Body.String())
+	}
+	assertPhotoStayed(t, m)
 }

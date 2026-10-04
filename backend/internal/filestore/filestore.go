@@ -5,6 +5,7 @@
 package filestore
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -59,4 +60,35 @@ func InterventionFilesRelDir(equipmentID, interventionID int) string {
 // Abs joins a stored relative path with the base directory.
 func Abs(baseDir, relPath string) string {
 	return filepath.Join(baseDir, filepath.FromSlash(relPath))
+}
+
+// CopyFile copies src to dst, creating dst's directory if needed. The copy is
+// flushed to disk before returning, so a DB row committed to point at it
+// afterwards never references a file lost in a crash. A partial copy is
+// removed on failure.
+func CopyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		return err
+	}
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(out, in)
+	if err == nil {
+		err = out.Sync()
+	}
+	if cerr := out.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		os.Remove(dst)
+	}
+	return err
 }

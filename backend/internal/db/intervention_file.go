@@ -96,3 +96,34 @@ func DeleteInterventionFile(db *sql.DB, interventionID int, filePath string) err
 	)
 	return err
 }
+
+// execer is satisfied by both *sql.DB and *sql.Tx, so a write can run on its
+// own or as part of a transaction.
+type execer interface {
+	Exec(query string, args ...any) (sql.Result, error)
+}
+
+// UpdateInterventionWithFilePaths saves an intervention and rewrites the
+// file_path of its photos (old path -> new path) in one transaction. Used when
+// an intervention moves to another equipment and its photos move with it, so
+// the intervention and its photo rows never disagree on the equipment.
+func UpdateInterventionWithFilePaths(db *sql.DB, intervention *models.Intervention, newPaths map[string]string) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() // no-op once committed
+
+	if err := UpdateIntervention(tx, intervention); err != nil {
+		return err
+	}
+	for oldPath, newPath := range newPaths {
+		if _, err := tx.Exec(
+			`UPDATE intervention_files SET file_path = ? WHERE intervention_id = ? AND file_path = ?`,
+			newPath, intervention.ID, oldPath,
+		); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
