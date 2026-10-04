@@ -201,8 +201,9 @@ func addFilesTree(tw *tar.Writer, filesDir, skipDir string) error {
 			})
 		case d.Type().IsRegular():
 			return addFileToArchive(tw, path, name)
-		default:
-			return nil // symlinks, sockets, ...: never created by the app
+		default: // symlinks, sockets, ...: never created by the app
+			log.Printf("backup: skipping %s (not a regular file)", path)
+			return nil
 		}
 	})
 }
