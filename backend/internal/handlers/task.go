@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	dbpackage "github.com/vtellier/OpenMaintenance/internal/db"
@@ -18,7 +19,7 @@ func (h *Handler) enrichTask(task *models.Task) {
 
 	lastIntervention, _ := dbpackage.GetLastInterventionByTask(h.DB, task.ID)
 
-	status, nextDate, nextHours := logic.ComputeDueStatus(*task, *equipment, lastIntervention)
+	status, nextDate, nextHours := logic.ComputeDueStatus(*task, *equipment, lastIntervention, time.Now())
 	task.DueStatus = status
 	task.NextDueDate = nextDate
 	task.NextDueHours = nextHours

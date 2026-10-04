@@ -154,7 +154,7 @@ func TestComputeDueStatusDateBaseline(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			status, nextDueDate, _ := ComputeDueStatus(tt.task, tt.equipment, tt.last)
+			status, nextDueDate, _ := ComputeDueStatus(tt.task, tt.equipment, tt.last, time.Now())
 
 			if status != tt.wantStatus {
 				t.Errorf("status = %q, want %q", status, tt.wantStatus)
@@ -255,7 +255,7 @@ func TestComputeDueStatusHours(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			status, _, nextDueHours := ComputeDueStatus(tt.task, tt.equipment, tt.last)
+			status, _, nextDueHours := ComputeDueStatus(tt.task, tt.equipment, tt.last, time.Now())
 
 			if status != tt.wantStatus {
 				t.Errorf("status = %q, want %q", status, tt.wantStatus)
