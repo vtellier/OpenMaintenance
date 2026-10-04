@@ -15,11 +15,11 @@ Use this skill whenever you fix a frontend bug, or when you are asked to add or 
 - Index (must be kept in sync): `frontend/tests/non-regression/README.md`
 - Run command: `pnpm test` from `frontend/`
 
-The harness assumes both servers are running:
+Playwright's `webServer` block starts both servers itself, or reuses them if they are already running:
 - backend on `http://localhost:3001` (`go run .` from `backend/`)
 - frontend on `http://localhost:5173` (`pnpm dev` from `frontend/`)
 
-If either is missing, global setup fails with a clear message.
+**Warning:** when Playwright starts the backend itself, it uses `backend/maintenance.db` (the same DB as `make dev`), and the global setup deletes every equipment in it. Running the suite against already-running dev servers does the same. Back up the DB first if it holds data you want to keep.
 
 ## Workflow when fixing a frontend bug
 
@@ -156,4 +156,4 @@ pnpm test:ui         # interactive UI mode (debug)
 pnpm test <file>     # single spec
 ```
 
-Exit code is 0 on pass, non-zero on fail — suitable for any future CI without modification.
+Exit code is 0 on pass, non-zero on fail — used as-is by the `test-frontend` job in CI (`.github/workflows/pipeline.yml`).

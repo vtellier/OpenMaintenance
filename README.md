@@ -153,7 +153,7 @@ make fmt-check-backend
 make vet-backend
 ```
 
-Run the Playwright non-regression suite (it starts the backend and the dev server itself, or reuses them if they are already running):
+Run the Playwright non-regression suite (it starts the backend and the dev server itself, or reuses them if they are already running). Warning: it uses `backend/maintenance.db`, the same database as `make dev`, and deletes every equipment in it:
 
 ```bash
 cd frontend && pnpm test
