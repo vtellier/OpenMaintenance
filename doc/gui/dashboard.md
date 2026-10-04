@@ -75,7 +75,7 @@ Note: the hour-meter freshness banner is independent of the tasks empty state. I
 ### Flow: Log an intervention from the dashboard
 1. User sees an overdue/due task.
 2. User taps **"Mark done"** on the task row.
-3. Quick log form opens (date defaults to today; hours pre-filled if equipment tracks hours).
+3. Quick log form opens (date defaults to today in the user's timezone; hours pre-filled if equipment tracks hours).
 4. User confirms.
 5. Task disappears from the dashboard (or moves down if other tasks of the same equipment remain).
 
