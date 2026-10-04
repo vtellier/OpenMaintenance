@@ -3,8 +3,8 @@ package updater
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -17,6 +17,10 @@ const latestReleaseURL = "https://api.github.com/repos/vtellier/OpenMaintenance/
 
 // releasePagePrefix is where every release page of the project lives.
 const releasePagePrefix = "https://github.com/vtellier/OpenMaintenance/releases/"
+
+// maxReleaseBody caps how much of GitHub's answer is read. A release,
+// with its notes and assets, is a few tens of KB.
+const maxReleaseBody = 1 << 20
 
 // MinCheckInterval is the shortest time between two queries to GitHub.
 // GitHub allows 60 unauthenticated API requests per hour per IP address.
@@ -164,11 +168,12 @@ func fetchLatestRelease(ctx context.Context, client *http.Client) (githubRelease
 	}
 
 	var release githubRelease
-	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxReleaseBody)).Decode(&release); err != nil {
 		return githubRelease{}, UnexpectedResponse, fmt.Errorf("decode GitHub release: %w", err)
 	}
-	if release.TagName == "" {
-		return githubRelease{}, UnexpectedResponse, errors.New("GitHub release has no tag_name")
+	// A tag we cannot compare would show as "up to date": treat it as a failure.
+	if _, err := parseSemver(release.TagName); err != nil {
+		return githubRelease{}, UnexpectedResponse, fmt.Errorf("GitHub release tag_name %q: %w", release.TagName, err)
 	}
 	// The frontend puts html_url in a link: only accept a GitHub page.
 	if !strings.HasPrefix(release.HTMLURL, releasePagePrefix) {

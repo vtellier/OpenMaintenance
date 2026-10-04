@@ -167,6 +167,7 @@ func TestCheckForUpdates_ReportsWhyTheCheckFailed(t *testing.T) {
 		{"server error", githubAnswer(http.StatusBadGateway, nil, ``), generated.UnexpectedResponse},
 		{"unreadable body", githubAnswer(http.StatusOK, nil, `<html>`), generated.UnexpectedResponse},
 		{"release without tag", githubAnswer(http.StatusOK, nil, `{}`), generated.UnexpectedResponse},
+		{"tag that is not a version", githubAnswer(http.StatusOK, nil, `{"tag_name":"nightly","html_url":"https://github.com/vtellier/OpenMaintenance/releases/tag/nightly"}`), generated.UnexpectedResponse},
 		{"release page outside GitHub", githubAnswer(http.StatusOK, nil, `{"tag_name":"v0.6.0","html_url":"javascript:alert(1)"}`), generated.UnexpectedResponse},
 	}
 	for _, tt := range tests {
