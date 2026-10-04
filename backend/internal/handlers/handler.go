@@ -2,28 +2,19 @@ package handlers
 
 import (
 	"database/sql"
-	"sync"
 
 	"github.com/vtellier/OpenMaintenance/internal/generated"
 	"github.com/vtellier/OpenMaintenance/internal/updater"
 )
 
 type Handler struct {
-	DB             *sql.DB
-	Version        string
-	BaseDir        string // directory that contains the files/ tree
-	BackupEnabled  bool
-	BackupPath     string // absolute path to the backup directory
-	BackupKeep     int
-	updateStatus   updater.UpdateStatus
-	updateStatusMu sync.RWMutex
-}
-
-// SetUpdateStatus stores the result of the background update check.
-func (h *Handler) SetUpdateStatus(s updater.UpdateStatus) {
-	h.updateStatusMu.Lock()
-	h.updateStatus = s
-	h.updateStatusMu.Unlock()
+	DB            *sql.DB
+	Version       string
+	BaseDir       string // directory that contains the files/ tree
+	BackupEnabled bool
+	BackupPath    string // absolute path to the backup directory
+	BackupKeep    int
+	Updates       *updater.Checker // checks GitHub for a newer release
 }
 
 var _ generated.ServerInterface = (*Handler)(nil)

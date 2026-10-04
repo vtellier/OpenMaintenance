@@ -76,6 +76,9 @@ func main() {
 		return nil
 	})
 
+	// The checker reports the current version right away, even before the
+	// startup check below has heard back from GitHub.
+	updates := updater.NewChecker(Version, nil)
 	h := &handlers.Handler{
 		DB:            database,
 		Version:       Version,
@@ -83,16 +86,11 @@ func main() {
 		BackupEnabled: cfg.Backup.Enabled,
 		BackupPath:    cfg.Backup.Path,
 		BackupKeep:    cfg.Backup.Keep,
+		Updates:       updates,
 	}
-	// Pre-populate CurrentVersion so the API always returns a valid version
-	// string even before the background GitHub check completes.
-	h.SetUpdateStatus(updater.UpdateStatus{CurrentVersion: Version})
 	generated.RegisterHandlersWithBaseURL(e, h, "/api")
 
-	go func() {
-		status := updater.CheckLatestRelease(context.Background(), Version)
-		h.SetUpdateStatus(status)
-	}()
+	go updates.Check(context.Background())
 
 	log.Fatal(e.Start(fmt.Sprintf(":%d", cfg.Server.Port)))
 }
