@@ -144,7 +144,7 @@ Which trigger drives:
 2. Both apply: the one with the **worse** status, the one that sets `due_status`.
 3. Both give the same status (both overdue, both due soon, or both OK): the one with the **greater fraction of its interval elapsed** (see [Urgency](#urgency)), so the timing text shows the amount that makes the task urgent. Equal fractions: **months**, whose amount is always current, while the hours amount is only as fresh as the last hour-meter reading.
 
-One exception to rule 3: a months rule with no date baseline has no amount to show, so when the hours rule is **overdue** too, **hours** drives, since it has a concrete amount (`due_in_hours`). If the hours rule is only due soon or OK, the months rule is the worse status and still drives, with no `due_in_days`.
+One exception to rule 3: a months rule with no date baseline has no amount to show and no fraction (see [Urgency](#urgency)), so when the hours rule is **overdue** too, **hours** drives, since it has a concrete amount (`due_in_hours`). If the hours rule is only due soon or OK, the months rule is the worse status and still drives, with no `due_in_days`.
 
 `due_trigger` is also set when the task is OK. Both amounts are returned when both rules apply; the timing text shown to the user uses the driving one (see [gui/dashboard.md](./gui/dashboard.md#timing-text)).
 
@@ -165,6 +165,7 @@ The sign of the driving amount always agrees with the status: an **overdue** tas
 - One rule applies: its fraction.
 - No rule applies (see [Driving trigger and amount](#driving-trigger-and-amount)): `urgency` is absent.
 - A rule whose interval is not positive (the task form does not allow it) gives no fraction.
+- A months rule with **no date baseline** (never performed, equipment without a `commissioned_at`) gives no fraction either: there is nothing to measure elapsed time from. The urgency then comes from the hours rule if it applies, and is absent otherwise. The task is still overdue, and in the ranking it comes after the overdue tasks that have an urgency, then by name.
 
 The fraction is not rounded or clamped: it is negative when the baseline is ahead of now, e.g. a `commissioned_at` in the future, or a current reading below the last intervention's `hours_at` after a meter correction. Such a task simply ranks lower.
 
@@ -175,7 +176,7 @@ It is computed once, with the rest of the Due status. Clients rank tasks with it
 Every place that orders tasks, or picks the most urgent one, uses this order, most urgent first:
 
 1. **`due_status`**: overdue, then due soon, then OK.
-2. **`urgency`**, highest first. A task without `urgency` comes after those with one.
+2. **`urgency`**, highest first. A task without `urgency` comes after those with one, within the same status. This is where a task overdue only because it has no date baseline lands.
 3. **`name`**, alphabetically, then **`id`**, ascending. Two tasks never tie, so the order is total and the same on every load.
 
 The status comes first so the order always agrees with it: an overdue task ranks above every due-soon task, and a due-soon task above every OK task, whatever their fractions. The fraction alone would not guarantee this, because the due-soon margins (30 days, 10 h) do not scale with the interval. A task due soon by hours on a 100 h interval can be at `0.92` while an OK task on a 10-year interval is at `0.99`. On the due date, a task due soon by months and an overdue one can both be at `1`.
