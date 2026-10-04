@@ -5,6 +5,7 @@ import { Intervention } from '@generated/api/models/Intervention'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { relativeTime, formatHours, formatDate, isHoursVeryStale } from '@/lib/format'
+import { dueTimingText } from '@/lib/dueTiming'
 import { equipmentAvatar } from '@/components/EquipmentAvatar'
 import { iconPicker } from '@/components/IconPicker'
 
@@ -93,33 +94,6 @@ export const EquipmentsPage = component(() => {
     } catch {
       return null
     }
-  }
-
-  function taskTimingText(task: Task, eq: Equipment): string {
-    const d = safeTaskDate(task.nextDueDate)
-    if (d) {
-      const diffDays = Math.round((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24))
-      if (task.dueStatus === 'overdue') {
-        if (diffDays <= 0) return 'today'
-        return diffDays + 'd ago'
-      } else {
-        const remaining = -diffDays
-        if (remaining <= 0) return 'today'
-        return 'in ' + remaining + 'd'
-      }
-    }
-    if (task.nextDueHours != null && eq.hours != null) {
-      if (task.dueStatus === 'overdue') {
-        const over = Math.round(eq.hours - task.nextDueHours)
-        if (over <= 0) return 'now'
-        return over + ' h ago'
-      } else {
-        const remaining = Math.round(task.nextDueHours - eq.hours)
-        if (remaining <= 0) return 'now'
-        return 'in ' + remaining + ' h'
-      }
-    }
-    return ''
   }
 
   function overdueScore(task: Task, eq: Equipment): number {
@@ -224,11 +198,11 @@ export const EquipmentsPage = component(() => {
       statusClass = 'due-indicator--overdue'
       if (overdueTasks.length === 1) {
         const t = overdueTasks[0]
-        const timing = taskTimingText(t, eq)
+        const timing = dueTimingText(t)
         statusText = cropText(t.name || '') + (timing ? ' \u2014 ' + timing : '')
       } else {
         const worst = overdueTasks.reduce((a: Task, b: Task) => overdueScore(a, eq) >= overdueScore(b, eq) ? a : b)
-        const timing = taskTimingText(worst, eq)
+        const timing = dueTimingText(worst)
         statusText = overdueTasks.length + ' tasks' + (timing ? ' \u2014 oldest ' + timing : '')
       }
     } else if (dueSoonTasks.length > 0) {
@@ -236,11 +210,11 @@ export const EquipmentsPage = component(() => {
       statusClass = 'due-indicator--due-soon'
       if (dueSoonTasks.length === 1) {
         const t = dueSoonTasks[0]
-        const timing = taskTimingText(t, eq)
+        const timing = dueTimingText(t)
         statusText = cropText(t.name || '') + (timing ? ' \u2014 ' + timing : '')
       } else {
         const soonest = dueSoonTasks.reduce((a: Task, b: Task) => dueSoonScore(a, eq) <= dueSoonScore(b, eq) ? a : b)
-        const timing = taskTimingText(soonest, eq)
+        const timing = dueTimingText(soonest)
         statusText = dueSoonTasks.length + ' tasks' + (timing ? ' \u2014 soonest ' + timing : '')
       }
     } else if (tasks.length > 0) {
