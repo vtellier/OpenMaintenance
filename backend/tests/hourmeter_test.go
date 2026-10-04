@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/vtellier/OpenMaintenance/internal/db"
 	"github.com/vtellier/OpenMaintenance/internal/handlers"
 	"github.com/vtellier/OpenMaintenance/internal/models"
 )
@@ -419,4 +420,26 @@ func TestEditIntervention_Reading(t *testing.T) {
 	after := f.equipment(id)
 	assertReading(t, after, 150)
 	assertFreshnessUnchanged(t, raised, after)
+}
+
+// ── Concurrent requests ──
+
+// The write itself refuses to lower the stored reading, so a request that read
+// the reading before another one raised it cannot move the meter back.
+func TestSetEquipmentHours_NeverLowersStoredReading(t *testing.T) {
+	f, h := newMeterFixture(t)
+	id := seedHourEquipment(t, h, 100, 72*time.Hour)
+	before := f.equipment(id)
+
+	written, err := db.SetEquipmentHours(h.DB, id, 50, time.Now())
+	if err != nil {
+		t.Fatalf("SetEquipmentHours: %v", err)
+	}
+	if written {
+		t.Errorf("SetEquipmentHours wrote a lower reading")
+	}
+
+	after := f.equipment(id)
+	assertReading(t, after, 100)
+	assertFreshnessUnchanged(t, before, after)
 }

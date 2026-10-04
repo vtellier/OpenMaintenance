@@ -109,14 +109,24 @@ func UpdateEquipment(db *sql.DB, equipment *models.Equipment) error {
 	return err
 }
 
-// SetEquipmentHours writes the hour-meter reading and its freshness. Only the
+// SetEquipmentHours writes the hour-meter reading and its freshness, unless
+// the stored reading is higher: the meter never goes backwards, even when two
+// requests race. It reports whether the reading was written. Only the
 // hourmeter package calls it, since it owns the rules for changing the reading.
-func SetEquipmentHours(db *sql.DB, id int, hours float64, at time.Time) error {
-	_, err := db.Exec(
-		`UPDATE equipments SET hours = ?, hours_updated_at = ?, updated_at = ? WHERE id = ?`,
-		hours, at, at, id,
+func SetEquipmentHours(db *sql.DB, id int, hours float64, at time.Time) (bool, error) {
+	res, err := db.Exec(
+		`UPDATE equipments SET hours = ?, hours_updated_at = ?, updated_at = ?
+		 WHERE id = ? AND (hours IS NULL OR hours <= ?)`,
+		hours, at, at, id, hours,
 	)
-	return err
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
 }
 
 func DeleteEquipment(db *sql.DB, id int) error {

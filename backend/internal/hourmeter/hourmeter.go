@@ -66,7 +66,12 @@ func RecordIntervention(db *sql.DB, intervention *models.Intervention) error {
 	if !eq.TracksHours || (eq.Hours != nil && hours <= *eq.Hours) {
 		return nil
 	}
-	return write(db, eq, hours)
+	// A reading raised meanwhile by another request makes this one stale: it
+	// changes nothing, like any reading that is not higher.
+	if err := write(db, eq, hours); err != nil && !errors.Is(err, ErrBackwards) {
+		return err
+	}
+	return nil
 }
 
 // confirm stores an explicit reading: never lower than the current one, and
@@ -78,11 +83,17 @@ func confirm(db *sql.DB, eq *models.Equipment, hours float64) error {
 	return write(db, eq, hours)
 }
 
-// write persists the reading as of now and mirrors it on eq.
+// write persists the reading as of now and mirrors it on eq. The database
+// refuses to lower the stored reading, so a request racing with one that
+// raised it meanwhile gets ErrBackwards instead of moving the meter back.
 func write(db *sql.DB, eq *models.Equipment, hours float64) error {
 	now := time.Now()
-	if err := dbpackage.SetEquipmentHours(db, eq.ID, hours, now); err != nil {
+	written, err := dbpackage.SetEquipmentHours(db, eq.ID, hours, now)
+	if err != nil {
 		return err
+	}
+	if !written {
+		return ErrBackwards
 	}
 	eq.Hours = &hours
 	eq.HoursUpdatedAt = &now
