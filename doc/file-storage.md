@@ -95,7 +95,8 @@ equipment. This deliberately leaves room for interventions that are **not bound
 to an equipment** one day (e.g. a standalone log entry); the URL would stay
 valid even if the equipment link were dropped. The on-disk layout still groups
 the files under the owning equipment today, resolved server-side from the
-intervention.
+intervention. For the same reason the URLs do not change when an intervention
+moves to another equipment (see [Move](#move-intervention-changes-equipment)).
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -158,6 +159,20 @@ Read the file path from the DB, stream the file from disk with `Content-Type` se
 
 1. Delete the DB row.
 2. Delete the file from disk. Log on failure, do not abort.
+
+### Move (intervention changes equipment)
+
+An intervention can be edited onto another equipment: moved to a task of another equipment, or, for an exceptional intervention, given another `equipment_id`. Its photos follow it, from `files/equipments/{old}/interventions/{id}/` to `files/equipments/{new}/interventions/{id}/`, and their `file_path` rows are rewritten to match.
+
+The filesystem and the database cannot share a transaction, so the steps are ordered so that a DB row never points at a missing file, even if the process stops midway:
+
+1. Copy each photo to the new equipment's directory and flush it to disk.
+2. In one DB transaction, save the intervention and rewrite its photos' `file_path` to the copies.
+3. Delete the originals and the old intervention directory. Log on failure, do not abort.
+
+If step 1 or 2 fails, the copies are removed and the edit is rejected: the intervention and its photos stay where they were. An interruption can only leave unreferenced files behind (copies before step 2, originals after it), which [startup orphan cleanup](#startup-orphan-cleanup) recovers.
+
+A photo whose file is already missing from disk does not block the move: there is nothing to copy, but its row is still rewritten, so it stays with its intervention and can be deleted through the API.
 
 ### Entity deletion cascade
 

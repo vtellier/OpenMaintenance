@@ -86,7 +86,7 @@ func GetIntervention(db *sql.DB, id int) (*models.Intervention, error) {
 	return intervention, nil
 }
 
-func UpdateIntervention(db *sql.DB, intervention *models.Intervention) error {
+func UpdateIntervention(db execer, intervention *models.Intervention) error {
 	intervention.UpdatedAt = time.Now()
 
 	_, err := db.Exec(

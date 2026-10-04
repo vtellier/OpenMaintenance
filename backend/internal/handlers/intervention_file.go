@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 
 	"github.com/labstack/echo/v4"
@@ -206,4 +209,86 @@ func (h *Handler) removeInterventionFilesDir(equipmentID, interventionID int) {
 	if err := os.RemoveAll(dir); err != nil {
 		log.Printf("remove intervention files dir %s: %v", dir, err)
 	}
+}
+
+// saveInterventionMovingPhotos saves an edited intervention. When the edit
+// moves it to another equipment, its photos move with it: their on-disk
+// location and stored file_path are keyed by the owning equipment
+// (files/equipments/{eq}/interventions/{id}/), although their URLs are not.
+//
+// Files and DB rows cannot change in one transaction, so the steps are ordered
+// to never leave a DB row pointing at a missing file, even after a crash:
+//  1. copy each photo into the new equipment's directory (flushed to disk);
+//  2. in one DB transaction, save the intervention and point its photo rows
+//     at the copies;
+//  3. only then delete the originals.
+//
+// If step 1 or 2 fails, the copies are removed and the edit is rejected, so
+// the intervention and its photos stay where they were. A crash or a failed
+// delete can only leave unreferenced files behind (the copies before step 2,
+// the originals after it), never a dangling row.
+func (h *Handler) saveInterventionMovingPhotos(inv *models.Intervention) error {
+	before, err := dbpackage.GetIntervention(h.DB, inv.ID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		// Without the current equipment we cannot tell whether photos must
+		// move; saving anyway could strand them.
+		return err
+	}
+	if err != nil || before.EquipmentID == nil || inv.EquipmentID == nil ||
+		*before.EquipmentID == *inv.EquipmentID {
+		return dbpackage.UpdateIntervention(h.DB, inv)
+	}
+
+	photos, err := dbpackage.ListInterventionFiles(h.DB, inv.ID)
+	if err != nil {
+		return err
+	}
+
+	// 1. Copy.
+	newDir := filestore.InterventionFilesRelDir(*inv.EquipmentID, inv.ID)
+	newPaths := make(map[string]string, len(photos))
+	var copies []string
+	removeCopies := func() {
+		for _, c := range copies {
+			os.Remove(c)
+		}
+		os.Remove(filestore.Abs(h.BaseDir, newDir)) // only succeeds if left empty
+	}
+	for _, p := range photos {
+		newPath := newDir + "/" + path.Base(p.FilePath)
+		if newPath == p.FilePath {
+			continue // already in place; copying onto itself would truncate it
+		}
+		src := filestore.Abs(h.BaseDir, p.FilePath)
+		if _, err := os.Stat(src); os.IsNotExist(err) {
+			// Already gone from disk: nothing to copy, but the row still
+			// follows the intervention so it can be deleted through the API.
+			// Any other stat error is left to CopyFile, which reports it.
+			newPaths[p.FilePath] = newPath
+			continue
+		}
+		dst := filestore.Abs(h.BaseDir, newPath)
+		if err := filestore.CopyFile(src, dst); err != nil {
+			removeCopies()
+			return fmt.Errorf("move photos to the new equipment: %w", err)
+		}
+		copies = append(copies, dst)
+		newPaths[p.FilePath] = newPath
+	}
+
+	// 2. Commit.
+	if err := dbpackage.UpdateInterventionWithFilePaths(h.DB, inv, newPaths); err != nil {
+		removeCopies()
+		return err
+	}
+
+	// 3. Delete the originals, then the old directory if that emptied it.
+	for oldPath := range newPaths {
+		abs := filestore.Abs(h.BaseDir, oldPath)
+		if err := os.Remove(abs); err != nil && !os.IsNotExist(err) {
+			log.Printf("remove moved photo %s: %v", abs, err)
+		}
+	}
+	os.Remove(filestore.Abs(h.BaseDir, filestore.InterventionFilesRelDir(*before.EquipmentID, inv.ID)))
+	return nil
 }

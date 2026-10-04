@@ -93,7 +93,7 @@ func (h *Handler) UpdateIntervention(ctx echo.Context, id int) error {
 		}
 	}
 
-	if err := dbpackage.UpdateIntervention(h.DB, intervention); err != nil {
+	if err := h.saveInterventionMovingPhotos(intervention); err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
 
