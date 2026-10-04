@@ -12,6 +12,9 @@ type Task struct {
 	DueStatus      string    `json:"due_status,omitempty"`
 	NextDueDate    string    `json:"next_due_date,omitempty"`
 	NextDueHours   *float64  `json:"next_due_hours,omitempty"`
+	DueTrigger     string    `json:"due_trigger,omitempty"`
+	DueInDays      *int      `json:"due_in_days,omitempty"`
+	DueInHours     *float64  `json:"due_in_hours,omitempty"`
 	CreatedAt      time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt      time.Time `db:"updated_at" json:"updated_at"`
 }
