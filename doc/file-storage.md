@@ -172,6 +172,8 @@ The filesystem and the database cannot share a transaction, so the steps are ord
 
 If step 1 or 2 fails, the copies are removed and the edit is rejected: the intervention and its photos stay where they were. An interruption can only leave unreferenced files behind (copies before step 2, originals after it), which [startup orphan cleanup](#startup-orphan-cleanup) recovers.
 
+A photo whose file is already missing from disk does not block the move: there is nothing to copy, but its row is still rewritten, so it stays with its intervention and can be deleted through the API.
+
 ### Entity deletion cascade
 
 When an equipment, task, or intervention is deleted:
