@@ -951,7 +951,10 @@ components:
           description: Number of backups to retain (0 = unlimited)
         files:
           type: array
-          description: List of existing backup files, newest first
+          description: >
+            Existing backups, newest first: `.tar.gz` archives (database and
+            attached files) and legacy database-only `.bak` copies left by
+            older releases.
           items:
             $ref: '#/components/schemas/BackupFile'
     BackupFile:
@@ -963,8 +966,8 @@ components:
       properties:
         name:
           type: string
-          description: Filename of the backup
-          example: "maintenance.20260622-140000.bak"
+          description: Filename of the backup (`.tar.gz` archive, or legacy `.bak`)
+          example: "maintenance.20260622-140000.tar.gz"
         size:
           type: integer
           format: int64

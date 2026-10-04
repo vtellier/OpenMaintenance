@@ -35,7 +35,7 @@ Read-only section — shows the current backup configuration and lists existing 
 - **Status**: Enabled / Disabled (reflects the `backup.enabled` config value)
 - **Backup directory**: Absolute path where backup files are stored
 - **Retention**: How many backups are kept (0 = unlimited)
-- **Backup files**: Table listing existing `.bak` files with name, size, and creation date (newest first). Shows "No backups yet" when the list is empty. Hidden when backup is disabled.
+- **Backup files**: Table listing existing backups with name, size, and creation date (newest first). Backups are `.tar.gz` archives holding the database and the attached files; legacy `.bak` files left by older releases (database only) are listed too until rotation removes them. See [configuration.md — Backups](../configuration.md#backups). Shows "No backups yet" when the list is empty. Hidden when backup is disabled.
 
 ## Future settings (out of scope for v1)
 
@@ -66,8 +66,8 @@ Read-only section — shows the current backup configuration and lists existing 
 |    Directory  /data/backups                          |
 |    Retention  7 backups                              |
 |                                                      |
-|    maintenance.20260622-140000.bak   1.2 MB   Today  |
-|    maintenance.20260621-140000.bak   1.1 MB   1d ago |
+|    maintenance.20260622-140000.tar.gz  4.2 MB  Today |
+|    maintenance.20260621-140000.bak     1.1 MB  1d ago|
 |                                                      |
 |  About                                               |
 |    OpenMaintenance v0.1.0                            |
