@@ -806,6 +806,28 @@ components:
         next_due_hours:
           type: number
           description: Next hour-meter threshold based on hours_interval
+        due_trigger:
+          type: string
+          description: >-
+            Computed. The interval that drives due_status: the one with the
+            worse status when both apply, months on a tie. Absent when no
+            interval applies. See doc/data-model.md.
+          enum:
+            - months
+            - hours
+        due_in_days:
+          type: integer
+          description: >-
+            Computed. Whole calendar days from today to next_due_date: positive
+            while ahead, 0 on the due date, negative once past (-3 = due 3 days
+            ago). Present whenever months_interval applies.
+        due_in_hours:
+          type: number
+          description: >-
+            Computed. next_due_hours minus the equipment's current hours:
+            positive while below, negative once reached or passed (-120 = due
+            120 h ago). Present whenever the hours interval applies (equipment
+            tracks hours and has a current reading).
         created_at:
           type: string
           format: date-time
