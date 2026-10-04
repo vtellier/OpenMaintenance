@@ -161,12 +161,12 @@ The sign of the driving amount always agrees with the status: an **overdue** tas
 | months | Elapsed days / interval days: (today − date baseline) / (`next_due_date` − date baseline), in whole calendar days counted like `due_in_days` (dates read in the timezone `next_due_date` is computed in). Equivalently `1 − due_in_days / interval days`. |
 | hours  | Elapsed hours / interval hours: (current reading − hours baseline) / `hours_interval`. Equivalently `1 − due_in_hours / hours_interval`. |
 
-- Both rules apply: the **greater** of the two fractions. The task is due when either interval is reached first, so it is as far through its cycle as its furthest rule.
+- Both rules apply: the **greater** of the two fractions. The task is due when either interval is reached first, so it is as far through its cycle as its furthest rule. This is usually the driving trigger's fraction, but not always: a task due soon by hours whose months rule is still OK, yet further through its interval, takes its urgency from months.
 - One rule applies: its fraction.
 - No rule applies (see [Driving trigger and amount](#driving-trigger-and-amount)): `urgency` is absent.
 - A rule whose interval is not positive (the task form does not allow it) gives no fraction.
 
-The fraction is not rounded or clamped: it is negative when the baseline is ahead of today (e.g. a `commissioned_at` in the future).
+The fraction is not rounded or clamped: it is negative when the baseline is ahead of now, e.g. a `commissioned_at` in the future, or a current reading below the last intervention's `hours_at` after a meter correction. Such a task simply ranks lower.
 
 It is computed once, with the rest of the Due status. Clients rank tasks with it and never derive urgency from dates or hours themselves.
 

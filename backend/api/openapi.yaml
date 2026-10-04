@@ -842,9 +842,12 @@ components:
             just done, 1 at the due point, above 1 once past (1.5 = overdue by
             half an interval). Elapsed calendar days / interval days for
             months, elapsed hours / hours_interval for hours, the greater when
-            both apply. Clients rank tasks by due_status, then urgency
-            (highest first), then name and id. Absent when no interval
-            applies. See doc/data-model.md, "Urgency".
+            both apply, even when that rule is not the due_trigger (e.g. due
+            soon by hours, ok by months but further through its interval).
+            Not clamped: negative when the baseline is ahead of today or the
+            reading. Clients rank tasks by due_status, then urgency (highest
+            first), then name and id. Absent when no interval applies. See
+            doc/data-model.md, "Urgency".
         created_at:
           type: string
           format: date-time
