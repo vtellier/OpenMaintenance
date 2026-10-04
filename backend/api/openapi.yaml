@@ -810,9 +810,10 @@ components:
           type: string
           description: >-
             Computed. The interval that drives due_status: the one with the
-            worse status when both apply, months on a tie, except that an
-            overdue hours rule wins over a months rule with no date baseline
-            (which has no amount). Absent when no interval applies. See
+            worse status when both apply; on the same status, the one with the
+            greater fraction of its interval elapsed, months if equal. A months
+            rule with no date baseline has no fraction: an overdue hours rule
+            wins over it. Absent when no interval applies. See
             doc/data-model.md.
           enum:
             - months
@@ -833,6 +834,17 @@ components:
             positive while below, negative once reached or passed (-120 = due
             120 h ago). Present whenever the hours interval applies (equipment
             tracks hours and has a current reading).
+        urgency:
+          type: number
+          format: double
+          description: >-
+            Computed. Fraction of the interval elapsed since the baseline: 0
+            just done, 1 at the due point, above 1 once past (1.5 = overdue by
+            half an interval). Elapsed calendar days / interval days for
+            months, elapsed hours / hours_interval for hours, the greater when
+            both apply. Clients rank tasks by due_status, then urgency
+            (highest first), then name and id. Absent when no interval
+            applies. See doc/data-model.md, "Urgency".
         created_at:
           type: string
           format: date-time
