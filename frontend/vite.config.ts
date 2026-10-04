@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import path from 'node:path'
 import { execSync } from 'node:child_process'
 import { defineConfig } from 'vite'
@@ -34,5 +35,10 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist/client',
+  },
+  // Vitest unit tests (`pnpm test:unit`) sit next to the code they cover.
+  // Playwright specs live in tests/ and must stay out of Vitest's reach.
+  test: {
+    include: ['src/**/*.test.ts'],
   },
 })

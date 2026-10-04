@@ -157,6 +157,12 @@ Populate a running instance with a demo dataset (overdue / due-soon / OK statuse
 make seed
 ```
 
+Run the frontend unit tests (no server needed):
+
+```bash
+cd frontend && pnpm test:unit
+```
+
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full development setup.
 
 ## License

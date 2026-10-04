@@ -13,7 +13,7 @@ The backend embeds the compiled frontend and serves it as static files. The Type
 ## Prerequisites
 
 - Go 1.21+
-- Node.js + pnpm
+- Node.js 22.12+ (required by Vitest) + pnpm
 - `oapi-codegen` (`go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest`)
 
 ## Running locally
@@ -32,6 +32,19 @@ cd backend && go run .
 cd frontend && pnpm dev
 ```
 
+## Frontend unit tests
+
+Pure frontend logic (formatters, date helpers, form rules) is unit-tested with [Vitest](https://vitest.dev/). It reuses `frontend/vite.config.ts`, so the `@` and `@generated` imports resolve as in the app. Neither server needs to be running.
+
+```bash
+cd frontend
+pnpm test:unit                       # run once, as CI does
+pnpm exec vitest                     # watch mode
+TZ=America/New_York pnpm test:unit   # run under another timezone
+```
+
+Put each test next to the module it covers, named `<module>.test.ts` (e.g. `src/lib/format.test.ts`), and test through the module's exported functions. Vitest only collects `src/**/*.test.ts`; the Playwright specs in `frontend/tests/` keep running with `pnpm test`.
+
 ## Common commands
 
 | Task | Command | Working dir |
@@ -41,6 +54,7 @@ cd frontend && pnpm dev
 | Build frontend only | `make build-frontend` | repo root |
 | Regen OpenAPI Go stubs | `make generate-openapi` | repo root |
 | Regen TS API client | `pnpm run generate:api` | `frontend/` |
+| Run frontend unit tests | `pnpm test:unit` | `frontend/` |
 | Run frontend tests | `pnpm test` | `frontend/` |
 
 ## Repository structure
@@ -60,7 +74,7 @@ OpenMaintenance/
 │   └── main.go
 ├── frontend/
 │   ├── generated/            # Auto-generated — do not edit
-│   ├── src/
+│   ├── src/                  # App code, with Vitest unit tests beside it (*.test.ts)
 │   └── tests/non-regression/ # Playwright non-regression specs
 ├── doc/                      # Product specs (source of truth for behaviour)
 │   ├── overview.md
