@@ -112,11 +112,12 @@ The date a time-based interval is counted from — and therefore the "next due" 
 
 1. **The most recent intervention's `date`** on that task — the task was actually performed then.
 2. **The equipment's `commissioned_at`**, when it is set and is a valid `YYYY-MM-DD` date — the equipment has been in service (and therefore accumulating wear) since then, even though nothing has been logged yet.
-3. **The equipment's `created_at`** as the final fallback — when the equipment entered the app.
 
-Rules 2 and 3 matter: `created_at` is only the moment the record was entered into this app, which is usually much later than the equipment entered service. Falling back to it directly would make a never-performed task on an old equipment look **OK**, hiding maintenance that is in fact long overdue.
+If neither exists, there is **no date baseline**: there is no way to know when the task is due, so it is reported **Overdue** and has no "next due" date. The app never invents one.
 
-A `commissioned_at` that is absent, empty, or unparseable falls through to `created_at`. It must never be treated as a zero date, which would report every task as overdue.
+The equipment's `created_at` is **never** used as a baseline. It is only the moment the record was entered into this app, which says nothing about when the equipment entered service or when the task was last done.
+
+A `commissioned_at` that is absent, empty, or unparseable is treated as unset. It must never be treated as a zero date.
 
 ### Hours baseline
 

@@ -13,32 +13,32 @@ const monthsDueSoonMargin = 30 * 24 * time.Hour
 // (a TEXT column holding a plain calendar date).
 const commissionedAtLayout = "2006-01-02"
 
-// dateBaseline returns the date a task's time-based interval is counted from.
+// dateBaseline returns the date a task's time-based interval is counted from,
+// and false when there is none.
 //
 // Precedence:
 //  1. the last intervention's date — the task was actually performed then;
-//  2. the equipment's commissioned_at — when the equipment entered service;
-//  3. the equipment's created_at — when the row was inserted in this app.
+//  2. the equipment's commissioned_at — when the equipment entered service.
 //
-// commissioned_at is optional and free-form enough to be unusable (nil, empty
-// or malformed); in that case we fall through to created_at rather than
-// yielding a zero time, which would make every task look overdue.
-func dateBaseline(equipment models.Equipment, lastIntervention *models.Intervention) time.Time {
+// equipment.created_at is never a baseline: it is only when the row was
+// inserted in this app. A nil, empty or malformed commissioned_at means there
+// is no baseline (never a zero time).
+func dateBaseline(equipment models.Equipment, lastIntervention *models.Intervention) (time.Time, bool) {
 	if lastIntervention != nil {
-		return lastIntervention.Date
+		return lastIntervention.Date, true
 	}
 
 	if equipment.CommissionedAt != nil {
 		if commissioned, err := time.Parse(commissionedAtLayout, *equipment.CommissionedAt); err == nil && !commissioned.IsZero() {
-			return commissioned
+			return commissioned, true
 		}
 	}
 
-	return equipment.CreatedAt
+	return time.Time{}, false
 }
 
 func ComputeDueStatus(task models.Task, equipment models.Equipment, lastIntervention *models.Intervention) (status string, nextDueDate string, nextDueHours *float64) {
-	baselineDate := dateBaseline(equipment, lastIntervention)
+	baselineDate, hasBaselineDate := dateBaseline(equipment, lastIntervention)
 	var baselineHours float64
 
 	if lastIntervention != nil && lastIntervention.HoursAt != nil {
@@ -49,13 +49,20 @@ func ComputeDueStatus(task models.Task, equipment models.Equipment, lastInterven
 	overallStatus := "ok"
 
 	if task.MonthsInterval != nil {
-		nextDate := baselineDate.AddDate(0, *task.MonthsInterval, 0)
-		nextDueDate = nextDate.Format("2006-01-02")
-
-		if now.After(nextDate) {
+		if !hasBaselineDate {
+			// Never performed and no commissioning date: there is no way to
+			// know when the task is due, so it is reported overdue rather than
+			// inventing a next due date.
 			overallStatus = worstStatus(overallStatus, "overdue")
-		} else if now.After(nextDate.Add(-monthsDueSoonMargin)) {
-			overallStatus = worstStatus(overallStatus, "due_soon")
+		} else {
+			nextDate := baselineDate.AddDate(0, *task.MonthsInterval, 0)
+			nextDueDate = nextDate.Format("2006-01-02")
+
+			if now.After(nextDate) {
+				overallStatus = worstStatus(overallStatus, "overdue")
+			} else if now.After(nextDate.Add(-monthsDueSoonMargin)) {
+				overallStatus = worstStatus(overallStatus, "due_soon")
+			}
 		}
 	}
 

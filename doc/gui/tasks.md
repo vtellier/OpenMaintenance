@@ -51,7 +51,7 @@ When an equipment has no tasks yet:
 1. From the equipment's Tasks tab, user taps **"+ Add task"**.
 2. Task form opens.
 3. User fills name, optional description, and at least one interval.
-4. On save, the task appears in the list with status computed from the equipment's creation date (no interventions yet).
+4. On save, the task appears in the list with status computed from the equipment's commissioning date (no interventions yet); if the equipment has no commissioning date, a time-based task is shown as overdue.
 
 ### Flow: Edit a task
 1. User taps Edit on a task row.
