@@ -846,8 +846,10 @@ components:
             soon by hours, ok by months but further through its interval).
             Not clamped: negative when the baseline is ahead of today or the
             reading. Clients rank tasks by due_status, then urgency (highest
-            first), then name and id. Absent when no interval applies. See
-            doc/data-model.md, "Urgency".
+            first, none last), then name and id. Absent when no interval
+            applies, and when only a months interval applies and the task has
+            no date baseline (it is then overdue with nothing to measure
+            from). See doc/data-model.md, "Urgency".
         created_at:
           type: string
           format: date-time
