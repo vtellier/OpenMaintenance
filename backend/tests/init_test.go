@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/vtellier/OpenMaintenance/internal/db"
+	"github.com/vtellier/OpenMaintenance/internal/models"
 )
 
 func TestInitDB_NoBackupOnFirstRun(t *testing.T) {
@@ -30,19 +31,15 @@ func TestInitDB_BackupCreatedOnSecondRun(t *testing.T) {
 	backupDir := filepath.Join(dir, "backups")
 	cfg := db.BackupConfig{Enabled: true, Path: backupDir, Keep: 7}
 
-	// First run: creates the DB.
+	// First run: creates the DB, then the app writes some data.
 	database, err := db.InitDB(dbPath, "test", cfg)
 	if err != nil {
 		t.Fatalf("first InitDB: %v", err)
 	}
-	database.Close()
-
-	// Capture the DB size after full initialization (post-migration).
-	stat, err := os.Stat(dbPath)
-	if err != nil {
-		t.Fatalf("stat db: %v", err)
+	if err := db.CreateEquipment(database, &models.Equipment{Name: "Sailboat"}); err != nil {
+		t.Fatalf("CreateEquipment: %v", err)
 	}
-	sizeAfterInit := stat.Size()
+	database.Close()
 
 	// Second run: DB exists, so a backup must be created.
 	database2, err := db.InitDB(dbPath, "test", cfg)
@@ -51,18 +48,18 @@ func TestInitDB_BackupCreatedOnSecondRun(t *testing.T) {
 	}
 	database2.Close()
 
-	entries, err := os.ReadDir(backupDir)
+	// The backup must reflect the DB state left by the first run.
+	entries, err := readBackupArchive(onlyBackup(t, backupDir))
 	if err != nil {
-		t.Fatalf("backup dir not created: %v", err)
+		t.Fatalf("read archive: %v", err)
 	}
-	if len(entries) != 1 {
-		t.Fatalf("expected 1 backup, got %d", len(entries))
+	var name string
+	if err := openArchivedDB(t, entries["maintenance.db"]).QueryRow(
+		`SELECT name FROM equipments`).Scan(&name); err != nil {
+		t.Fatalf("query archived db: %v", err)
 	}
-
-	// The backup must reflect the DB state captured before this second InitDB ran.
-	backupStat, _ := os.Stat(filepath.Join(backupDir, entries[0].Name()))
-	if backupStat.Size() != sizeAfterInit {
-		t.Errorf("backup size %d != expected %d", backupStat.Size(), sizeAfterInit)
+	if name != "Sailboat" {
+		t.Errorf("archived equipment name = %q, want Sailboat", name)
 	}
 }
 
