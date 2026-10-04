@@ -38,7 +38,7 @@ The detail screen has four tabs:
 1. **Tasks** — The maintenance program of this equipment. See [tasks.md](./tasks.md).
 2. **History** — All interventions performed on this equipment, most recent first.
 3. **Documents** — Files attached to this equipment (manuals, invoices, warranties). See below.
-4. **Info** — Editable equipment metadata: name, description, date of commissioning, **icon emoji**, `tracks_hours` toggle.
+4. **Info** — Editable equipment metadata: name, description, date of commissioning, **icon emoji**, `tracks_hours` toggle. The hour-meter reading is not metadata: editing the equipment never changes it or its freshness (see [data-model.md](../data-model.md#what-changes-the-reading)).
 
 The Tasks tab is the default when opening an equipment.
 
@@ -61,7 +61,7 @@ Empty state: *"No documents attached."* + **"+ Upload your first document"** CTA
    - Date of commissioning (optional, date picker)
    - Toggle: *"This equipment has an hour-meter"* (`tracks_hours`)
    - If toggled on: initial hours value (defaults to 0)
-3. User saves.
+3. User saves. With the hour-meter on, the initial value becomes the first reading and `hours_updated_at` is set to "now".
 4. New equipment appears in the list; user can be redirected to its detail screen.
 
 ### Flow: Update hour-meter
@@ -76,8 +76,10 @@ The same flow is reachable from three places: the equipment detail header, the d
 
 ### Flow: Toggle hour-meter on an existing equipment
 1. User goes to the Info tab.
-2. Turning `tracks_hours` on: a hours field appears, user sets initial value.
-3. Turning `tracks_hours` off: the app warns that any task using `hours_interval` will be affected. Confirmation required.
+2. Turning `tracks_hours` on: a hours field appears, user sets initial value. It is prefilled with the last known reading (kept from an earlier tracking period), or 0 if there is none, and cannot be lower than that reading. On save, it becomes the reading and `hours_updated_at` is set to "now".
+3. Turning `tracks_hours` off: the app warns that any task using `hours_interval` will be affected. Confirmation required. The last reading and its freshness are kept (hidden), so turning the hour-meter back on cannot lower it.
+
+The hours field only appears while turning the hour-meter on. When editing an equipment that already tracks hours, the form has no hours field: the reading changes only through **"Update hours"** (or the Dashboard's **"Same hours"**) and interventions.
 
 ### Flow: Change the icon
 There are two ways to change the icon:

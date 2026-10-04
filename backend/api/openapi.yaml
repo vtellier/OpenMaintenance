@@ -65,7 +65,10 @@ paths:
     post:
       operationId: createEquipment
       summary: Create a new equipment
-      description: Add a new equipment to the system
+      description: >
+        Add a new equipment to the system. When tracks_hours is true and hours
+        is given, hours is the first hour-meter reading and hours_updated_at is
+        set to now.
       tags:
         - Equipment
       requestBody:
@@ -109,7 +112,13 @@ paths:
     put:
       operationId: updateEquipment
       summary: Update an equipment
-      description: Update an existing equipment
+      description: >
+        Update an existing equipment's metadata (name, description,
+        commissioned_at, icon, tracks_hours). This never changes the hour-meter
+        reading or hours_updated_at, with one exception: when the request turns
+        tracks_hours on, hours (if given) becomes the reading and
+        hours_updated_at is set to now. Turning tracks_hours off keeps the
+        reading. Use PUT /equipments/{id}/hours to update the reading.
       tags:
         - Equipment
       parameters:
@@ -133,7 +142,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Equipment'
         '400':
-          description: Invalid input
+          description: Invalid input (e.g. turning tracks_hours on with hours below the reading kept from an earlier tracking period)
         '404':
           description: Equipment not found
     delete:
@@ -749,7 +758,11 @@ components:
           default: false
         hours:
           type: number
-          description: Current hour-meter value. Only relevant if tracks_hours is true
+          description: >
+            Initial hour-meter reading. Only read when the request turns
+            tracks_hours on (creation with tracks_hours true, or an update that
+            switches it from false to true), and ignored otherwise. Must not be
+            lower than a reading kept from an earlier tracking period.
     EquipmentHoursInput:
       type: object
       required:

@@ -34,13 +34,30 @@ The `icon` is chosen from an emoji picker — a button (or, on the detail header
   - Independently, from the equipment detail screen.
 - If `tracks_hours` is false, hour-based task intervals are not allowed on this equipment's tasks.
 
+#### What changes the reading
+
+The reading (`hours`) and its freshness (`hours_updated_at`) change only through the paths below. **None of them lowers the reading**: the meter cannot go backwards.
+
+| Path | Reading (`hours`) | Freshness (`hours_updated_at`) |
+|------|-------------------|--------------------------------|
+| Create an equipment with `tracks_hours` on | Set to the initial value entered (none entered: no reading yet) | "now" when a value is entered |
+| Turn `tracks_hours` on for an existing equipment | Set to the initial value entered. It must be **greater than or equal to** any reading kept from an earlier tracking period; a lower value is rejected | "now" when a value is entered |
+| Turn `tracks_hours` off | Unchanged: kept, hidden while tracking is off | Unchanged |
+| Edit metadata (name, description, commissioning date, icon, including the detail-header icon picker) | Unchanged: an hours value sent with the edit is ignored | Unchanged |
+| **"Update hours"** or **"Same hours"** | Set to the value submitted, which must be **greater than or equal to** the current one; a lower value is rejected | "now", even when the value is unchanged |
+| Log or edit an intervention with `hours_at` | Raised to `hours_at` only when it is **strictly greater** than the current reading | "now" only when the reading is raised |
+
+- An intervention's `hours_at` on an equipment that does not track hours leaves the hour-meter untouched.
+- Deleting an intervention does not change the reading today; whether it should be recomputed from the remaining history is not decided yet (issue #70).
+
 #### `hours_updated_at` (freshness tracking)
 
 - Set to "now" whenever the user **explicitly confirms** the hour-meter reading through a dedicated hour-meter update action — **even when the value is unchanged**. This lets the user dismiss the Dashboard freshness reminder for an equipment that simply has not run since the last reading.
   - The explicit actions are the **"Update hours"** form and the Dashboard **"Same hours"** shortcut (see [gui/dashboard.md](./gui/dashboard.md)).
   - The submitted value must be **greater than or equal to** the current `hours`; a lower value is rejected (the meter cannot go backwards).
   - Served by a dedicated endpoint (`PUT /equipments/{id}/hours`) so that editing other equipment metadata never affects freshness.
-- For **intervention logging**, the timestamp is updated only when the supplied `hours_at` is **strictly greater than** the current `hours`. Logging an intervention with the same or a lower reading does not reset freshness.
+- For **intervention logging** (and editing), the timestamp is updated only when the supplied `hours_at` is **strictly greater than** the current `hours`. Logging an intervention with the same or a lower reading does not reset freshness.
+- Entering the initial reading (at creation, or when turning `tracks_hours` on) also sets it to "now".
 - Used by the Dashboard to surface a CTA encouraging the user to keep the hour-meter fresh — without a fresh hour-meter, hour-based due dates cannot be trusted.
 - A **"staleness threshold"** (default: 7 days) is used to flag the oldest updates. Configurable in Settings (future). The Dashboard CTA always lists every hour-tracked equipment, but visually emphasizes those older than the threshold.
 
@@ -90,7 +107,7 @@ Exactly one of `task_id` or `exceptional_label` must be provided (they are mutua
 
 ### Side effects
 
-- When an intervention is recorded with `hours_at` and that value is greater than the equipment's current `hours`:
+- When an intervention is recorded (or edited) with `hours_at`, the equipment tracks hours, and that value is greater than the equipment's current `hours`:
   - The equipment's `hours` is updated to that value.
   - The equipment's `hours_updated_at` is set to "now".
 - For **standard** interventions: the next due date for the task is recomputed from the latest intervention.
