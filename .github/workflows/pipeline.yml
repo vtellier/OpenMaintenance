@@ -22,6 +22,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -85,6 +86,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
 
       # Before code generation, so the generated stubs are never the thing that
       # fails the formatting gate.
@@ -113,6 +115,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -123,9 +126,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: Install oapi-codegen
-        run: go install github.com/deepmap/oapi-codegen/cmd/oapi-codegen@v1.16.3
 
       - name: Generate OpenAPI Go stubs
         run: make generate-openapi
@@ -198,6 +198,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
 
       - name: Download frontend static files
         uses: actions/download-artifact@v4
