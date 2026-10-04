@@ -52,3 +52,4 @@ If both are already running (e.g. `make dev`), they are reused as-is.
 | `intervention-save-error-shows-reason.spec.ts` | Saving intervention with future date showed generic error instead of backend reason (issue #51) | — |
 | `overdue-hours-shows-hours-not-future-date.spec.ts` | Overdue task with a future calendar nextDueDate showed "in Xd" instead of hours-based info (issue #52) | — |
 | `equipment-edit-keeps-hour-meter.spec.ts` | Saving the equipment edit form reset the hour-meter freshness to "never updated", and its hours field could lower the reading (issue #69) | — |
+| `equipments-overdue-hours-shows-hours-not-today.spec.ts` | Equipments page showed "Overdue — today" for a task overdue by hours whose calendar due date is still in the future, instead of the hours overdue (issue #67) | — |
