@@ -95,13 +95,15 @@ func BackupDB(dbPath string, cfg BackupConfig) error {
 		return fmt.Errorf("backup: cannot move archive into place: %w", err)
 	}
 
+	log.Printf("backup created: %s", backupPath)
+
+	// The new backup is in place: failing to delete an old one must not keep
+	// the app from starting.
 	if cfg.Keep > 0 {
 		if err := rotate(backupDir, stem, cfg.Keep); err != nil {
-			return fmt.Errorf("backup: rotation failed: %w", err)
+			log.Printf("backup: rotation failed: %v", err)
 		}
 	}
-
-	log.Printf("backup created: %s", backupPath)
 	return nil
 }
 
@@ -153,13 +155,23 @@ func writeArchive(dst, snapshot, dbName, filesDir, skipDir string) (err error) {
 }
 
 func addFilesTree(tw *tar.Writer, filesDir, skipDir string) error {
-	if _, err := os.Stat(filesDir); errors.Is(err, fs.ErrNotExist) {
+	if _, err := os.Lstat(filesDir); errors.Is(err, fs.ErrNotExist) {
 		return nil // no attachment uploaded yet
 	}
-	root := filepath.Dir(filesDir)
-	absSkip, _ := filepath.Abs(skipDir)
+	// files/ may be a symlink to another volume; WalkDir does not follow a
+	// symlinked root, so walk its target. A dangling link is an error, not
+	// "no attachments".
+	root, err := filepath.EvalSymlinks(filesDir)
+	if err != nil {
+		return err
+	}
+	absSkip := skipDir
+	if resolved, err := filepath.EvalSymlinks(skipDir); err == nil {
+		absSkip = resolved
+	}
+	absSkip, _ = filepath.Abs(absSkip)
 
-	return filepath.WalkDir(filesDir, func(path string, d fs.DirEntry, err error) error {
+	return filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -167,7 +179,10 @@ func addFilesTree(tw *tar.Writer, filesDir, skipDir string) error {
 		if err != nil {
 			return err
 		}
-		name := filepath.ToSlash(rel)
+		name := "files"
+		if rel != "." {
+			name += "/" + filepath.ToSlash(rel)
+		}
 
 		switch {
 		case d.IsDir():
@@ -292,14 +307,15 @@ func rotate(dir, stem string, keep int) error {
 			mine = append(mine, b)
 		}
 	}
+	var errs []error
 	for len(mine) > keep {
 		oldest := mine[len(mine)-1]
 		if err := os.Remove(oldest.Path); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 		mine = mine[:len(mine)-1]
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 // isBackupOf reports whether name is <stem>.<YYYYMMDD-HHMMSS><ext>.

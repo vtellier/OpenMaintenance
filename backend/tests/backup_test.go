@@ -158,6 +158,32 @@ func TestBackupDB_NoFilesDirectory(t *testing.T) {
 	}
 }
 
+// files/ may be a symlink to another volume; its content is still archived
+// under files/.
+func TestBackupDB_FollowsSymlinkedFilesDir(t *testing.T) {
+	dir := t.TempDir()
+	dbFile := filepath.Join(dir, "maintenance.db")
+	writeSQLiteDB(t, dbFile, "x")
+	volume := t.TempDir()
+	writeFile(t, filepath.Join(volume, "equipments", "1", "files", "a.pdf"), []byte("manual"))
+	if err := os.Symlink(volume, filepath.Join(dir, "files")); err != nil {
+		t.Skipf("symlinks not supported: %v", err)
+	}
+	backupDir := filepath.Join(dir, "backups")
+
+	if err := db.BackupDB(dbFile, db.BackupConfig{Enabled: true, Path: backupDir, Keep: 7}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	entries, err := readBackupArchive(onlyBackup(t, backupDir))
+	if err != nil {
+		t.Fatalf("read archive: %v", err)
+	}
+	if got := string(entries["files/equipments/1/files/a.pdf"]); got != "manual" {
+		t.Errorf("archive holds %v, want files/equipments/1/files/a.pdf = manual", entryNames(entries))
+	}
+}
+
 // A backup killed mid-way leaves its temporary directory behind; the next
 // backup removes it.
 func TestBackupDB_SweepsInterruptedBackup(t *testing.T) {

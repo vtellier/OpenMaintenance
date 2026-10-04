@@ -45,11 +45,12 @@ backup:
 When `backup.enabled` is true, the backend takes one backup on every startup, before it opens the database and before any migration runs. Each backup therefore holds the state left by the previous run, and an upgrade can always be rolled back to the pre-migration data.
 
 - **Format**: one gzip-compressed tar archive per startup, written to `backup.path` and named `<db-stem>.<YYYYMMDD-HHMMSS>.tar.gz` (e.g. `maintenance.20260101-120000.tar.gz`).
-- **Contents**: the database file, under its own file name (e.g. `maintenance.db`), and the `files/` tree of attached files (see [file-storage.md](./file-storage.md)). Paths in the archive are relative to the database directory, so extracting it there puts everything back in place. Only regular files and directories are archived.
+- **Contents**: the database file, under its own file name (e.g. `maintenance.db`), and the `files/` tree of attached files (see [file-storage.md](./file-storage.md)). Paths in the archive are relative to the database directory, so extracting it there puts everything back in place. Only regular files and directories are archived; `files/` itself may be a symlink (e.g. to another volume), its target is archived.
 - **No attachments yet**: a missing `files/` directory is fine; the archive then holds only the database.
 - **First run**: when the database file does not exist yet, nothing is backed up.
 - **Consistency**: the database is copied with SQLite's `VACUUM INTO`, which produces a clean, self-contained copy even if the previous run was killed in the middle of a write. Because the backup runs before the server starts, nothing can change the database or the files while the archive is written. The archive is built under a temporary name and renamed once complete, so an interrupted backup never leaves a truncated `.tar.gz` behind.
-- **Rotation**: after a successful backup, only the `backup.keep` most recent backups are kept (ordered by the timestamp in their name); older ones are deleted. `0` keeps everything.
+- **Disk space**: while it runs, a backup temporarily needs room for a copy of the database next to the archive being written, both in `backup.path`. Archives include every attached file, so size `backup.keep` accordingly.
+- **Rotation**: after a successful backup, only the `backup.keep` most recent backups are kept (ordered by the timestamp in their name); older ones are deleted. `0` keeps everything. Only files named exactly `<db-stem>.<YYYYMMDD-HHMMSS>.tar.gz` or `.bak` are ever deleted. An old backup that cannot be deleted is logged and does not block startup.
 - **Failure**: if the backup cannot be written, startup aborts with an error instead of continuing (and migrating) without a backup.
 
 ### Legacy `.bak` backups
