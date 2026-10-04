@@ -54,7 +54,7 @@ func TestComputeDueStatusDateBaseline(t *testing.T) {
 			},
 			last:           nil,
 			wantStatus:     "overdue",
-			wantNextDue:    daysAgo(3 * 365).AddDate(0, 6, 0).Format("2006-01-02"),
+			wantNextDue:    daysAgo(3*365).AddDate(0, 6, 0).Format("2006-01-02"),
 			wantNextDueSet: true,
 		},
 		{
