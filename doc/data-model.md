@@ -142,7 +142,7 @@ Which trigger drives:
 
 1. Only one rule applies: that one.
 2. Both apply: the one with the **worse** status, the one that sets `due_status`.
-3. Both give the same status (both overdue, both due soon, or both OK): **months**. The calendar amount is always current, while the hours amount is only as fresh as the last hour-meter reading.
+3. Both give the same status (both overdue, both due soon, or both OK): the one with the **greater fraction of its interval elapsed** (see [Urgency](#urgency)), so the timing text shows the amount that makes the task urgent. Equal fractions: **months**, whose amount is always current, while the hours amount is only as fresh as the last hour-meter reading.
 
 One exception to rule 3: a months rule with no date baseline has no amount to show, so when the hours rule is **overdue** too, **hours** drives, since it has a concrete amount (`due_in_hours`). If the hours rule is only due soon or OK, the months rule is the worse status and still drives, with no `due_in_days`.
 
@@ -151,6 +151,40 @@ One exception to rule 3: a months rule with no date baseline has no amount to sh
 The sign of the driving amount always agrees with the status: an **overdue** task has a driving amount `≤ 0`, a **due soon** or **OK** task has one `≥ 0`. The only task without a driving amount is the months-driven overdue task with no date baseline.
 
 **Calendar days, not 24-hour periods.** `due_in_days` subtracts two calendar dates: the `next_due_date` and today's date, both read in the timezone `next_due_date` is computed in (currently UTC). A task due on the 15th is "in 5 days" all day on the 10th, and `0` all day on the 15th, whether or not it has already turned overdue that day.
+
+### Urgency
+
+`urgency` (number) says how far a task is through its interval: the **fraction of the interval elapsed** since the baseline. It is `0` when the task has just been done, `0.5` half-way, `1` when the due point is reached, and above `1` once it is past (`1.5` = overdue by half an interval). Being a fraction, it compares tasks across triggers and interval lengths: an oil change every 100 h, overdue by 120 h (`2.2`), is more urgent than a hull inspection every 12 months, overdue by 3 days (`1.01`).
+
+| Rule   | Fraction elapsed |
+|--------|------------------|
+| months | Elapsed days / interval days: (today − date baseline) / (`next_due_date` − date baseline), in whole calendar days counted like `due_in_days` (dates read in the timezone `next_due_date` is computed in). Equivalently `1 − due_in_days / interval days`. |
+| hours  | Elapsed hours / interval hours: (current reading − hours baseline) / `hours_interval`. Equivalently `1 − due_in_hours / hours_interval`. |
+
+- Both rules apply: the **greater** of the two fractions. The task is due when either interval is reached first, so it is as far through its cycle as its furthest rule.
+- One rule applies: its fraction.
+- No rule applies (see [Driving trigger and amount](#driving-trigger-and-amount)): `urgency` is absent.
+- A rule whose interval is not positive (the task form does not allow it) gives no fraction.
+
+The fraction is not rounded or clamped: it is negative when the baseline is ahead of today (e.g. a `commissioned_at` in the future).
+
+It is computed once, with the rest of the Due status. Clients rank tasks with it and never derive urgency from dates or hours themselves.
+
+### Ranking tasks by urgency
+
+Every place that orders tasks, or picks the most urgent one, uses this order, most urgent first:
+
+1. **`due_status`**: overdue, then due soon, then OK.
+2. **`urgency`**, highest first. A task without `urgency` comes after those with one.
+3. **`name`**, alphabetically, then **`id`**, ascending. Two tasks never tie, so the order is total and the same on every load.
+
+The status comes first so the order always agrees with it: an overdue task ranks above every due-soon task, and a due-soon task above every OK task, whatever their fractions. The fraction alone would not guarantee this, because the due-soon margins (30 days, 10 h) do not scale with the interval. A task due soon by hours on a 100 h interval can be at `0.92` while an OK task on a 10-year interval is at `0.99`. On the due date, a task due soon by months and an overdue one can both be at `1`.
+
+Where it applies:
+
+- **Dashboard**: the tasks of each equipment block, and the blocks themselves, ordered by their most urgent task (see [gui/dashboard.md](./gui/dashboard.md)).
+- **Equipment detail**, Tasks tab: every task (see [gui/tasks.md](./gui/tasks.md)).
+- **Equipments list**: the task each card summarises is the first in this order (see [gui/equipments.md](./gui/equipments.md)).
 
 ### Date baseline precedence
 

@@ -29,7 +29,7 @@ The banner is collapsible. Equipments with fresh hour-meters can be folded away 
 
 ### Upcoming tasks
 
-Upcoming tasks are **grouped by equipment**. Within each equipment block, tasks are sorted by urgency (most overdue first, then closest due date).
+Upcoming tasks are **grouped by equipment**. Within each equipment block, tasks are in [urgency order](../data-model.md#ranking-tasks-by-urgency): overdue first, then due soon, and within each the task furthest through its interval first, whether it is counted in months or in hours. The blocks are ordered by their most urgent task, compared the same way.
 
 For each equipment block:
 - Equipment name (clickable → equipment detail).
