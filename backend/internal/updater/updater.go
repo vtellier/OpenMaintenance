@@ -15,6 +15,9 @@ import (
 
 const latestReleaseURL = "https://api.github.com/repos/vtellier/OpenMaintenance/releases/latest"
 
+// releasePagePrefix is where every release page of the project lives.
+const releasePagePrefix = "https://github.com/vtellier/OpenMaintenance/releases/"
+
 // MinCheckInterval is the shortest time between two queries to GitHub.
 // GitHub allows 60 unauthenticated API requests per hour per IP address.
 const MinCheckInterval = time.Minute
@@ -166,6 +169,10 @@ func fetchLatestRelease(ctx context.Context, client *http.Client) (githubRelease
 	}
 	if release.TagName == "" {
 		return githubRelease{}, UnexpectedResponse, errors.New("GitHub release has no tag_name")
+	}
+	// The frontend puts html_url in a link: only accept a GitHub page.
+	if !strings.HasPrefix(release.HTMLURL, releasePagePrefix) {
+		return githubRelease{}, UnexpectedResponse, fmt.Errorf("GitHub release html_url %q is not under %s", release.HTMLURL, releasePagePrefix)
 	}
 	return release, "", nil
 }
