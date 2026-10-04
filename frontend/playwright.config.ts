@@ -18,6 +18,8 @@ export default defineConfig({
   testDir: './tests',
   fullyParallel: false,
   workers: 1,
+  // A stray `test.only` must fail CI instead of silently running one test.
+  forbidOnly: !!process.env.CI,
   reporter: [['list']],
   globalSetup: './tests/global-setup.ts',
   use: {
