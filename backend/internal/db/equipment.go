@@ -9,6 +9,8 @@ import (
 // DefaultEquipmentIcon is the emoji used when an equipment has no custom icon.
 const DefaultEquipmentIcon = "🔧"
 
+// CreateEquipment inserts an equipment as given. Handlers pass metadata only:
+// the hourmeter package records the first hour-meter reading.
 func CreateEquipment(db *sql.DB, equipment *models.Equipment) error {
 	equipment.CreatedAt = time.Now()
 	equipment.UpdatedAt = time.Now()
@@ -85,7 +87,8 @@ func iconOrDefault(icon sql.NullString) string {
 	return DefaultEquipmentIcon
 }
 
-// UpdateEquipment updates editable equipment metadata.
+// UpdateEquipment updates editable equipment metadata. It never writes the
+// hour-meter reading or its freshness: see SetEquipmentHours.
 func UpdateEquipment(db *sql.DB, equipment *models.Equipment) error {
 	equipment.UpdatedAt = time.Now()
 	if equipment.Icon == "" {
@@ -93,19 +96,37 @@ func UpdateEquipment(db *sql.DB, equipment *models.Equipment) error {
 	}
 
 	_, err := db.Exec(
-		`UPDATE equipments SET name = ?, description = ?, commissioned_at = ?, icon = ?, tracks_hours = ?, hours = ?, hours_updated_at = ?, updated_at = ?
+		`UPDATE equipments SET name = ?, description = ?, commissioned_at = ?, icon = ?, tracks_hours = ?, updated_at = ?
 		 WHERE id = ?`,
 		equipment.Name,
 		equipment.Description,
 		equipment.CommissionedAt,
 		equipment.Icon,
 		equipment.TracksHours,
-		equipment.Hours,
-		equipment.HoursUpdatedAt,
 		equipment.UpdatedAt,
 		equipment.ID,
 	)
 	return err
+}
+
+// SetEquipmentHours writes the hour-meter reading and its freshness, unless
+// the stored reading is higher: the meter never goes backwards, even when two
+// requests race. It reports whether the reading was written. Only the
+// hourmeter package calls it, since it owns the rules for changing the reading.
+func SetEquipmentHours(db *sql.DB, id int, hours float64, at time.Time) (bool, error) {
+	res, err := db.Exec(
+		`UPDATE equipments SET hours = ?, hours_updated_at = ?, updated_at = ?
+		 WHERE id = ? AND (hours IS NULL OR hours <= ?)`,
+		hours, at, at, id, hours,
+	)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
 }
 
 func DeleteEquipment(db *sql.DB, id int) error {

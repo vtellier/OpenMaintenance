@@ -48,7 +48,7 @@ Save is disabled until all required fields are filled: date is always required; 
 ## Side effects on save
 
 - A new Intervention row is created.
-- The equipment's `hours` is updated to the new value if greater than current.
+- The equipment's `hours` is updated to the new value if greater than current, and its `hours_updated_at` is set to "now". An equal or lower value leaves both unchanged.
 - For **standard** interventions: the parent task's next-due is recomputed; the dashboard refreshes (the task may disappear if no longer due).
 - For **exceptional** interventions: no task due-date side effect; the dashboard is not affected.
 
@@ -57,7 +57,7 @@ Save is disabled until all required fields are filled: date is always required; 
 - Past interventions are editable and deletable from:
   - The equipment's **History** tab.
   - The global **History** screen.
-- Editing opens the full form prefilled.
+- Editing opens the full form prefilled. Saving an edit applies the same hour-meter rule as logging: a higher hours value raises the equipment's reading, an equal or lower one leaves it unchanged.
 - Deleting requires a confirmation. Side effects (next-due, equipment hours) are recomputed from the remaining history.
 
 ## User flow: quick log from dashboard
