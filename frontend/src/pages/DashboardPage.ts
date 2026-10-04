@@ -4,21 +4,26 @@ import { Task } from '@generated/api/models/Task'
 import { Intervention } from '@generated/api/models/Intervention'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { relativeTime, formatHours, isHoursStale, isHoursVeryStale } from '@/lib/format'
+import { formatHours } from '@/lib/format'
 import { dueTimingText } from '@/lib/dueTiming'
 import { byUrgency } from '@/lib/urgency'
+import { relativeTime, isHoursStale, isHoursVeryStale } from '@/lib/timestamp'
+import { WithCalendarDates, today, fromApiDate, fromApiDateTime, toApiDateTime } from '@/lib/calendar-date'
 import { equipmentAvatar } from '@/components/EquipmentAvatar'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
 const interventionApi = new InterventionApi(apiConfig)
 
+type TaskRow = WithCalendarDates<Task, 'nextDueDate'>
+type InterventionRow = WithCalendarDates<Intervention, 'date'>
+
 export function DashboardPage() {
   return component(() => {
     const state = reactive({
       equipments: [] as Equipment[],
-      tasks: [] as Task[],
-      interventions: [] as Intervention[],
+      tasks: [] as TaskRow[],
+      interventions: [] as InterventionRow[],
       loaded: false,
       loadError: null as string | null,
       showQuickLog: false,
@@ -50,14 +55,14 @@ export function DashboardPage() {
 
         state.tasks = ts.map((t: any) => ({
           ...t,
-          nextDueDate: t.nextDueDate?.toISOString(),
+          nextDueDate: fromApiDate(t.nextDueDate),
           createdAt: t.createdAt?.toISOString(),
           updatedAt: t.updatedAt?.toISOString(),
         }))
 
         state.interventions = invs.map((inv: any) => ({
           ...inv,
-          date: inv.date?.toISOString(),
+          date: fromApiDateTime(inv.date),
           createdAt: inv.createdAt?.toISOString(),
           updatedAt: inv.updatedAt?.toISOString(),
         }))
@@ -94,11 +99,11 @@ export function DashboardPage() {
       return eq
     }
 
-    function onQuickLog(task: Task) {
+    function onQuickLog(task: TaskRow) {
       state.showQuickLog = true
       state.quickTaskId = task.id ?? null
       state.quickTaskName = task.name ?? ''
-      state.quickDate = new Date().toISOString().substring(0, 10)
+      state.quickDate = today()
       const eq = getEquipmentForTask(task.id)
       state.quickHours = eq?.hours ?? 0
       state.quickPerformedBy = ''
@@ -124,7 +129,7 @@ export function DashboardPage() {
         await interventionApi.createIntervention({
           interventionInput: {
             taskId: state.quickTaskId,
-            date: new Date(state.quickDate + 'T00:00:00'),
+            date: toApiDateTime(state.quickDate),
             hoursAt: tracksHours ? state.quickHours : undefined,
             performedBy: state.quickPerformedBy.trim() || undefined,
             comments: state.quickComments.trim() || undefined,
@@ -161,7 +166,7 @@ export function DashboardPage() {
           t => t.dueStatus === 'overdue' || t.dueStatus === 'due_soon'
         )
 
-        const grouped = new Map<number, Task[]>()
+        const grouped = new Map<number, TaskRow[]>()
         for (const task of dueTasks) {
           const eqId = task.equipmentId
           if (eqId == null) continue

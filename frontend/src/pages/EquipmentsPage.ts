@@ -4,9 +4,11 @@ import { Task } from '@generated/api/models/Task'
 import { Intervention } from '@generated/api/models/Intervention'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { relativeTime, formatHours, formatDate, isHoursVeryStale } from '@/lib/format'
+import { formatHours } from '@/lib/format'
 import { dueTimingText } from '@/lib/dueTiming'
 import { byUrgency } from '@/lib/urgency'
+import { relativeTime, isHoursVeryStale } from '@/lib/timestamp'
+import { WithCalendarDates, formatCalendarDate, compareCalendarDates, fromApiDate, fromApiDateTime, toApiDate } from '@/lib/calendar-date'
 import { equipmentAvatar } from '@/components/EquipmentAvatar'
 import { iconPicker } from '@/components/IconPicker'
 
@@ -14,11 +16,14 @@ const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
 const interventionApi = new InterventionApi(apiConfig)
 
+type TaskRow = WithCalendarDates<Task, 'nextDueDate'>
+type InterventionRow = WithCalendarDates<Intervention, 'date'>
+
 export const EquipmentsPage = component(() => {
   const state = reactive({
     equipments: [] as Equipment[],
-    tasksByEquipment: {} as Record<number, Task[]>,
-    interventions: [] as Intervention[],
+    tasksByEquipment: {} as Record<number, TaskRow[]>,
+    interventions: [] as InterventionRow[],
     loading: true,
     error: null as string | null,
     showAddModal: false,
@@ -49,21 +54,21 @@ export const EquipmentsPage = component(() => {
       }))
       state.interventions = interventions.map((inv: any) => ({
         ...inv,
-        date: inv.date?.toISOString(),
+        date: fromApiDateTime(inv.date),
         createdAt: inv.createdAt?.toISOString(),
         updatedAt: inv.updatedAt?.toISOString(),
       }))
 
-      const grouped: Record<number, (Omit<Task, 'nextDueDate'> & { nextDueDate: string | undefined })[]> = {}
+      const grouped: Record<number, TaskRow[]> = {}
       for (const t of tasks) {
         const eid = t.equipmentId ?? 0
         if (!grouped[eid]) grouped[eid] = []
         grouped[eid].push({
           ...t,
-          nextDueDate: t.nextDueDate?.toISOString(),
+          nextDueDate: fromApiDate(t.nextDueDate),
         })
       }
-      state.tasksByEquipment = grouped as Record<number, Task[]>
+      state.tasksByEquipment = grouped
     } catch (err) {
       state.error = 'Failed to load equipments'
     } finally {
@@ -73,13 +78,13 @@ export const EquipmentsPage = component(() => {
 
   load()
 
-  function latestIntervention(equipmentId: number): Intervention | null {
+  function latestIntervention(equipmentId: number): InterventionRow | null {
     const tasks = state.tasksByEquipment[equipmentId] || []
-    const taskIds = new Set(tasks.map((t: Task) => t.id))
-    let latest: Intervention | null = null
+    const taskIds = new Set(tasks.map((t: TaskRow) => t.id))
+    let latest: InterventionRow | null = null
     for (const inv of state.interventions) {
       if (inv.taskId != null && taskIds.has(inv.taskId)) {
-        if (!latest || (inv.date && latest.date && inv.date > latest.date)) {
+        if (!latest || compareCalendarDates(inv.date, latest.date) > 0) {
           latest = inv
         }
       }
@@ -94,7 +99,7 @@ export const EquipmentsPage = component(() => {
 
   function taskName(id: number | null | undefined): string {
     for (const tasks of Object.values(state.tasksByEquipment)) {
-      const t = tasks.find((tt: Task) => tt.id === id)
+      const t = tasks.find((tt: TaskRow) => tt.id === id)
       if (t) return t.name || ''
     }
     return ''
@@ -111,7 +116,7 @@ export const EquipmentsPage = component(() => {
           name,
           description: state.addDesc.trim() || undefined,
           icon: state.addIcon.trim() || undefined,
-          commissionedAt: state.addCommissionedAt ? new Date(state.addCommissionedAt + 'T12:00:00') : undefined,
+          commissionedAt: state.addCommissionedAt ? toApiDate(state.addCommissionedAt) : undefined,
           tracksHours: state.addTracksHours,
           hours: state.addTracksHours ? state.addHours : undefined,
         },
@@ -156,13 +161,13 @@ export const EquipmentsPage = component(() => {
     var metaHtml
 
     if (lastInv) {
-      metaHtml = 'Last: ' + taskName(lastInv.taskId) + ', ' + formatDate(lastInv.date)
+      metaHtml = 'Last: ' + taskName(lastInv.taskId) + ', ' + formatCalendarDate(lastInv.date)
     } else {
       metaHtml = 'No intervention yet'
     }
 
-    const overdueTasks = tasks.filter((t: Task) => t.dueStatus === 'overdue')
-    const dueSoonTasks = tasks.filter((t: Task) => t.dueStatus === 'due_soon')
+    const overdueTasks = tasks.filter((t: TaskRow) => t.dueStatus === 'overdue')
+    const dueSoonTasks = tasks.filter((t: TaskRow) => t.dueStatus === 'due_soon')
 
     let statusLabel = ''
     let statusClass = ''

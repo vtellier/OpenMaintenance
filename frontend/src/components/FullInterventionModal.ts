@@ -21,8 +21,8 @@ export interface InterventionFormState {
 export function FullInterventionModal(
   state: InterventionFormState,
   opts: {
-    equipments: () => Equipment[]
-    allTasks: () => Task[]
+    equipments: () => Pick<Equipment, 'id' | 'name' | 'tracksHours'>[]
+    allTasks: () => Pick<Task, 'id' | 'name' | 'equipmentId'>[]
     equipmentIdFixed?: number
     interventionId?: number | null
     title?: string

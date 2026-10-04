@@ -3,6 +3,7 @@ import { EquipmentApi, TaskApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { iconPicker } from '@/components/IconPicker'
 import { extractErrorMessage } from '@/lib/format'
+import { fromApiDate, toApiDate } from '@/lib/calendar-date'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -35,7 +36,7 @@ export function EquipmentEditPage(idParam: string) {
         state.name = eq.name ?? ''
         state.description = eq.description ?? ''
         state.icon = eq.icon || '🔧'
-        state.commissionedAt = eq.commissionedAt ? (eq.commissionedAt as any).toISOString().substring(0, 10) : ''
+        state.commissionedAt = fromApiDate(eq.commissionedAt) ?? ''
         state.tracksHours = eq.tracksHours ?? false
         state.originalTracksHours = state.tracksHours
         state.hours = eq.hours ?? 0
@@ -80,7 +81,7 @@ export function EquipmentEditPage(idParam: string) {
             name: state.name.trim(),
             description: state.description.trim() || undefined,
             icon: state.icon.trim() || undefined,
-            commissionedAt: state.commissionedAt ? new Date(state.commissionedAt + 'T12:00:00') : undefined,
+            commissionedAt: state.commissionedAt ? toApiDate(state.commissionedAt) : undefined,
             tracksHours: state.tracksHours,
             hours: turningOn() ? state.hours : undefined,
           },

@@ -1,7 +1,8 @@
 import { component, html, reactive } from '@arrow-js/core'
 import { EquipmentApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { formatHours, formatDate } from '@/lib/format'
+import { formatHours } from '@/lib/format'
+import { formatTimestampDate } from '@/lib/timestamp'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 
@@ -77,7 +78,7 @@ export function EquipmentHoursPage(idParam: string) {
             ${() => state.lastUpdated ? html`
               <div class="form-field">
                 <label class="form-field__label">Last updated</label>
-                <p>${formatDate(state.lastUpdated)}</p>
+                <p>${formatTimestampDate(state.lastUpdated)}</p>
               </div>
             ` : null}
 
