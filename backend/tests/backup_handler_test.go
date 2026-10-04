@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/vtellier/OpenMaintenance/internal/handlers"
@@ -85,11 +86,14 @@ func TestGetBackupStatus_WithFiles(t *testing.T) {
 	}
 
 	// Newest first, whatever the format; created_at is parsed from the
-	// filename timestamp, not mtime.
+	// filename timestamp (server local time, as written), not mtime.
+	local := func(y int, m time.Month, d, h int) string {
+		return time.Date(y, m, d, h, 0, 0, 0, time.Local).UTC().Format(time.RFC3339)
+	}
 	want := []struct{ name, createdAt string }{
-		{"maintenance.20260701-090000.tar.gz", "2026-07-01T09:00:00Z"},
-		{"maintenance.20260622-120000.bak", "2026-06-22T12:00:00Z"},
-		{"maintenance.20260601-120000.bak", "2026-06-01T12:00:00Z"},
+		{"maintenance.20260701-090000.tar.gz", local(2026, 7, 1, 9)},
+		{"maintenance.20260622-120000.bak", local(2026, 6, 22, 12)},
+		{"maintenance.20260601-120000.bak", local(2026, 6, 1, 12)},
 	}
 	for i, w := range want {
 		f := files[i].(map[string]interface{})
