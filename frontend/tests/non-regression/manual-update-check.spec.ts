@@ -95,3 +95,33 @@ test('a check that cannot reach the server says so', async ({ page }) => {
   await expect(page.locator('.update-check').getByRole('status')).toHaveText('⚠ Could not reach the OpenMaintenance server.')
   await expect(page.getByRole('button', { name: 'Check for updates' })).toBeEnabled()
 })
+
+test('a slow page-load status does not overwrite a newer check result', async ({ page }) => {
+  let answerGet!: () => void
+  const getAnswered = new Promise<void>(resolve => { answerGet = resolve })
+  await page.route('**/api/update-status', async route => {
+    await getAnswered
+    await route.fulfill({ json: { current_version: 'v0.5.0', latest_version: 'v0.5.0', update_available: false } })
+  })
+  await page.route('**/api/update-status/check', route => route.fulfill({
+    json: {
+      current_version: 'v0.5.0',
+      latest_version: 'v0.6.0',
+      update_available: true,
+      release_url: 'https://github.com/vtellier/OpenMaintenance/releases/tag/v0.6.0',
+      cached: false,
+    },
+  }))
+  await page.goto('/settings')
+  await page.getByRole('button', { name: 'Check for updates' }).click()
+  await expect(page.locator('.settings-about__update')).toBeVisible()
+
+  const getResponse = page.waitForResponse('**/api/update-status')
+  answerGet()
+  await getResponse
+  // Nothing visible changes when the late GET is ignored: give the page time
+  // to (wrongly) apply it before checking the line still shows the check.
+  await page.waitForTimeout(300)
+  await expect(page.locator('.settings-about__update')).toBeVisible()
+  await expect(page.locator('.settings-about__uptodate')).toHaveCount(0)
+})

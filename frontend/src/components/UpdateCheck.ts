@@ -40,11 +40,18 @@ export function UpdateCheck() {
     state.failed = failed
   }
 
+  // A manual check's result is fresher than this page load's GET, which may
+  // answer later: once a check has started, ignore the GET.
+  let checkStarted = false
+
   // The startup check fails silently: on error the status line stays hidden.
-  systemApi.getUpdateStatus().then(showStatus).catch(() => {})
+  systemApi.getUpdateStatus()
+    .then(status => { if (!checkStarted) showStatus(status) })
+    .catch(() => {})
 
   async function check() {
     if (state.checking) return
+    checkStarted = true
     state.checking = true
     showMessage('', false)
     try {
