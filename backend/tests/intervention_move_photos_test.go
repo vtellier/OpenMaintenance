@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 	"time"
 
@@ -277,24 +276,25 @@ func TestInterventionFile_MoveWithPhotoMissingOnDisk(t *testing.T) {
 // A move whose photo copy fails is rejected as a whole: the intervention stays
 // on its equipment and its photo stays reachable.
 func TestInterventionFile_MoveRollsBackWhenCopyFails(t *testing.T) {
-	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
-		t.Skip("relies on POSIX directory permissions, which root bypasses")
-	}
 	m := setupInterventionWithPhoto(t)
 
-	// Make the new equipment's directory read-only so the copy cannot land.
+	// A regular file where the new equipment's interventions/ directory should
+	// be makes the copy fail, whatever the user's permissions.
 	eq2Dir := filepath.Join(m.baseDir, "files", "equipments", itoa(m.eq2))
 	if err := os.MkdirAll(eq2Dir, 0755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	if err := os.Chmod(eq2Dir, 0555); err != nil {
-		t.Fatalf("chmod: %v", err)
+	blocker := filepath.Join(eq2Dir, "interventions")
+	if err := os.WriteFile(blocker, nil, 0644); err != nil {
+		t.Fatalf("write blocker: %v", err)
 	}
-	t.Cleanup(func() { os.Chmod(eq2Dir, 0755) })
 
 	rec := putIntervention(t, m.e, m.invID, moveScenarios[0].body(m.eq2, m.task2))
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("move: expected 500, got %d (%s)", rec.Code, rec.Body.String())
+	}
+	if err := os.Remove(blocker); err != nil {
+		t.Fatalf("remove blocker: %v", err)
 	}
 	assertPhotoStayed(t, m)
 }
