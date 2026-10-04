@@ -379,6 +379,30 @@ code {
   text-decoration: underline;
 }
 
+/* ── Update check (Settings → About) ── */
+
+.update-check {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 8px 0 12px;
+}
+
+.update-check__button:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.update-check__message {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.update-check__message--error {
+  color: #ef4444;
+}
+
 /* ── Backup file list ── */
 
 .backup-files {

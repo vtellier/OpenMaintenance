@@ -5,17 +5,11 @@ import { SystemApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { formatFileSize } from '@/lib/format'
 import { relativeTime } from '@/lib/timestamp'
+import { UpdateCheck } from '@/components/UpdateCheck'
 
 const systemApi = new SystemApi(apiConfig)
 
 const theme = reactive({ value: getStoredTheme() })
-
-const updateState = reactive({
-  updateAvailable: false,
-  latestVersion: '',
-  releaseUrl: '',
-  checked: false,
-})
 
 const backupState = reactive({
   loaded: false,
@@ -24,18 +18,6 @@ const backupState = reactive({
   keep: 0,
   files: [] as Array<{ name: string; size: number; createdAt: string }>,
 })
-
-systemApi.getUpdateStatus()
-  .then(status => {
-    const latestVersion = status.latestVersion ?? ''
-    const updateAvailable = status.updateAvailable
-    updateState.updateAvailable = updateAvailable
-    updateState.latestVersion = latestVersion
-    updateState.releaseUrl = status.releaseUrl ?? ''
-    // An empty latestVersion means the background GitHub check is still running
-    // or failed — we cannot confirm the app is up to date yet.
-    updateState.checked = latestVersion !== '' || updateAvailable
-  })
 
 systemApi.getBackupStatus()
   .then(status => {
@@ -111,17 +93,7 @@ export const SettingsPage = () => html`
     <section class="settings-section">
       <h2 class="settings-section__title">About</h2>
       <p class="settings-about__line">OpenMaintenance ${__APP_VERSION__}</p>
-      ${() => {
-        if (!updateState.checked) return null
-        if (updateState.updateAvailable) {
-          const url = updateState.releaseUrl
-          const version = updateState.latestVersion
-          return html`<p class="settings-about__line settings-about__update">
-            <a href="${url}" target="_blank" rel="noopener noreferrer">⬆ ${version} available — Release notes ↗</a>
-          </p>`
-        }
-        return html`<p class="settings-about__line settings-about__uptodate">✓ Up to date</p>`
-      }}
+      ${UpdateCheck()}
       <p class="settings-about__line"><a href="https://github.com/vtellier/OpenMaintenance">github.com/vtellier/OpenMaintenance</a></p>
       <p class="settings-about__line">MIT License</p>
     </section>
