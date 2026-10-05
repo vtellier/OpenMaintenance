@@ -13,10 +13,10 @@ func floatPtr(v float64) *float64 { return &v }
 
 func strPtr(v string) *string { return &v }
 
-// daysAgo returns a time N days in the past, useful for building baselines
-// relative to "now" so the tests do not depend on a fixed calendar date.
+// daysAgo returns a time N days before the fixed test clock (testNow), useful
+// for building baselines relative to "now".
 func daysAgo(days int) time.Time {
-	return time.Now().AddDate(0, 0, -days)
+	return testNow.AddDate(0, 0, -days)
 }
 
 // TestComputeDueStatusDateBaseline documents the date baseline used by the
@@ -50,7 +50,7 @@ func TestComputeDueStatusDateBaseline(t *testing.T) {
 			task: models.Task{MonthsInterval: intPtr(6)},
 			equipment: models.Equipment{
 				CommissionedAt: strPtr(daysAgo(3 * 365).Format("2006-01-02")),
-				CreatedAt:      time.Now(),
+				CreatedAt:      testNow,
 			},
 			last:           nil,
 			wantStatus:     "overdue",
@@ -62,7 +62,7 @@ func TestComputeDueStatusDateBaseline(t *testing.T) {
 			task: models.Task{MonthsInterval: intPtr(6)},
 			equipment: models.Equipment{
 				CommissionedAt: nil,
-				CreatedAt:      time.Now(),
+				CreatedAt:      testNow,
 			},
 			last:           nil,
 			wantStatus:     "overdue",
@@ -74,7 +74,7 @@ func TestComputeDueStatusDateBaseline(t *testing.T) {
 			task: models.Task{MonthsInterval: intPtr(6)},
 			equipment: models.Equipment{
 				CommissionedAt: nil,
-				CreatedAt:      time.Now(),
+				CreatedAt:      testNow,
 			},
 			last:           nil,
 			wantStatus:     "overdue",
@@ -132,7 +132,7 @@ func TestComputeDueStatusDateBaseline(t *testing.T) {
 			task: models.Task{MonthsInterval: intPtr(6)},
 			equipment: models.Equipment{
 				CommissionedAt: strPtr("31/12/2023"),
-				CreatedAt:      time.Now(),
+				CreatedAt:      testNow,
 			},
 			last:           nil,
 			wantStatus:     "overdue",
@@ -144,8 +144,8 @@ func TestComputeDueStatusDateBaseline(t *testing.T) {
 			task: models.Task{MonthsInterval: intPtr(6)},
 			equipment: models.Equipment{
 				// 6 months minus ~10 days -> inside the 30-day due-soon margin.
-				CommissionedAt: strPtr(time.Now().AddDate(0, -6, 10).Format("2006-01-02")),
-				CreatedAt:      time.Now(),
+				CommissionedAt: strPtr(testNow.AddDate(0, -6, 10).Format("2006-01-02")),
+				CreatedAt:      testNow,
 			},
 			last:       nil,
 			wantStatus: "due_soon",
@@ -154,7 +154,7 @@ func TestComputeDueStatusDateBaseline(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			status, nextDueDate, _ := ComputeDueStatus(tt.task, tt.equipment, tt.last)
+			status, nextDueDate, _ := ComputeDueStatus(tt.task, tt.equipment, tt.last, testNow)
 
 			if status != tt.wantStatus {
 				t.Errorf("status = %q, want %q", status, tt.wantStatus)
@@ -183,7 +183,7 @@ func TestComputeDueStatusHours(t *testing.T) {
 			equipment: models.Equipment{
 				TracksHours: true,
 				Hours:       floatPtr(650),
-				CreatedAt:   time.Now(),
+				CreatedAt:   testNow,
 			},
 			last:          &models.Intervention{Date: daysAgo(5), HoursAt: floatPtr(500)},
 			wantStatus:    "overdue",
@@ -195,7 +195,7 @@ func TestComputeDueStatusHours(t *testing.T) {
 			equipment: models.Equipment{
 				TracksHours: true,
 				Hours:       floatPtr(595),
-				CreatedAt:   time.Now(),
+				CreatedAt:   testNow,
 			},
 			last:          &models.Intervention{Date: daysAgo(5), HoursAt: floatPtr(500)},
 			wantStatus:    "due_soon",
@@ -207,7 +207,7 @@ func TestComputeDueStatusHours(t *testing.T) {
 			equipment: models.Equipment{
 				TracksHours: true,
 				Hours:       floatPtr(520),
-				CreatedAt:   time.Now(),
+				CreatedAt:   testNow,
 			},
 			last:          &models.Intervention{Date: daysAgo(5), HoursAt: floatPtr(500)},
 			wantStatus:    "ok",
@@ -219,7 +219,7 @@ func TestComputeDueStatusHours(t *testing.T) {
 			equipment: models.Equipment{
 				TracksHours: false,
 				Hours:       floatPtr(9000),
-				CreatedAt:   time.Now(),
+				CreatedAt:   testNow,
 			},
 			last:          &models.Intervention{Date: daysAgo(5), HoursAt: floatPtr(500)},
 			wantStatus:    "ok",
@@ -232,7 +232,7 @@ func TestComputeDueStatusHours(t *testing.T) {
 				TracksHours:    true,
 				Hours:          floatPtr(120),
 				CommissionedAt: strPtr(daysAgo(3 * 365).Format("2006-01-02")),
-				CreatedAt:      time.Now(),
+				CreatedAt:      testNow,
 			},
 			last:          nil,
 			wantStatus:    "overdue",
@@ -255,7 +255,7 @@ func TestComputeDueStatusHours(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			status, _, nextDueHours := ComputeDueStatus(tt.task, tt.equipment, tt.last)
+			status, _, nextDueHours := ComputeDueStatus(tt.task, tt.equipment, tt.last, testNow)
 
 			if status != tt.wantStatus {
 				t.Errorf("status = %q, want %q", status, tt.wantStatus)

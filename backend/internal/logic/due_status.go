@@ -37,7 +37,11 @@ func dateBaseline(equipment models.Equipment, lastIntervention *models.Intervent
 	return time.Time{}, false
 }
 
-func ComputeDueStatus(task models.Task, equipment models.Equipment, lastIntervention *models.Intervention) (status string, nextDueDate string, nextDueHours *float64) {
+// ComputeDueStatus derives a task's due status, next due date and next due
+// hours as of now. The current time is a parameter, not read from the wall
+// clock, so callers control it: production passes time.Now(), tests pass a
+// fixed instant.
+func ComputeDueStatus(task models.Task, equipment models.Equipment, lastIntervention *models.Intervention, now time.Time) (status string, nextDueDate string, nextDueHours *float64) {
 	baselineDate, hasBaselineDate := dateBaseline(equipment, lastIntervention)
 	var baselineHours float64
 
@@ -45,7 +49,6 @@ func ComputeDueStatus(task models.Task, equipment models.Equipment, lastInterven
 		baselineHours = *lastIntervention.HoursAt
 	}
 
-	now := time.Now()
 	overallStatus := "ok"
 
 	if task.MonthsInterval != nil {
