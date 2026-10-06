@@ -196,4 +196,4 @@ This recovers from partially failed deletes.
 
 ## Backup impact
 
-The existing backup copies only `maintenance.db`. It must be extended to also archive the `files/` directory. The backup should produce a timestamped archive containing both the database and the files tree (e.g. `maintenance.20260101-120000.tar.gz`).
+The startup backup archives the database **and** the `files/` tree into a single timestamped `.tar.gz` (e.g. `maintenance.20260101-120000.tar.gz`), so restoring a backup brings back the attachments together with the rows that reference them. A missing `files/` directory (no attachment uploaded yet) is fine. Format, rotation, legacy `.bak` backups and restore are described in [configuration.md — Backups](./configuration.md#backups).

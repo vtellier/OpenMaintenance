@@ -16,7 +16,7 @@ Define your own maintenance program, log interventions, and see at a glance what
 - **No authentication** — anyone with network access to the app can use it; security is delegated to your deployment (reverse proxy, firewall, etc.)
 - **Multi-device friendly** — works on desktop, tablet, and mobile
 - **Update notifications** — the Settings page notifies you when a new release is available on GitHub
-- **Backup visibility** — the Settings page shows where backups are stored and lists existing backup files
+- **Automatic backups** — on every start, the database and all attached files are archived into a timestamped `.tar.gz`, with configurable retention; the Settings page shows where backups are stored and lists them
 
 ## Self-Hosting
 
