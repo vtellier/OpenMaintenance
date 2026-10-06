@@ -1,11 +1,20 @@
 ---
 name: non-regression-test
-description: Write or run Playwright non-regression tests for OpenMaintenance frontend bugs. Use when fixing a frontend bug, when asked to pin a bug with a test, or when asked to run the test suite.
+description: Write or run Playwright non-regression tests for OpenMaintenance frontend bugs. Use when the bug is in rendering, interaction or reactivity, or when asked to add or run the Playwright suite. Backend bugs use the go-test skill instead.
 ---
 
-# Non-regression test (Playwright)
+# Non-regression test — Playwright (frontend branch)
 
-Use this skill whenever you fix a frontend bug, or when you are asked to add or run a Playwright test for OpenMaintenance.
+This is the **Playwright branch** of the bug-fix process. It covers bugs that live in the browser: rendering, interaction, reactivity.
+
+It is **not** the only way to pin a bug. Pick the branch first:
+
+| Bug lives in | Skill to load | Failing test goes in |
+|---|---|---|
+| Go business logic, or the API contract | [`.agents/skills/go-test/SKILL.md`](../go-test/SKILL.md) | `backend/internal/<pkg>/*_test.go` or `backend/tests/*_test.go` |
+| Frontend rendering / interaction / reactivity | **this skill** | `frontend/tests/non-regression/*.spec.ts` |
+
+The branching decision itself is Step 3.5 of [`.agents/skills/bug-fix/SKILL.md`](../bug-fix/SKILL.md). Rule of thumb: pin the bug at the lowest layer that can produce it, and reach for a Playwright spec when the browser can break independently of the backend. Use this skill whenever you are asked to add or run a Playwright test for OpenMaintenance.
 
 ## Where things live
 
@@ -23,6 +32,7 @@ Playwright's `webServer` block starts both servers itself, or reuses them if the
 
 ## Workflow when fixing a frontend bug
 
+0. Confirm it really is a frontend bug: if `curl` against the backend already returns the wrong data, stop here and use the [go-test skill](../go-test/SKILL.md) instead.
 1. Reproduce the bug manually (chrome-devtools MCP is fine for exploration).
 2. **Before writing the fix**, check `frontend/tests/non-regression/` for an existing spec covering the bug. If one exists and currently passes, the bug isn't pinned — that's a gap; treat it as a new spec to add.
 3. Write a spec that **fails on the current (buggy) code** if at all possible. Run `pnpm test` to confirm it fails for the right reason.
