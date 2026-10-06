@@ -23,7 +23,7 @@ A list of tasks for this equipment, each row showing:
   - **"Mark done"** → opens the quick log form (see [interventions.md](./interventions.md)).
   - **Edit** / **Delete** task.
 
-Tasks are sorted by urgency by default (overdue first, then due-soon, then OK).
+Tasks are in [urgency order](../data-model.md#ranking-tasks-by-urgency) by default: overdue first, then due soon, then OK, and within each the task furthest through its interval first.
 
 A prominent **"+ Add task"** button on the tab.
 

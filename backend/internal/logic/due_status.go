@@ -61,18 +61,26 @@ type DueStatus struct {
 	// DueInHours is NextDueHours minus the current reading, negative once
 	// reached or passed. Nil when the hours rule does not apply.
 	DueInHours *float64
+	// Urgency is the fraction of the interval elapsed since the baseline,
+	// the greater of the rules that apply: 0 just done, 1 at the due point,
+	// above 1 once past. Nil when no rule gives one. Clients rank tasks by
+	// Status, then Urgency.
+	Urgency *float64
 }
 
 // ComputeDueStatus derives a task's due status as of now. The current time is
 // a parameter, not read from the wall clock, so callers control it:
 // production passes time.Now(), tests pass a fixed instant.
 //
-// Each rule that applies gives its own status. The driving trigger is the
-// rule with the worse status, months on a tie, and its status is the task's.
-// The exception is a months rule without any baseline date (never performed,
-// no commissioning date): it is overdue but has no amount, so on a tie with
-// an overdue hours rule the hours rule drives, because it has a concrete
-// amount to show.
+// Each rule that applies gives its own status and fraction of its interval
+// elapsed. The driving trigger is the rule with the worse status; on the same
+// status, the one with the greater fraction; months if equal. Its status is
+// the task's, and the greater fraction is its urgency.
+//
+// A months rule without any baseline date (never performed, no commissioning
+// date) is overdue but has no amount and no fraction: on the same status as an
+// overdue hours rule the hours rule drives, because it has a concrete amount
+// to show, and the urgency comes from the hours rule alone, or is absent.
 func ComputeDueStatus(task models.Task, equipment models.Equipment, lastIntervention *models.Intervention, now time.Time) DueStatus {
 	baselineDate, hasBaselineDate := dateBaseline(equipment, lastIntervention)
 	var baselineHours float64
@@ -84,13 +92,17 @@ func ComputeDueStatus(task models.Task, equipment models.Equipment, lastInterven
 	due := DueStatus{Status: "ok"}
 	// "" while a rule does not apply.
 	var monthsStatus, hoursStatus string
+	// nil while a rule does not apply or has no fraction: its interval is not
+	// positive, or it has no baseline date.
+	var monthsFraction, hoursFraction *float64
 	monthsHasAmount := true
 
 	if task.MonthsInterval != nil {
 		if !hasBaselineDate {
 			// Never performed and no commissioning date: there is no way to
 			// know when the task is due, so it is reported overdue, with no
-			// next due date and no amount, rather than inventing one.
+			// next due date, no amount and no fraction, rather than
+			// inventing one.
 			monthsStatus = "overdue"
 			monthsHasAmount = false
 		} else {
@@ -98,6 +110,12 @@ func ComputeDueStatus(task models.Task, equipment models.Equipment, lastInterven
 			due.NextDueDate = nextDate.Format("2006-01-02")
 			days := calendarDaysUntil(nextDate, now)
 			due.DueInDays = &days
+			// Elapsed / interval in calendar days: the baseline's date to the
+			// due date, minus the days still to go.
+			if intervalDays := calendarDaysUntil(nextDate, baselineDate); intervalDays > 0 {
+				f := float64(intervalDays-days) / float64(intervalDays)
+				monthsFraction = &f
+			}
 
 			monthsStatus = "ok"
 			if now.After(nextDate) {
@@ -116,6 +134,10 @@ func ComputeDueStatus(task models.Task, equipment models.Equipment, lastInterven
 			currentHours := *equipment.Hours
 			inHours := nextHours - currentHours
 			due.DueInHours = &inHours
+			if *task.HoursInterval > 0 {
+				f := (currentHours - baselineHours) / float64(*task.HoursInterval)
+				hoursFraction = &f
+			}
 
 			hoursStatus = "ok"
 			if currentHours >= nextHours {
@@ -126,18 +148,41 @@ func ComputeDueStatus(task models.Task, equipment models.Equipment, lastInterven
 		}
 	}
 
-	// Months wins a tie, unless it has no amount to show (see above).
-	monthsWins := statusRank(monthsStatus) > statusRank(hoursStatus) ||
-		(monthsHasAmount && statusRank(monthsStatus) == statusRank(hoursStatus))
-
 	switch {
-	case monthsStatus != "" && monthsWins:
+	case monthsStatus != "" && monthsDrive(monthsStatus, hoursStatus, monthsHasAmount, monthsFraction, hoursFraction):
 		due.Trigger, due.Status = TriggerMonths, monthsStatus
 	case hoursStatus != "":
 		due.Trigger, due.Status = TriggerHours, hoursStatus
 	}
+	due.Urgency = greater(monthsFraction, hoursFraction)
 
 	return due
+}
+
+// monthsDrive reports whether the months rule, which applies, drives rather
+// than the hours rule: hours does not apply, or months has the worse status,
+// or the same status and a fraction elapsed at least as great. A months rule
+// with no amount (no date baseline) yields to an hours rule on the same status.
+func monthsDrive(monthsStatus, hoursStatus string, monthsHasAmount bool, monthsFraction, hoursFraction *float64) bool {
+	if statusRank(monthsStatus) != statusRank(hoursStatus) {
+		return statusRank(monthsStatus) > statusRank(hoursStatus)
+	}
+	if !monthsHasAmount {
+		return false
+	}
+	return greater(monthsFraction, hoursFraction) == monthsFraction
+}
+
+// greater returns the greater of two optional fractions, a when they are
+// equal, nil when both are nil.
+func greater(a, b *float64) *float64 {
+	switch {
+	case a == nil:
+		return b
+	case b == nil || *a >= *b:
+		return a
+	}
+	return b
 }
 
 // calendarDaysUntil returns the whole calendar days from now's date to due's

@@ -165,3 +165,84 @@ func TestTaskDueStatus_DueTodayKeepsZeroDays(t *testing.T) {
 		t.Errorf("due_in_days = %v (present: %v), want 0", days, ok)
 	}
 }
+
+// Issue #68: urgency, the fraction of the interval elapsed, ranks tasks across
+// triggers. The equipment has 300 h on the meter and has been in service for
+// 13 months, nothing ever performed.
+func TestTaskDueStatus_UrgencyRanksAcrossTriggers(t *testing.T) {
+	e, h, _ := newTestServer(t)
+	hours := 300.0
+	commissioned := time.Now().UTC().AddDate(0, -13, 0).Format("2006-01-02")
+	id := seedEquipmentWith(t, h, &models.Equipment{Name: "Engine", TracksHours: true, Hours: &hours, CommissionedAt: &commissioned})
+
+	// Overdue by 200 h on a 100 h interval, calendar due date 11 months ahead.
+	byHours := createTaskJSON(t, e, map[string]any{"equipment_id": id, "name": "Oil change", "hours_interval": 100, "months_interval": 24})
+	// Overdue by about a month on a 12-month interval.
+	byMonths := createTaskJSON(t, e, map[string]any{"equipment_id": id, "name": "Inspection", "months_interval": 12})
+
+	for _, task := range []map[string]any{byHours, byMonths} {
+		if task["due_status"] != "overdue" {
+			t.Errorf("%v: due_status = %v, want overdue", task["name"], task["due_status"])
+		}
+	}
+	if byHours["due_trigger"] != "hours" {
+		t.Errorf("due_trigger = %v, want hours", byHours["due_trigger"])
+	}
+	if byHours["urgency"] != 3.0 {
+		t.Errorf("hours task urgency = %v, want 3 (300 h elapsed of 100 h)", byHours["urgency"])
+	}
+	monthsUrgency, ok := byMonths["urgency"].(float64)
+	if !ok || monthsUrgency <= 1 || monthsUrgency >= 1.1 {
+		t.Errorf("months task urgency = %v, want about 13/12", byMonths["urgency"])
+	}
+}
+
+// A task just done is at 0: the urgency must still be in the JSON, not
+// dropped as an empty value.
+func TestTaskDueStatus_ZeroUrgencyIsKept(t *testing.T) {
+	e, h, _ := newTestServer(t)
+	hours := 0.0
+	id := seedEquipmentWith(t, h, &models.Equipment{Name: "Generator", TracksHours: true, Hours: &hours})
+
+	task := createTaskJSON(t, e, map[string]any{"equipment_id": id, "name": "Oil change", "hours_interval": 100})
+
+	if urgency, ok := task["urgency"]; !ok || urgency != 0.0 {
+		t.Errorf("urgency = %v (present: %v), want 0", urgency, ok)
+	}
+}
+
+// No rule applies (the meter has no reading yet): no urgency.
+func TestTaskDueStatus_NoRuleNoUrgency(t *testing.T) {
+	e, h, _ := newTestServer(t)
+	id := seedEquipmentWith(t, h, &models.Equipment{Name: "Pump", TracksHours: true})
+
+	task := createTaskJSON(t, e, map[string]any{"equipment_id": id, "name": "Seal check", "hours_interval": 100})
+
+	if _, present := task["due_trigger"]; present {
+		t.Errorf("due_trigger = %v, want absent", task["due_trigger"])
+	}
+	if _, present := task["urgency"]; present {
+		t.Errorf("urgency = %v, want absent", task["urgency"])
+	}
+}
+
+// A months rule with no date baseline (#62) has no fraction: months-only gives
+// no urgency, and with an hours rule the urgency is the hours rule's alone.
+func TestTaskDueStatus_MonthsNoBaselineHasNoUrgency(t *testing.T) {
+	e, h, _ := newTestServer(t)
+	hours := 150.0
+	id := seedEquipmentWith(t, h, &models.Equipment{Name: "Engine", TracksHours: true, Hours: &hours})
+
+	monthsOnly := createTaskJSON(t, e, map[string]any{"equipment_id": id, "name": "Inspection", "months_interval": 12})
+	if monthsOnly["due_status"] != "overdue" {
+		t.Errorf("due_status = %v, want overdue", monthsOnly["due_status"])
+	}
+	if v, present := monthsOnly["urgency"]; present {
+		t.Errorf("months-only urgency = %v, want absent", v)
+	}
+
+	both := createTaskJSON(t, e, map[string]any{"equipment_id": id, "name": "Oil change", "hours_interval": 100, "months_interval": 12})
+	if both["urgency"] != 1.5 {
+		t.Errorf("urgency = %v, want 1.5 (150 h elapsed of 100 h, hours rule only)", both["urgency"])
+	}
+}

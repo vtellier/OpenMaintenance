@@ -17,7 +17,7 @@ Browse, find, and create equipments. Get an at-a-glance status of each.
 - **Description** (optional, truncated to 1–2 lines).
 - **Hour-meter** value (only if the equipment tracks hours, e.g. *"1 245 h"*) + the **last hour-meter update** as relative time (e.g. *"updated 3 days ago"*, *"never updated"*). Stale updates (older than the configured threshold) are visually emphasized.
 - **Last intervention**: date + task name (e.g. *"Last: Oil change, 12 Apr 2026"*). If none, show *"No intervention yet"*.
-- **Next due**: the most urgent upcoming task with its urgency indicator (color + status label), its name and its timing text, the same timing text as the dashboard (see [dashboard.md](./dashboard.md#timing-text)), e.g. *"[Overdue] Oil change — 120 h ago"*. If none, show *"All tasks OK"*.
+- **Next due**: the most urgent upcoming task, the first in [urgency order](../data-model.md#ranking-tasks-by-urgency), with its urgency indicator (color + status label), its name and its timing text, the same timing text as the dashboard (see [dashboard.md](./dashboard.md#timing-text)), e.g. *"[Overdue] Oil change — 120 h ago"*. When several tasks have that status, their count replaces the name, followed by the most urgent one's timing text, e.g. *"[Overdue] 3 tasks — most urgent 120 h ago"*. If none, show *"All tasks OK"*.
 - Clicking a card → navigates to the equipment detail screen.
 
 ### Empty state

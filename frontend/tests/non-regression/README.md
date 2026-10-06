@@ -53,3 +53,5 @@ If both are already running (e.g. `make dev`), they are reused as-is.
 | `overdue-hours-shows-hours-not-future-date.spec.ts` | Overdue task with a future calendar nextDueDate showed "in Xd" instead of hours-based info (issue #52) | — |
 | `equipment-edit-keeps-hour-meter.spec.ts` | Saving the equipment edit form reset the hour-meter freshness to "never updated", and its hours field could lower the reading (issue #69) | — |
 | `equipments-overdue-hours-shows-hours-not-today.spec.ts` | Equipments page showed "Overdue — today" for a task overdue by hours whose calendar due date is still in the future, instead of the hours overdue (issue #67) | — |
+| `equipments-most-urgent-task-across-triggers.spec.ts` | Equipments page picked the wrong most urgent task: a task overdue by hours ranked least overdue when its calendar due date was in the future, and hours past due were compared as clock hours (issue #68) | — |
+| `tasks-ordered-by-urgency.spec.ts` | Dashboard and Equipment detail ordered tasks by status only (creation order within a status), not by urgency across triggers (issue #68) | — |
