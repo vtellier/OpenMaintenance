@@ -11,7 +11,7 @@ Triggered by the **"Mark done"** button available on:
 - A task row in an **equipment's Tasks tab**.
 
 Opens a small modal/sheet with a minimal form:
-- **Date** (defaults to today, editable).
+- **Date** (defaults to today in the user's timezone, editable).
 - **Hours** (only if equipment tracks hours; pre-filled with current equipment hours, editable).
 - **Done by** (optional, single-line text, placeholder "e.g. Self, Garage du Port").
 - **Comments** (optional, single line).
@@ -31,7 +31,7 @@ The user must first pick the equipment and the task (or these are pre-selected w
 - **Exceptional intervention** checkbox (unchecked by default) with an `ⓘ` icon next to it. Hovering the icon shows a tooltip: _"Exceptional interventions are one-off operations not part of your maintenance plan (e.g. replacing a broken part). They appear in the history but do not affect task due dates."_
 - **Task** (required when checkbox is unchecked; greyed out and disabled when checkbox is checked)
 - **Exceptional intervention label** (text field, visible and mandatory only when the checkbox is checked; placeholder: "e.g. Replaced broken impeller")
-- **Date** (required, defaults to today)
+- **Date** (required, defaults to today in the user's timezone)
 - **Hours** (if equipment tracks hours, pre-filled with current value)
 - **Location** (optional, free text)
 - **Done by** (optional, free text, placeholder "e.g. Self, Garage du Port")
@@ -42,7 +42,7 @@ Save is disabled until all required fields are filled: date is always required; 
 
 ## Validation rules
 
-- Date cannot be in the future. (Optional warning if older than 5 years.)
+- Date cannot be in the future (after today in the user's timezone). (Optional warning if older than 5 years.)
 - If `hours` is provided, it must be ≥ the equipment's current `hours`. If the user enters a lower value, show an inline warning but allow it (the equipment hours will not be lowered).
 
 ## Side effects on save

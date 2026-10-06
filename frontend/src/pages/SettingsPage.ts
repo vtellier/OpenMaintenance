@@ -3,7 +3,8 @@ import { getStoredTheme, setStoredTheme, applyTheme } from '@/theme'
 import type { Theme } from '@/theme'
 import { SystemApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { formatFileSize, relativeTime } from '@/lib/format'
+import { formatFileSize } from '@/lib/format'
+import { relativeTime } from '@/lib/timestamp'
 
 const systemApi = new SystemApi(apiConfig)
 

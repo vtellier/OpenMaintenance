@@ -40,8 +40,11 @@ Pure frontend logic (formatters, date helpers, form rules) is unit-tested with [
 cd frontend
 pnpm test:unit                       # run once, as CI does
 pnpm exec vitest                     # watch mode
-TZ=America/New_York pnpm test:unit   # run under another timezone
+TZ=America/New_York pnpm test:unit   # use another timezone as "local"
+pnpm exec vitest run --project Europe/Paris   # one timezone only
 ```
+
+Every test runs once in your own timezone (the `local` project) and once in each timezone listed in `TEST_TIMEZONES` in `vite.config.ts`: UTC, two zones east of it and two west. Date code therefore cannot pass only where it was written. Each timezone runs in its own process (the `forks` pool), because `TZ` applies to a whole process.
 
 Put each test next to the module it covers, named `<module>.test.ts` (e.g. `src/lib/format.test.ts`), and test through the module's exported functions. Vitest only collects `src/**/*.test.ts`; the Playwright specs in `frontend/tests/` keep running with `pnpm test`.
 

@@ -4,19 +4,22 @@ import { Task } from '@generated/api/models/Task'
 import { Intervention } from '@generated/api/models/Intervention'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { formatDate, buildInterventionMeta, todayLocal, extractErrorMessage } from '@/lib/format'
+import { buildInterventionMeta, extractErrorMessage } from '@/lib/format'
+import { WithCalendarDates, today, formatCalendarDate, compareCalendarDates, fromApiDateTime, toApiDateTime } from '@/lib/calendar-date'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
 const interventionApi = new InterventionApi(apiConfig)
 
+type InterventionRow = WithCalendarDates<Intervention, 'date'>
+
 export function HistoryPage() {
   return component(() => {
     const state = reactive({
       equipments: [] as Equipment[],
       tasks: [] as Task[],
-      interventions: [] as Intervention[],
+      interventions: [] as InterventionRow[],
       loaded: false,
       loadError: null as string | null,
 
@@ -39,7 +42,7 @@ export function HistoryPage() {
       error: null as string | null,
 
       showDeleteConfirm: false,
-      deleteTarget: null as Intervention | null,
+      deleteTarget: null as InterventionRow | null,
       deleteSaving: false,
       deleteError: null as string | null,
     })
@@ -68,7 +71,7 @@ export function HistoryPage() {
 
         state.interventions = invs.map((inv: any) => ({
           ...inv,
-          date: inv.date?.toISOString(),
+          date: fromApiDateTime(inv.date),
           createdAt: inv.createdAt?.toISOString(),
           updatedAt: inv.updatedAt?.toISOString(),
         }))
@@ -93,48 +96,13 @@ export function HistoryPage() {
       return state.tasks.find(t => t.id === taskId)
     }
 
-    function sortedInterventions(): Intervention[] {
-      let list = [...state.interventions]
-      const filterEqId = state.filterEquipmentId
-      const filterFrom = state.filterDateFrom
-      const filterTo = state.filterDateTo
-
-      if (filterEqId != null) {
-        const taskIdsForEq = new Set(
-          state.tasks.filter(t => t.equipmentId === filterEqId).map(t => t.id)
-        )
-        list = list.filter(inv =>
-          (inv.taskId != null && taskIdsForEq.has(inv.taskId)) ||
-          (inv.taskId == null && inv.equipmentId === filterEqId)
-        )
-      }
-
-      if (filterFrom) {
-        const fromDate = new Date(filterFrom + 'T00:00:00')
-        list = list.filter(inv => inv.date && new Date(inv.date) >= fromDate)
-      }
-
-      if (filterTo) {
-        const toDate = new Date(filterTo + 'T23:59:59')
-        list = list.filter(inv => inv.date && new Date(inv.date) <= toDate)
-      }
-
-      list.sort((a, b) => {
-        const da = a.date ? new Date(a.date).getTime() : 0
-        const db = b.date ? new Date(b.date).getTime() : 0
-        return db - da
-      })
-
-      return list
-    }
-
     function resetForm() {
       state.editId = null
       state.equipmentId = null
       state.taskId = null
       state.isExceptional = false
       state.exceptionalLabel = ''
-      state.date = todayLocal()
+      state.date = today()
       state.hours = 0
       state.location = ''
       state.performedBy = ''
@@ -148,13 +116,13 @@ export function HistoryPage() {
       state.showForm = true
     }
 
-    function onEditClick(inv: Intervention) {
+    function onEditClick(inv: InterventionRow) {
       state.editId = inv.id ?? null
       state.equipmentId = null
       state.taskId = inv.taskId ?? null
       state.isExceptional = inv.taskId == null
       state.exceptionalLabel = inv.exceptionalLabel ?? ''
-      state.date = inv.date ? formatDate(inv.date) : ''
+      state.date = inv.date ?? ''
       state.hours = inv.hoursAt ?? 0
       state.location = inv.location ?? ''
       state.performedBy = inv.performedBy ?? ''
@@ -182,14 +150,14 @@ export function HistoryPage() {
       const body = state.isExceptional ? {
         equipmentId: state.equipmentId ?? undefined,
         exceptionalLabel: state.exceptionalLabel.trim(),
-        date: new Date(state.date + 'T00:00:00'),
+        date: toApiDateTime(state.date),
         hoursAt: state.hours > 0 ? state.hours : undefined,
         location: state.location.trim() || undefined,
         performedBy: state.performedBy.trim() || undefined,
         comments: state.comments.trim() || undefined,
       } : {
         taskId: state.taskId!,
-        date: new Date(state.date + 'T00:00:00'),
+        date: toApiDateTime(state.date),
         hoursAt: state.hours > 0 ? state.hours : undefined,
         location: state.location.trim() || undefined,
         performedBy: state.performedBy.trim() || undefined,
@@ -216,7 +184,7 @@ export function HistoryPage() {
       }
     }
 
-    function onDeleteClick(inv: Intervention) {
+    function onDeleteClick(inv: InterventionRow) {
       state.showDeleteConfirm = true
       state.deleteTarget = inv
       state.deleteError = null
@@ -285,19 +253,14 @@ export function HistoryPage() {
               (inv.taskId == null && inv.equipmentId === filterEquipmentId)
             )
           }
+          // Calendar dates ('YYYY-MM-DD') compare in calendar order.
           if (filterDateFrom) {
-            const fromDate = new Date(filterDateFrom + 'T00:00:00')
-            list = list.filter(inv => inv.date && new Date(inv.date) >= fromDate)
+            list = list.filter(inv => inv.date != null && inv.date >= filterDateFrom)
           }
           if (filterDateTo) {
-            const toDate = new Date(filterDateTo + 'T23:59:59')
-            list = list.filter(inv => inv.date && new Date(inv.date) <= toDate)
+            list = list.filter(inv => inv.date != null && inv.date <= filterDateTo)
           }
-          list.sort((a, b) => {
-            const da = a.date ? new Date(a.date).getTime() : 0
-            const db = b.date ? new Date(b.date).getTime() : 0
-            return db - da
-          })
+          list.sort((a, b) => compareCalendarDates(b.date, a.date))
 
           if (list.length === 0) {
             listContent = equipments.length === 0
@@ -313,7 +276,7 @@ export function HistoryPage() {
                 <span class="history-item__actions-head"></span>
               </div>
               ${() => currentList.map(inv => {
-                const dateStr = formatDate(inv.date)
+                const dateStr = formatCalendarDate(inv.date)
                 const parts: string[] = []
                 if (inv.taskId == null) {
                   const eq = equipments.find((e: Equipment) => e.id === inv.equipmentId)

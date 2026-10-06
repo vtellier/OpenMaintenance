@@ -237,3 +237,18 @@ Photos attached to an intervention.
 | `intervention_id` | int | yes | FK → interventions.id |
 | `file_path` | string | yes | PK. Relative path to the file (e.g. `files/equipments/12/interventions/42/abc123.jpg`) |
 | `uploaded_at` | timestamp | yes | |
+
+## Calendar dates and timestamps
+
+Fields typed `date` in the tables above are **calendar dates**. Fields typed `timestamp` are **moments in time**.
+
+| Kind | Fields | What it is |
+|------|--------|------------|
+| Calendar date | Equipment `commissioned_at`, Intervention `date`, a task's next due date | A day on the calendar (`YYYY-MM-DD`), with no time of day and no timezone |
+| Timestamp | `created_at`, `updated_at`, `hours_updated_at`, `uploaded_at` | A moment in time |
+
+- **The date the user picks is the date every page shows**, whatever the browser's timezone. Saving a form without touching its date keeps that date.
+- **"Today"**, the default date of a new intervention (quick log and full form), is today in the user's timezone, not in UTC. An intervention date is "in the future" when it is after that day.
+- A **timestamp** is shown in the user's timezone: a file uploaded at 00:30 local time on 14 May shows as uploaded on 14 May.
+- The frontend handles calendar dates in one module, `frontend/src/lib/calendar-date.ts`: today's default, form value, request value and display. Timestamps have their own helpers in `frontend/src/lib/timestamp.ts`.
+- Transitional: the API still carries the intervention date as a timestamp. The browser sends local midnight of the picked day and reads back the local date of that moment. Issue #72 makes it a plain `YYYY-MM-DD` date in the API and in storage, like the other two.

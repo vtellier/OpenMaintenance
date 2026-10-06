@@ -5,20 +5,26 @@ import { Intervention } from '@generated/api/models/Intervention'
 import { FileInfo } from '@generated/api/models/FileInfo'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { relativeTime, formatHours, formatDate, formatFileSize, isHoursVeryStale, buildInterventionMeta, todayLocal, extractErrorMessage } from '@/lib/format'
+import { formatHours, formatFileSize, buildInterventionMeta, extractErrorMessage } from '@/lib/format'
 import { dueTimingText } from '@/lib/dueTiming'
 import { byUrgency } from '@/lib/urgency'
+import { relativeTime, formatTimestampDate, isHoursVeryStale } from '@/lib/timestamp'
+import { WithCalendarDates, today, formatCalendarDate, compareCalendarDates, fromApiDate, fromApiDateTime, toApiDate, toApiDateTime } from '@/lib/calendar-date'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
 
-function mapEquipment(eq: any): Equipment {
+type EquipmentRow = WithCalendarDates<Equipment, 'commissionedAt'>
+type TaskRow = WithCalendarDates<Task, 'nextDueDate'>
+type InterventionRow = WithCalendarDates<Intervention, 'date'>
+
+function mapEquipment(eq: any): EquipmentRow {
   return {
     ...eq,
-    commissionedAt: eq.commissionedAt ? (eq.commissionedAt as any).toISOString().substring(0, 10) : undefined,
+    commissionedAt: fromApiDate(eq.commissionedAt),
     hoursUpdatedAt: eq.hoursUpdatedAt?.toISOString(),
     createdAt: eq.createdAt?.toISOString(),
     updatedAt: eq.updatedAt?.toISOString(),
-  } as Equipment
+  }
 }
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -31,10 +37,10 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
   return component(() => {
     const state = reactive({
-      equipment: null as Equipment | null,
-      tasks: [] as Task[],
-      interventions: [] as Intervention[],
-      allTasks: [] as Task[],
+      equipment: null as EquipmentRow | null,
+      tasks: [] as TaskRow[],
+      interventions: [] as InterventionRow[],
+      allTasks: [] as TaskRow[],
       loaded: false,
       loadError: null as string | null,
       showAddTask: false,
@@ -82,7 +88,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       error: null as string | null,
 
       showHistoryDelete: false,
-      historyDeleteTarget: null as Intervention | null,
+      historyDeleteTarget: null as InterventionRow | null,
       historyDeleteSaving: false,
       historyDeleteError: null as string | null,
 
@@ -111,13 +117,13 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
         const newTasks = ts.map((t: any) => ({
           ...t,
-          nextDueDate: t.nextDueDate?.toISOString(),
+          nextDueDate: fromApiDate(t.nextDueDate),
           updatedAt: t.updatedAt?.toISOString(),
         }))
 
         const newAllTasks = allTs.map((t: any) => ({
           ...t,
-          nextDueDate: t.nextDueDate?.toISOString(),
+          nextDueDate: fromApiDate(t.nextDueDate),
           updatedAt: t.updatedAt?.toISOString(),
         }))
 
@@ -128,7 +134,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
             (inv.taskId == null && inv.equipmentId === equipmentId)
         ).map((inv: any) => ({
           ...inv,
-          date: inv.date?.toISOString(),
+          date: fromApiDateTime(inv.date),
           createdAt: inv.createdAt?.toISOString(),
           updatedAt: inv.updatedAt?.toISOString(),
         }))
@@ -164,12 +170,12 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
     load()
     loadDocuments()
 
-    function getLastIntervention(taskId: number | undefined): Intervention | null {
+    function getLastIntervention(taskId: number | undefined): InterventionRow | null {
       if (taskId == null) return null
-      let latest: Intervention | null = null
+      let latest: InterventionRow | null = null
       for (const inv of state.interventions) {
         if (inv.taskId === taskId) {
-          if (!latest || (inv.date && latest.date && inv.date > latest.date)) {
+          if (!latest || compareCalendarDates(inv.date, latest.date) > 0) {
             latest = inv
           }
         }
@@ -178,11 +184,11 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
     }
 
     function getTaskName(taskId: number | undefined): string {
-      const t = state.allTasks.find((tt: Task) => tt.id === taskId)
+      const t = state.allTasks.find((tt: TaskRow) => tt.id === taskId)
       return t?.name || ''
     }
 
-    function sortedTasks(): Task[] {
+    function sortedTasks(): TaskRow[] {
       return [...state.tasks].sort(byUrgency)
     }
 
@@ -248,7 +254,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
     // ── Edit Task ──
 
-    function onEditTask(task: Task) {
+    function onEditTask(task: TaskRow) {
       state.showEditTask = true
       state.editTaskId = task.id ?? null
       state.editName = task.name ?? ''
@@ -293,7 +299,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
     // ── Delete Task ──
 
-    function onDeleteTask(task: Task) {
+    function onDeleteTask(task: TaskRow) {
       state.showDeleteTask = true
       state.deleteTaskId = task.id ?? null
       state.deleteTaskName = task.name ?? ''
@@ -325,11 +331,11 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
     // ── Quick Log ──
 
-    function onQuickLog(task: Task) {
+    function onQuickLog(task: TaskRow) {
       state.showQuickLog = true
       state.quickTaskId = task.id ?? null
       state.quickTaskName = task.name ?? ''
-      state.quickDate = todayLocal()
+      state.quickDate = today()
       state.quickHours = state.equipment?.hours ?? 0
       state.quickPerformedBy = ''
       state.quickComments = ''
@@ -352,7 +358,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
         await interventionApi.createIntervention({
           interventionInput: {
             taskId: state.quickTaskId,
-            date: new Date(state.quickDate + 'T00:00:00'),
+            date: toApiDateTime(state.quickDate),
             hoursAt: tracksHours() ? state.quickHours : undefined,
             performedBy: state.quickPerformedBy.trim() || undefined,
             comments: state.quickComments.trim() || undefined,
@@ -376,7 +382,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       state.taskId = null
       state.isExceptional = false
       state.exceptionalLabel = ''
-      state.date = todayLocal()
+      state.date = today()
       state.hours = state.equipment?.hours ?? 0
       state.location = ''
       state.performedBy = ''
@@ -385,14 +391,14 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       state.error = null
     }
 
-    function onEditFromHistory(inv: Intervention) {
+    function onEditFromHistory(inv: InterventionRow) {
       state.showFullForm = true
       state.editId = inv.id ?? null
       state.equipmentId = equipmentId
       state.taskId = inv.taskId ?? null
       state.isExceptional = inv.taskId == null
       state.exceptionalLabel = inv.exceptionalLabel ?? ''
-      state.date = inv.date ? formatDate(inv.date) : ''
+      state.date = inv.date ?? ''
       state.hours = inv.hoursAt ?? 0
       state.location = inv.location ?? ''
       state.performedBy = inv.performedBy ?? ''
@@ -419,14 +425,14 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       const body = state.isExceptional ? {
         equipmentId: equipmentId,
         exceptionalLabel: state.exceptionalLabel.trim(),
-        date: new Date(state.date + 'T00:00:00'),
+        date: toApiDateTime(state.date),
         hoursAt: tracksHours() ? state.hours : undefined,
         location: state.location.trim() || undefined,
         performedBy: state.performedBy.trim() || undefined,
         comments: state.comments.trim() || undefined,
       } : {
         taskId: state.taskId!,
-        date: new Date(state.date + 'T00:00:00'),
+        date: toApiDateTime(state.date),
         hoursAt: tracksHours() ? state.hours : undefined,
         location: state.location.trim() || undefined,
         performedBy: state.performedBy.trim() || undefined,
@@ -453,7 +459,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       }
     }
 
-    function onHistoryDeleteClick(inv: Intervention) {
+    function onHistoryDeleteClick(inv: InterventionRow) {
       state.showHistoryDelete = true
       state.historyDeleteTarget = inv
       state.historyDeleteError = null
@@ -498,7 +504,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
             name: eq.name!,
             description: eq.description || undefined,
             icon,
-            commissionedAt: eq.commissionedAt ? new Date(eq.commissionedAt + 'T12:00:00') : undefined,
+            commissionedAt: eq.commissionedAt ? toApiDate(eq.commissionedAt) : undefined,
             tracksHours: eq.tracksHours,
           },
         })
@@ -590,7 +596,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               <span>${formatHours(eq.hours)}</span>
               <span class="${hoursClass}">\u2022 updated ${relativeTime(eq.hoursUpdatedAt)}</span>
             </div>` : null}
-            ${eq.commissionedAt ? html`<div class="detail-header__meta">Commissioned ${formatDate(eq.commissionedAt)}</div>` : null}
+            ${eq.commissionedAt ? html`<div class="detail-header__meta">Commissioned ${formatCalendarDate(eq.commissionedAt)}</div>` : null}
             ${() => state.iconError ? html`<div class="flash flash--error">${state.iconError}</div>` : null}
           </div>
 
@@ -658,7 +664,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               if (t.hoursInterval) parts.push('Every ' + t.hoursInterval + 'h')
               if (t.monthsInterval) parts.push(t.monthsInterval + 'mo')
               const trigger = parts.join(' or ')
-              const lastLabel = lastInv ? formatDate(lastInv.date) + (lastInv.hoursAt != null ? ' \u2022 ' + formatHours(lastInv.hoursAt) : '') : 'never'
+              const lastLabel = lastInv ? formatCalendarDate(lastInv.date) + (lastInv.hoursAt != null ? ' \u2022 ' + formatHours(lastInv.hoursAt) : '') : 'never'
               return html`<div class="task-row">
                 <div class="task-row__info">
                   <p class="task-row__name">${t.name}</p>
@@ -692,12 +698,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           <button class="btn btn--accent" @click="${onAddFromHistory}">+ Log intervention</button>
         </div>
         ${() => {
-          const sorted = [...state.interventions].sort((a, b) => {
-            const da = a.date ? new Date(a.date) : null
-            const db = b.date ? new Date(b.date) : null
-            if (!da || !db) return 0
-            return db.getTime() - da.getTime()
-          })
+          const sorted = [...state.interventions].sort((a, b) => compareCalendarDates(b.date, a.date))
           if (sorted.length === 0) {
             return html`<p class="page__empty">No history yet for this equipment.</p>`
           }
@@ -709,7 +710,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               <span class="history-item__actions-head"></span>
             </div>
             ${() => sorted.map(inv => {
-              const dateStr = formatDate(inv.date)
+              const dateStr = formatCalendarDate(inv.date)
               const taskLabel = inv.taskId == null ? (inv.exceptionalLabel ?? '') : getTaskName(inv.taskId)
               const metaStr = buildInterventionMeta(inv)
               return html`<div class="history-item">
@@ -750,7 +751,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
             ${() => docs.map(f => html`<div class="doc-row">
               <div class="doc-row__info">
                 <p class="doc-row__name">${f.originalName}</p>
-                <p class="doc-row__meta">${formatFileSize(f.size)} • ${formatDate(f.uploadedAt)}</p>
+                <p class="doc-row__meta">${formatFileSize(f.size)} • ${formatTimestampDate(f.uploadedAt)}</p>
               </div>
               <div class="doc-row__actions">
                 <a class="btn btn--small" href="${f.url}" download="${f.originalName}">Download</a>
@@ -781,7 +782,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           </div>
           ${eq.commissionedAt ? html`<div class="form-field">
             <label class="form-field__label">Date of commissioning</label>
-            <p>${formatDate(eq.commissionedAt)}</p>
+            <p>${formatCalendarDate(eq.commissionedAt)}</p>
           </div>` : null}
           <div class="toggle-row">
             <span class="toggle-row__label">Hour-meter tracking</span>
@@ -793,7 +794,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           </div>` : null}
           <div class="form-field">
             <label class="form-field__label">Created</label>
-            <p>${formatDate(eq.createdAt)}</p>
+            <p>${formatTimestampDate(eq.createdAt)}</p>
           </div>
         </div>
       `

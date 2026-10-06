@@ -25,7 +25,7 @@ Default detection: the browser's primary language tag is mapped to the nearest s
 
 ### Date Format
 
-Controls how calendar dates are displayed throughout the app (intervention dates, task due dates, hour-meter update timestamps).
+Controls how dates are displayed throughout the app: calendar dates (intervention, commissioning and due dates) and the day of a timestamp (upload date, last hour-meter update). See [Calendar dates and timestamps](./data-model.md#calendar-dates-and-timestamps).
 
 | Option | Example | Typical regions |
 |--------|---------|-----------------|
