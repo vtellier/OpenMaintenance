@@ -24,11 +24,35 @@ paths:
     get:
       operationId: getUpdateStatus
       summary: Get update availability status
+      description: >
+        Returns the result of the last update check, kept in memory by the
+        backend. Never queries GitHub. The backend checks once at startup and
+        on each POST /update-status/check.
       tags:
         - System
       responses:
         '200':
           description: Update status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateStatus'
+  /update-status/check:
+    post:
+      operationId: checkForUpdates
+      summary: Check GitHub for a new release now
+      description: >
+        Queries GitHub for the latest release right away and returns the new
+        update status. To protect GitHub's unauthenticated rate limit, requests
+        that arrive while a check is running share that check, and a request
+        less than 60 seconds after the previous check ended returns the
+        previous result with `cached: true` without querying GitHub. A failed
+        check still answers 200; the reason is in `error`.
+      tags:
+        - System
+      responses:
+        '200':
+          description: Update status after the check
           content:
             application/json:
               schema:
@@ -980,15 +1004,36 @@ components:
           example: "v0.2.1"
         latest_version:
           type: string
-          description: Latest version available on GitHub. Empty string if the check failed.
+          description: Latest release found by the last successful check. Empty string if no check has succeeded yet.
           example: "v0.3.0"
         update_available:
           type: boolean
-          description: Whether a newer version is available
+          description: Whether latest_version is newer than current_version
         release_url:
           type: string
-          description: GitHub release page URL. Empty if no update is available.
+          description: GitHub page of latest_version. Absent if no check has succeeded yet.
           example: "https://github.com/vtellier/OpenMaintenance/releases/tag/v0.3.0"
+        checked_at:
+          type: string
+          format: date-time
+          description: When the last check ended, successful or not. Absent until the first check ends.
+        error:
+          type: string
+          enum:
+            - unreachable
+            - rate_limited
+            - unexpected_response
+          description: >
+            Why the last check failed. Absent if it succeeded.
+            `unreachable`: GitHub could not be reached (offline, DNS, timeout).
+            `rate_limited`: GitHub's API rate limit is reached.
+            `unexpected_response`: GitHub answered with another error status or an unreadable body.
+        cached:
+          type: boolean
+          description: >
+            Only set by POST /update-status/check. True when GitHub was not
+            queried because the previous check ended less than 60 seconds ago;
+            the body is that previous result.
     BackupStatus:
       type: object
       required:
