@@ -19,10 +19,13 @@ func (h *Handler) enrichTask(task *models.Task) {
 
 	lastIntervention, _ := dbpackage.GetLastInterventionByTask(h.DB, task.ID)
 
-	status, nextDate, nextHours := logic.ComputeDueStatus(*task, *equipment, lastIntervention, time.Now())
-	task.DueStatus = status
-	task.NextDueDate = nextDate
-	task.NextDueHours = nextHours
+	due := logic.ComputeDueStatus(*task, *equipment, lastIntervention, time.Now())
+	task.DueStatus = due.Status
+	task.NextDueDate = due.NextDueDate
+	task.NextDueHours = due.NextDueHours
+	task.DueTrigger = due.Trigger
+	task.DueInDays = due.DueInDays
+	task.DueInHours = due.DueInHours
 }
 
 func (h *Handler) ListTasks(ctx echo.Context) error {

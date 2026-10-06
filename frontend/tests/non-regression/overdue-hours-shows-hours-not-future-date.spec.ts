@@ -33,6 +33,8 @@ test('overdue-by-hours task shows hours info, not future date', async ({ page })
   const overdueIndicator = page.locator('.due-indicator--overdue')
   await expect(overdueIndicator).toBeVisible()
 
-  // Fixed behaviour: shows hours-based info ("at 500 h"), not a future date ("in Xd").
-  await expect(overdueIndicator).toContainText('at 500 h')
+  // Fixed behaviour: shows hours-based info, not a future date ("in Xd").
+  // Since #67 that is the hours past due ("500 h ago"), the timing text
+  // every page shares; before, it was the due reading ("at 500 h").
+  await expect(overdueIndicator).toContainText('500 h ago')
 })

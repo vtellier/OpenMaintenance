@@ -5,7 +5,8 @@ import { Intervention } from '@generated/api/models/Intervention'
 import { FileInfo } from '@generated/api/models/FileInfo'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { relativeTime, formatHours, formatDate, formatFileSize, isHoursVeryStale, dueRelative, buildInterventionMeta, todayLocal, extractErrorMessage } from '@/lib/format'
+import { relativeTime, formatHours, formatDate, formatFileSize, isHoursVeryStale, buildInterventionMeta, todayLocal, extractErrorMessage } from '@/lib/format'
+import { dueTimingText } from '@/lib/dueTiming'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
 
@@ -666,7 +667,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
                   ${() => {
                     const task = state.tasks.find(tt => tt.id === t.id)
                     const ds = task?.dueStatus ?? 'ok'
-                    const relStr = dueRelative(task?.nextDueDate, task?.nextDueHours, ds)
+                    const relStr = task ? dueTimingText(task) : ''
                     if (ds === 'overdue') return html`<p class="task-row__meta"><span class="due-indicator due-indicator--overdue">Overdue \u2014 ${relStr}</span></p>`
                     if (ds === 'due_soon') return html`<p class="task-row__meta"><span class="due-indicator due-indicator--due-soon">Due soon \u2014 ${relStr}</span></p>`
                     return html`<p class="task-row__meta"><span class="due-indicator due-indicator--ok">OK</span></p>`

@@ -4,7 +4,8 @@ import { Task } from '@generated/api/models/Task'
 import { Intervention } from '@generated/api/models/Intervention'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { relativeTime, formatHours, isHoursStale, isHoursVeryStale, dueRelative } from '@/lib/format'
+import { relativeTime, formatHours, isHoursStale, isHoursVeryStale } from '@/lib/format'
+import { dueTimingText } from '@/lib/dueTiming'
 import { equipmentAvatar } from '@/components/EquipmentAvatar'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -252,7 +253,7 @@ export function DashboardPage() {
                     ${tasks.map(t => {
                       const dueClass = 'due-indicator due-indicator--' + (t.dueStatus === 'overdue' ? 'overdue' : 'due-soon')
                       const dueLabel = t.dueStatus === 'overdue' ? 'Overdue' : 'Due soon'
-                      const dueRelativeStr = dueRelative(t.nextDueDate, t.nextDueHours, t.dueStatus)
+                      const dueRelativeStr = dueTimingText(t)
                       return html`<div class="task-row">
                         <div class="task-row__info">
                           <p class="task-row__name">${t.name}</p>

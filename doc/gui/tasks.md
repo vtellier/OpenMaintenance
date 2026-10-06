@@ -17,7 +17,7 @@ A list of tasks for this equipment, each row showing:
 
 - **Name** of the task.
 - **Trigger summary**: e.g. *"Every 100 h or 6 months"*, *"Every 12 months"*.
-- **Urgency indicator**: color + relative time to next due (same convention as the dashboard).
+- **Urgency indicator**: color + status label + timing text, same as the dashboard (see [dashboard.md](./dashboard.md#timing-text)). An OK task shows *"OK"* only.
 - **Last intervention**: date (or *"never"*).
 - Quick actions:
   - **"Mark done"** → opens the quick log form (see [interventions.md](./interventions.md)).
@@ -87,11 +87,11 @@ Desktop and tablet (≥ 640 px):
 +------------------------------------------------------+
 |                                          [+ Add task]|
 |  Oil change                         [Done][Edit][Del]|
-|  🔴 overdue by 3 days                                |
+|  🔴 Overdue — 3d ago                                 |
 |  Every 100h or 6mo  · Last: 12 Apr 2026              |
 |                                                      |
 |  Filter check                       [Done][Edit][Del]|
-|  🟡 due in 12 days                                   |
+|  🟡 Due soon — in 12d                                |
 |  Every 12 months    · Last: 25 Jan 2026              |
 +------------------------------------------------------+
 ```
@@ -100,7 +100,7 @@ Mobile (< 640 px) — actions wrap below the task info:
 ```
 +-----------------------------+
 |  Oil change                 |
-|  🔴 overdue by 3 days       |
+|  🔴 Overdue — 3d ago        |
 |  Every 100h or 6mo          |
 |  Last: 12 Apr 2026          |
 |            [Done] [Edit][Del]|
