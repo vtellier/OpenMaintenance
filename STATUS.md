@@ -492,3 +492,12 @@ No product code changed this session.
 - Not ticketed (Worth exploring): pulling data loading out of the pages; moving the file-upload code into the attachment module.
 
 Can start now: #65, #66, #69, #75.
+
+## 2026-10-14 — Bug triage & Windows build fix (issue #86)
+
+- **Triage**: reviewed the 10 open bugs and ranked them: #86, #92, #81, #80, #70, #58, #73, #74, #85, #83. #81, #70 and #85 still need a decision before they can be built; #58 may be fixed by #74.
+- **Windows build fix** (issue #86, PR #93): the `.exe` was cross-compiled on Linux without a Windows C compiler, so Go turned cgo off and `mattn/go-sqlite3` compiled to a stub that refuses to open the database. A user confirmed the crash on Windows 11 with v0.6.0.
+  - The Windows target now builds with `CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc`; CI installs `gcc-mingw-w64-x86-64`. The Linux target sets `CGO_ENABLED=1` explicitly.
+  - New `make check-cgo BIN=<binary>` runs after each CI backend build. It failed on the Windows build before the fix (red CI run on the first commit) and passes after it.
+  - Verified under Wine: the `.exe` starts, creates `maintenance.db` and serves the API. Not yet run on real Windows.
+  - `CONTRIBUTING.md` lists `gcc` and MinGW-w64 as prerequisites.
