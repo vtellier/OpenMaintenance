@@ -215,6 +215,9 @@ jobs:
       - name: Build
         run: make ${{ matrix.make_target }}
 
+      - name: Check the binary was built with cgo
+        run: make check-cgo BIN=${{ matrix.binary_path }}
+
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:

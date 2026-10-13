@@ -1,4 +1,4 @@
-.PHONY: generate-openapi build build-backend build-backend-linux-amd64 build-backend-windows-amd64 build-frontend copy-frontend install-oapi-codegen dev test-backend vet-backend fmt-check-backend static-placeholder seed
+.PHONY: generate-openapi build build-backend build-backend-linux-amd64 build-backend-windows-amd64 check-cgo build-frontend copy-frontend install-oapi-codegen dev test-backend vet-backend fmt-check-backend static-placeholder seed
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 
@@ -24,6 +24,16 @@ build-backend-windows-amd64:
 	cp backend/bin/openmaintenance-$(VERSION).exe backend/bin/openmaintenance.exe
 
 build-backend: build-backend-linux-amd64
+
+# mattn/go-sqlite3 needs cgo: a binary built without it compiles a stub that
+# refuses to open any database at startup. Fail when BIN was built that way.
+check-cgo:
+	@test -n "$(BIN)" || { echo "usage: make check-cgo BIN=<binary>"; exit 1; }
+	@go version -m "$(BIN)" | grep -q 'CGO_ENABLED=1' || { \
+		echo "$(BIN) was built with CGO_ENABLED=0: go-sqlite3 will not work"; \
+		exit 1; \
+	}
+	@echo "$(BIN): built with cgo"
 
 build-frontend:
 	cd frontend && pnpm run build
