@@ -134,6 +134,7 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] Photo grid (add / delete / full-screen view) in the full intervention form; photo-count badge in history lists
 - [x] Files removed from disk on photo delete and on intervention / task / equipment delete (cascade)
 - [x] Spec: `doc/file-storage.md`
+- [x] **Missing intervention stops at 404** (issue #92): uploading a photo to an intervention that does not exist no longer writes the file and a DB row; every photo endpoint answers the 404 alone
 
 ## Milestone 16 — Equipment Icon (issue #2)
 
