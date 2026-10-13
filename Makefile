@@ -29,7 +29,8 @@ build-backend: build-backend-linux-amd64
 # refuses to open any database at startup. Fail when BIN was built that way.
 check-cgo:
 	@test -n "$(BIN)" || { echo "usage: make check-cgo BIN=<binary>"; exit 1; }
-	@go version -m "$(BIN)" | grep -q 'CGO_ENABLED=1' || { \
+	@info=$$(go version -m "$(BIN)") || { echo "$(BIN): cannot read its Go build info"; exit 1; }; \
+	printf '%s\n' "$$info" | grep -qE '^[[:space:]]+build[[:space:]]+CGO_ENABLED=1$$' || { \
 		echo "$(BIN) was built with CGO_ENABLED=0: go-sqlite3 will not work"; \
 		exit 1; \
 	}
