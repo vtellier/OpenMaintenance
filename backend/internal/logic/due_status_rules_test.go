@@ -107,7 +107,9 @@ type dueStatusCase struct {
 	task      models.Task
 	equipment models.Equipment
 	last      *models.Intervention
-	want      dueStatusWant
+	// earlier are older interventions on the task, in no particular order.
+	earlier []*models.Intervention
+	want    dueStatusWant
 }
 
 func runDueStatusCases(t *testing.T, cases []dueStatusCase) {
@@ -118,7 +120,12 @@ func runDueStatusCases(t *testing.T, cases []dueStatusCase) {
 				t.Fatal("case must pin now")
 			}
 
-			got := ComputeDueStatus(tc.task, tc.equipment, history(tc.last), tc.now)
+			interventions := history(tc.last)
+			for _, inv := range tc.earlier {
+				interventions = append(interventions, *inv)
+			}
+
+			got := ComputeDueStatus(tc.task, tc.equipment, interventions, tc.now)
 
 			if got.Status != tc.want.status {
 				t.Errorf("status = %q, want %q", got.Status, tc.want.status)
@@ -513,7 +520,7 @@ func TestComputeDueStatusNoInterventionYet(t *testing.T) {
 	})
 }
 
-// The last intervention has a date but no hour reading.
+// The last intervention has a date but no hour reading (issue #81).
 func TestComputeDueStatusInterventionWithoutHourReading(t *testing.T) {
 	runDueStatusCases(t, []dueStatusCase{
 		{
@@ -525,26 +532,45 @@ func TestComputeDueStatusInterventionWithoutHourReading(t *testing.T) {
 			want:      dueStatusWant{status: "ok", nextDueDate: "2026-09-01", trigger: TriggerMonths, dueInDays: intPtr(78), urgency: frac(106, 184)},
 		},
 		{
-			// Current behaviour: the hours baseline falls back to 0, as if the
-			// task had never been performed. The spec only defines 0 for "never
-			// performed". On a meter past the interval the task shows overdue
-			// right after being done.
-			name:      "hours counted from zero",
+			// The hours baseline skips the reading-less intervention and takes
+			// the most recent reading (issue #81).
+			name:      "hours counted from the latest reading",
 			now:       testNow,
 			task:      hoursTask(100),
 			equipment: meter(1200),
 			last:      done(midnight(2026, time.June, 1)),
-			want:      dueStatusWant{status: "overdue", nextDueHours: floatPtr(100), trigger: TriggerHours, dueInHours: floatPtr(-1100), urgency: frac(1200, 100)},
+			earlier:   []*models.Intervention{doneAt(midnight(2026, time.March, 1), 1150), doneAt(midnight(2026, time.January, 1), 1000)},
+			want:      dueStatusWant{status: "ok", nextDueHours: floatPtr(1250), trigger: TriggerHours, dueInHours: floatPtr(50), urgency: frac(50, 100)},
 		},
 		{
-			// Current behaviour: same as above, the months rule is ok but the
-			// zero hours baseline makes the task overdue.
-			name:      "both intervals, hours counted from zero",
+			// Dates from the latest intervention, hours from the latest
+			// reading: months 14/183 elapsed, hours 50/100, so hours drives.
+			name:      "both intervals, date from the latest, hours from the latest reading",
 			now:       testNow,
 			task:      bothTask(6, 100),
 			equipment: meter(1200),
 			last:      done(midnight(2026, time.June, 1)),
-			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-12-01", nextDueHours: floatPtr(100), trigger: TriggerHours, dueInDays: intPtr(169), dueInHours: floatPtr(-1100), urgency: frac(1200, 100)},
+			earlier:   []*models.Intervention{doneAt(midnight(2026, time.March, 1), 1150)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2026-12-01", nextDueHours: floatPtr(1250), trigger: TriggerHours, dueInDays: intPtr(169), dueInHours: floatPtr(50), urgency: frac(50, 100)},
+		},
+		{
+			// Performed, never with a reading: no hours baseline, so the hours
+			// rule gives nothing and the task is ok until a reading is logged.
+			name:      "hours never read: no hours baseline",
+			now:       testNow,
+			task:      hoursTask(100),
+			equipment: meter(1200),
+			last:      done(midnight(2026, time.June, 1)),
+			want:      dueStatusWant{status: "ok"},
+		},
+		{
+			// Same, the months rule alone decides.
+			name:      "both intervals, hours never read: months decides",
+			now:       testNow,
+			task:      bothTask(6, 100),
+			equipment: meter(1200),
+			last:      done(midnight(2026, time.June, 1)),
+			want:      dueStatusWant{status: "ok", nextDueDate: "2026-12-01", trigger: TriggerMonths, dueInDays: intPtr(169), urgency: frac(14, 183)},
 		},
 	})
 }
