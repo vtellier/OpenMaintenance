@@ -85,11 +85,7 @@ type DueStatus struct {
 func ComputeDueStatus(task models.Task, equipment models.Equipment, interventions []models.Intervention, now time.Time) DueStatus {
 	lastIntervention := latest(interventions)
 	baselineDate, hasBaselineDate := dateBaseline(equipment, lastIntervention)
-	var baselineHours float64
-
-	if lastIntervention != nil && lastIntervention.HoursAt != nil {
-		baselineHours = *lastIntervention.HoursAt
-	}
+	baselineHours, hasBaselineHours := hoursBaseline(interventions)
 
 	due := DueStatus{Status: "ok"}
 	// "" while a rule does not apply.
@@ -128,7 +124,10 @@ func ComputeDueStatus(task models.Task, equipment models.Equipment, intervention
 		}
 	}
 
-	if task.HoursInterval != nil && equipment.TracksHours {
+	// Without an hours baseline (performed, never with a reading) the hours
+	// rule gives nothing: counting from 0 would make the task overdue right
+	// after it was done (#81).
+	if task.HoursInterval != nil && equipment.TracksHours && hasBaselineHours {
 		nextHours := baselineHours + float64(*task.HoursInterval)
 		due.NextDueHours = &nextHours
 
@@ -159,6 +158,28 @@ func ComputeDueStatus(task models.Task, equipment models.Equipment, intervention
 	due.Urgency = greater(monthsFraction, hoursFraction)
 
 	return due
+}
+
+// hoursBaseline returns the reading a task's hour-based interval is counted
+// from, and false when there is none.
+//
+// It is the hours_at of the most recent intervention that has one;
+// interventions logged without a reading are skipped. A task never performed
+// counts from 0. A task performed, but never with a reading, has no baseline.
+func hoursBaseline(interventions []models.Intervention) (float64, bool) {
+	if len(interventions) == 0 {
+		return 0, true
+	}
+	var withReading []models.Intervention
+	for _, inv := range interventions {
+		if inv.HoursAt != nil {
+			withReading = append(withReading, inv)
+		}
+	}
+	if last := latest(withReading); last != nil {
+		return *last.HoursAt, true
+	}
+	return 0, false
 }
 
 // latest returns the most recent of interventions by date, the later logged
