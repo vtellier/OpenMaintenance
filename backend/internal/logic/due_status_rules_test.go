@@ -76,6 +76,15 @@ func doneAt(date time.Time, hours float64) *models.Intervention {
 	return &models.Intervention{Date: date, HoursAt: floatPtr(hours)}
 }
 
+// history is the task's interventions when last is its only one, and none
+// when last is nil.
+func history(last *models.Intervention) []models.Intervention {
+	if last == nil {
+		return nil
+	}
+	return []models.Intervention{*last}
+}
+
 type dueStatusWant struct {
 	status       string
 	nextDueDate  string   // "" when the months rule does not apply
@@ -109,7 +118,7 @@ func runDueStatusCases(t *testing.T, cases []dueStatusCase) {
 				t.Fatal("case must pin now")
 			}
 
-			got := ComputeDueStatus(tc.task, tc.equipment, tc.last, tc.now)
+			got := ComputeDueStatus(tc.task, tc.equipment, history(tc.last), tc.now)
 
 			if got.Status != tc.want.status {
 				t.Errorf("status = %q, want %q", got.Status, tc.want.status)

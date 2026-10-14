@@ -17,9 +17,9 @@ func (h *Handler) enrichTask(task *models.Task) {
 		return
 	}
 
-	lastIntervention, _ := dbpackage.GetLastInterventionByTask(h.DB, task.ID)
+	interventions, _ := dbpackage.ListInterventionsByTask(h.DB, task.ID)
 
-	due := logic.ComputeDueStatus(*task, *equipment, lastIntervention, time.Now())
+	due := logic.ComputeDueStatus(*task, *equipment, interventions, time.Now())
 	task.DueStatus = due.Status
 	task.NextDueDate = due.NextDueDate
 	task.NextDueHours = due.NextDueHours

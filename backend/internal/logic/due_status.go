@@ -68,7 +68,8 @@ type DueStatus struct {
 	Urgency *float64
 }
 
-// ComputeDueStatus derives a task's due status as of now. The current time is
+// ComputeDueStatus derives a task's due status as of now, from the task's
+// interventions, in any order. The current time is
 // a parameter, not read from the wall clock, so callers control it:
 // production passes time.Now(), tests pass a fixed instant.
 //
@@ -81,7 +82,8 @@ type DueStatus struct {
 // date) is overdue but has no amount and no fraction: on the same status as an
 // overdue hours rule the hours rule drives, because it has a concrete amount
 // to show, and the urgency comes from the hours rule alone, or is absent.
-func ComputeDueStatus(task models.Task, equipment models.Equipment, lastIntervention *models.Intervention, now time.Time) DueStatus {
+func ComputeDueStatus(task models.Task, equipment models.Equipment, interventions []models.Intervention, now time.Time) DueStatus {
+	lastIntervention := latest(interventions)
 	baselineDate, hasBaselineDate := dateBaseline(equipment, lastIntervention)
 	var baselineHours float64
 
@@ -157,6 +159,19 @@ func ComputeDueStatus(task models.Task, equipment models.Equipment, lastInterven
 	due.Urgency = greater(monthsFraction, hoursFraction)
 
 	return due
+}
+
+// latest returns the most recent of interventions by date, the later logged
+// (higher id) on the same date, or nil when there are none.
+func latest(interventions []models.Intervention) *models.Intervention {
+	var last *models.Intervention
+	for i := range interventions {
+		inv := &interventions[i]
+		if last == nil || inv.Date.After(last.Date) || (inv.Date.Equal(last.Date) && inv.ID > last.ID) {
+			last = inv
+		}
+	}
+	return last
 }
 
 // monthsDrive reports whether the months rule, which applies, drives rather

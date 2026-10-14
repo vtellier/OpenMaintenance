@@ -155,8 +155,8 @@ func TestUrgencyRanksTasks(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			a := ComputeDueStatus(tc.first.task, tc.first.equipment, tc.first.last, tc.now)
-			b := ComputeDueStatus(tc.second.task, tc.second.equipment, tc.second.last, tc.now)
+			a := ComputeDueStatus(tc.first.task, tc.first.equipment, history(tc.first.last), tc.now)
+			b := ComputeDueStatus(tc.second.task, tc.second.equipment, history(tc.second.last), tc.now)
 
 			want := -1
 			if tc.tie {
