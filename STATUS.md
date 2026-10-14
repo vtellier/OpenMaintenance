@@ -492,3 +492,10 @@ No product code changed this session.
 - Not ticketed (Worth exploring): pulling data loading out of the pages; moving the file-upload code into the attachment module.
 
 Can start now: #65, #66, #69, #75.
+
+## 2026-10-14 — Intervention photos on a missing intervention (issue #92)
+
+- **Bug**: `resolveIntervention` returned `ctx.JSON(404, …)` as its error. That is `nil` once the response is written, so the photo endpoints kept going: an upload to a missing intervention wrote the file under `files/equipments/0/` plus an `intervention_files` row (inherited by whichever intervention later got that id), and every endpoint appended a second response to the 404.
+- **Tests first** (`backend/tests/intervention_file_test.go`, written with the TDD skill at the HTTP API seam): a rejected upload leaves no file on disk and no photo on the intervention that later gets the id; upload, list, serve and delete answer the 404 alone.
+- **Fix**: `resolveIntervention` now returns `ok bool`; callers return as soon as it is false.
+- Verified with `make test-backend`, `go vet`, gofmt, and curl against a running backend. `make build` not run end to end here (no `pnpm` on this machine; the frontend is untouched).
