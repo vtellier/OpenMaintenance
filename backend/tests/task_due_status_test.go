@@ -293,3 +293,34 @@ func TestTaskDueStatus_InterventionWithoutReadingKeepsLatestReading(t *testing.T
 		t.Errorf("due_in_hours = %v, want 50", got["due_in_hours"])
 	}
 }
+
+// When the task's interventions cannot be loaded, the due status is unknown:
+// it must be left out, not computed as if the task had never been performed
+// (which counts from 0 and shows it overdue). Review of #81.
+func TestTaskDueStatus_InterventionLoadFailureLeavesStatusOut(t *testing.T) {
+	e, h, _ := newTestServer(t)
+	hours := 1500.0
+	id := seedEquipmentWith(t, h, &models.Equipment{Name: "Engine", TracksHours: true, Hours: &hours})
+	task := createTaskJSON(t, e, map[string]any{"equipment_id": id, "name": "Oil change", "hours_interval": 100})
+	taskID := int(task["id"].(float64))
+
+	if _, err := h.DB.Exec("ALTER TABLE interventions RENAME TO interventions_gone"); err != nil {
+		t.Fatalf("break interventions table: %v", err)
+	}
+
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/tasks/"+itoa(taskID), nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("get task: expected 200, got %d (%s)", rec.Code, rec.Body.String())
+	}
+	var got map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("decode task: %v", err)
+	}
+
+	for _, field := range []string{"due_status", "due_trigger", "next_due_hours", "due_in_hours", "urgency"} {
+		if v, ok := got[field]; ok && v != nil {
+			t.Errorf("%s = %v, want it left out", field, v)
+		}
+	}
+}
