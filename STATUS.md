@@ -499,3 +499,12 @@ Can start now: #65, #66, #69, #75.
 - **Tests first** (`backend/tests/intervention_file_test.go`, written with the TDD skill at the HTTP API seam): a rejected upload leaves no file on disk and no photo on the intervention that later gets the id; upload, list, serve and delete answer the 404 alone.
 - **Fix**: `resolveIntervention` now returns `ok bool`; callers return as soon as it is false.
 - Verified with `make test-backend`, `go vet`, gofmt, and curl against a running backend. `make build` not run end to end here (no `pnpm` on this machine; the frontend is untouched).
+
+## 2026-10-14 — Hours baseline without a reading (issue #81)
+
+- **Bug**: the hours baseline was the latest intervention's `hours_at`, falling back to `0`. Marking an hours-based task done without a reading made it overdue at once (1 500 h meter, 100 h interval: 1 500 ≥ 0 + 100).
+- **Decision (option A, variant A2)**: the baseline is the most recent intervention on the task that has a reading. Never performed: `0`. Performed but never with a reading: no hours baseline, so the hours rule gives no `next_due_hours`, status, amount or urgency (months decides, or OK). Spec: `doc/data-model.md` "Hours baseline".
+- **Refactor first** (no behaviour change): `logic.ComputeDueStatus` takes the task's interventions instead of only the latest, so the rule lives in one place; the now-unused `db.GetLastInterventionByTask` is gone.
+- **Tests first** (TDD skill, two agreed seams): the three "Current behaviour" cases pinned by #66 in `due_status_rules_test.go` became the new rule plus "latest reading" cases; one `httptest` case in `backend/tests/task_due_status_test.go` (reading 1 450 then a reading-less log → `next_due_hours` 1 550, OK).
+- **Review follow-up**: `enrichTask` discarded the error loading the task's interventions, so a DB failure counted from 0 and could show the task overdue. It now logs the error and leaves the due fields out (test first, `httptest`).
+- Verified with `make test-backend`, `go vet`, gofmt, and curl against a running build. Frontend untouched (it already ignores a null `due_in_hours`); `make build` not run end to end (no `pnpm` here).

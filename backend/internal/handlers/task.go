@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -17,9 +18,15 @@ func (h *Handler) enrichTask(task *models.Task) {
 		return
 	}
 
-	lastIntervention, _ := dbpackage.GetLastInterventionByTask(h.DB, task.ID)
+	// Without the history the status is unknown: computing it from none
+	// would count from 0 and could show the task overdue.
+	interventions, err := dbpackage.ListInterventionsByTask(h.DB, task.ID)
+	if err != nil {
+		log.Printf("load interventions of task %d: %v", task.ID, err)
+		return
+	}
 
-	due := logic.ComputeDueStatus(*task, *equipment, lastIntervention, time.Now())
+	due := logic.ComputeDueStatus(*task, *equipment, interventions, time.Now())
 	task.DueStatus = due.Status
 	task.NextDueDate = due.NextDueDate
 	task.NextDueHours = due.NextDueHours

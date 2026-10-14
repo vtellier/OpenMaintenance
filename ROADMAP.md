@@ -20,6 +20,7 @@
 - [x] Auto-update equipment hours when an intervention records higher `hours_at`
 - [x] Validate intervention `date` is not in the future
 - [x] Validate hour-meter constraints (hours_interval only if tracks_hours)
+- [x] **Hours baseline skips interventions without a reading** (issue #81): counted from the most recent `hours_at` on the task; a task done but never with a reading has no hours rule until one is logged, instead of counting from 0 and turning overdue at once
 
 ## Milestone 3 — Frontend Foundation
 
