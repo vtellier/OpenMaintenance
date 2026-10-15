@@ -212,8 +212,15 @@ jobs:
           name: openapi-gen
           path: backend/internal/generated
 
+      - name: Install the Windows C cross-compiler
+        if: matrix.make_target == 'build-backend-windows-amd64'
+        run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-x86-64
+
       - name: Build
         run: make ${{ matrix.make_target }}
+
+      - name: Check the binary was built with cgo
+        run: make check-cgo BIN=${{ matrix.binary_path }}
 
       - name: Upload binary
         uses: actions/upload-artifact@v4

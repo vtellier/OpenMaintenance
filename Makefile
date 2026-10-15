@@ -1,4 +1,4 @@
-.PHONY: generate-openapi build build-backend build-backend-linux-amd64 build-backend-windows-amd64 build-frontend copy-frontend install-oapi-codegen dev test-backend vet-backend fmt-check-backend static-placeholder seed
+.PHONY: generate-openapi build build-backend build-backend-linux-amd64 build-backend-windows-amd64 check-cgo build-frontend copy-frontend install-oapi-codegen dev test-backend vet-backend fmt-check-backend static-placeholder seed
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 
@@ -16,14 +16,25 @@ generate-openapi: install-oapi-codegen
 	$(OAPI_CODEGEN) -generate types,server -package generated backend/api/openapi.yaml > backend/internal/generated/openapi.gen.go
 
 build-backend-linux-amd64:
-	cd backend && GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=$(VERSION)" -o bin/openmaintenance-$(VERSION) .
+	cd backend && GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags "-X main.Version=$(VERSION)" -o bin/openmaintenance-$(VERSION) .
 	cd backend/bin && ln -sf openmaintenance-$(VERSION) openmaintenance
 
 build-backend-windows-amd64:
-	cd backend && GOOS=windows GOARCH=amd64 go build -ldflags "-X main.Version=$(VERSION)" -o bin/openmaintenance-$(VERSION).exe .
+	cd backend && GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc go build -ldflags "-X main.Version=$(VERSION)" -o bin/openmaintenance-$(VERSION).exe .
 	cp backend/bin/openmaintenance-$(VERSION).exe backend/bin/openmaintenance.exe
 
 build-backend: build-backend-linux-amd64
+
+# mattn/go-sqlite3 needs cgo: a binary built without it compiles a stub that
+# refuses to open any database at startup. Fail when BIN was built that way.
+check-cgo:
+	@test -n "$(BIN)" || { echo "usage: make check-cgo BIN=<binary>"; exit 1; }
+	@info=$$(go version -m "$(BIN)") || { echo "$(BIN): cannot read its Go build info"; exit 1; }; \
+	printf '%s\n' "$$info" | grep -qE '^[[:space:]]+build[[:space:]]+CGO_ENABLED=1$$' || { \
+		echo "$(BIN) was built with CGO_ENABLED=0: go-sqlite3 will not work"; \
+		exit 1; \
+	}
+	@echo "$(BIN): built with cgo"
 
 build-frontend:
 	cd frontend && pnpm run build
