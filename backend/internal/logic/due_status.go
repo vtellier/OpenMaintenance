@@ -68,7 +68,8 @@ type DueStatus struct {
 	Urgency *float64
 }
 
-// ComputeDueStatus derives a task's due status as of now. The current time is
+// ComputeDueStatus derives a task's due status as of now, from the task's
+// interventions, in any order. The current time is
 // a parameter, not read from the wall clock, so callers control it:
 // production passes time.Now(), tests pass a fixed instant.
 //
@@ -81,13 +82,10 @@ type DueStatus struct {
 // date) is overdue but has no amount and no fraction: on the same status as an
 // overdue hours rule the hours rule drives, because it has a concrete amount
 // to show, and the urgency comes from the hours rule alone, or is absent.
-func ComputeDueStatus(task models.Task, equipment models.Equipment, lastIntervention *models.Intervention, now time.Time) DueStatus {
+func ComputeDueStatus(task models.Task, equipment models.Equipment, interventions []models.Intervention, now time.Time) DueStatus {
+	lastIntervention := latest(interventions)
 	baselineDate, hasBaselineDate := dateBaseline(equipment, lastIntervention)
-	var baselineHours float64
-
-	if lastIntervention != nil && lastIntervention.HoursAt != nil {
-		baselineHours = *lastIntervention.HoursAt
-	}
+	baselineHours, hasBaselineHours := hoursBaseline(interventions)
 
 	due := DueStatus{Status: "ok"}
 	// "" while a rule does not apply.
@@ -106,7 +104,7 @@ func ComputeDueStatus(task models.Task, equipment models.Equipment, lastInterven
 			monthsStatus = "overdue"
 			monthsHasAmount = false
 		} else {
-			nextDate := baselineDate.AddDate(0, *task.MonthsInterval, 0)
+			nextDate := addMonths(baselineDate, *task.MonthsInterval)
 			due.NextDueDate = nextDate.Format("2006-01-02")
 			days := calendarDaysUntil(nextDate, now)
 			due.DueInDays = &days
@@ -126,7 +124,10 @@ func ComputeDueStatus(task models.Task, equipment models.Equipment, lastInterven
 		}
 	}
 
-	if task.HoursInterval != nil && equipment.TracksHours {
+	// Without an hours baseline (performed, never with a reading) the hours
+	// rule gives nothing: counting from 0 would make the task overdue right
+	// after it was done (#81).
+	if task.HoursInterval != nil && equipment.TracksHours && hasBaselineHours {
 		nextHours := baselineHours + float64(*task.HoursInterval)
 		due.NextDueHours = &nextHours
 
@@ -157,6 +158,50 @@ func ComputeDueStatus(task models.Task, equipment models.Equipment, lastInterven
 	due.Urgency = greater(monthsFraction, hoursFraction)
 
 	return due
+}
+
+// hoursBaseline returns the reading a task's hour-based interval is counted
+// from, and false when there is none.
+//
+// It is the hours_at of the most recent intervention that has one;
+// interventions logged without a reading are skipped. A task never performed
+// counts from 0. A task performed, but never with a reading, has no baseline.
+func hoursBaseline(interventions []models.Intervention) (float64, bool) {
+	if len(interventions) == 0 {
+		return 0, true
+	}
+	var withReading []models.Intervention
+	for _, inv := range interventions {
+		if inv.HoursAt != nil {
+			withReading = append(withReading, inv)
+		}
+	}
+	if last := latest(withReading); last != nil {
+		return *last.HoursAt, true
+	}
+	return 0, false
+}
+
+// addMonths returns t plus n calendar months, on the same day of the month,
+// or the target month's last day when that day does not exist there: Jan 31
+// + 1 month is Feb 28, not Mar 3 as time.AddDate gives (#80).
+func addMonths(t time.Time, n int) time.Time {
+	first := time.Date(t.Year(), t.Month()+time.Month(n), 1, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
+	lastDay := first.AddDate(0, 1, -1).Day()
+	return first.AddDate(0, 0, min(t.Day(), lastDay)-1)
+}
+
+// latest returns the most recent of interventions by date, the later logged
+// (higher id) on the same date, or nil when there are none.
+func latest(interventions []models.Intervention) *models.Intervention {
+	var last *models.Intervention
+	for i := range interventions {
+		inv := &interventions[i]
+		if last == nil || inv.Date.After(last.Date) || (inv.Date.Equal(last.Date) && inv.ID > last.ID) {
+			last = inv
+		}
+	}
+	return last
 }
 
 // monthsDrive reports whether the months rule, which applies, drives rather

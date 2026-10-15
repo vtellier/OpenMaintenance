@@ -30,17 +30,16 @@ var imageExtByMime = map[string]string{
 
 // resolveIntervention loads an intervention and the equipment it belongs to.
 // Photos are addressed by intervention id alone; the equipment is needed only
-// to build the on-disk path. It returns a 404 JSON error when the intervention
-// is missing or has no owning equipment.
-func (h *Handler) resolveIntervention(ctx echo.Context, interventionID int) (*models.Intervention, int, error) {
+// to build the on-disk path. When the intervention is missing or has no owning
+// equipment it answers 404 itself and returns ok == false: the caller must then
+// return at once, without writing anything else (issue #92).
+func (h *Handler) resolveIntervention(ctx echo.Context, interventionID int) (inv *models.Intervention, equipmentID int, ok bool) {
 	inv, err := dbpackage.GetIntervention(h.DB, interventionID)
-	if err != nil {
-		return nil, 0, ctx.JSON(404, map[string]string{"error": "Intervention not found"})
+	if err != nil || inv.EquipmentID == nil {
+		ctx.JSON(404, map[string]string{"error": "Intervention not found"})
+		return nil, 0, false
 	}
-	if inv.EquipmentID == nil {
-		return nil, 0, ctx.JSON(404, map[string]string{"error": "Intervention not found"})
-	}
-	return inv, *inv.EquipmentID, nil
+	return inv, *inv.EquipmentID, true
 }
 
 // interventionFileResponse builds the API FileInfo object for a stored photo.
@@ -64,8 +63,8 @@ func (h *Handler) interventionFileResponse(interventionID int, f models.Interven
 }
 
 func (h *Handler) ListInterventionFiles(ctx echo.Context, id int) error {
-	if _, _, err := h.resolveIntervention(ctx, id); err != nil {
-		return err
+	if _, _, ok := h.resolveIntervention(ctx, id); !ok {
+		return nil
 	}
 
 	rows, err := dbpackage.ListInterventionFiles(h.DB, id)
@@ -81,9 +80,9 @@ func (h *Handler) ListInterventionFiles(ctx echo.Context, id int) error {
 }
 
 func (h *Handler) UploadInterventionFile(ctx echo.Context, id int) error {
-	_, equipmentID, err := h.resolveIntervention(ctx, id)
-	if err != nil {
-		return err
+	_, equipmentID, ok := h.resolveIntervention(ctx, id)
+	if !ok {
+		return nil
 	}
 
 	fileHeader, err := ctx.FormFile("file")
@@ -155,9 +154,9 @@ func (h *Handler) UploadInterventionFile(ctx echo.Context, id int) error {
 }
 
 func (h *Handler) GetInterventionFile(ctx echo.Context, id int, filename string) error {
-	_, equipmentID, err := h.resolveIntervention(ctx, id)
-	if err != nil {
-		return err
+	_, equipmentID, ok := h.resolveIntervention(ctx, id)
+	if !ok {
+		return nil
 	}
 
 	relPath := filestore.InterventionFilesRelDir(equipmentID, id) + "/" + filename
@@ -178,9 +177,9 @@ func (h *Handler) GetInterventionFile(ctx echo.Context, id int, filename string)
 }
 
 func (h *Handler) DeleteInterventionFile(ctx echo.Context, id int, filename string) error {
-	_, equipmentID, err := h.resolveIntervention(ctx, id)
-	if err != nil {
-		return err
+	_, equipmentID, ok := h.resolveIntervention(ctx, id)
+	if !ok {
+		return nil
 	}
 
 	relPath := filestore.InterventionFilesRelDir(equipmentID, id) + "/" + filename

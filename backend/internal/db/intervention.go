@@ -129,17 +129,6 @@ func ListInterventions(db *sql.DB) ([]models.Intervention, error) {
 	return interventions, nil
 }
 
-func GetLastInterventionByTask(db *sql.DB, taskID int) (*models.Intervention, error) {
-	row := db.QueryRow(
-		"SELECT "+interventionColumns+" FROM interventions WHERE task_id = ? ORDER BY date DESC LIMIT 1", taskID,
-	)
-	intervention := &models.Intervention{}
-	if err := scanIntervention(row, intervention); err != nil {
-		return nil, err
-	}
-	return intervention, nil
-}
-
 func DeleteInterventionsByTask(db *sql.DB, taskID int) error {
 	db.Exec(
 		`DELETE FROM intervention_files

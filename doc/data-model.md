@@ -136,7 +136,7 @@ Alongside the status, the API says **which trigger drives it** and **by how much
 A rule **applies** when it can give a status:
 
 - the **months** rule, when the task has a `months_interval`. Without a [date baseline](#date-baseline-precedence) it is **overdue with no amount**: no `next_due_date` and no `due_in_days`, since there is nothing to count from;
-- the **hours** rule, when the task has an `hours_interval`, the equipment tracks hours, and the equipment has a current reading (`hours`). Without a reading, `next_due_hours` is still returned, but there is nothing to compare it with: no status and no `due_in_hours`.
+- the **hours** rule, when the task has an `hours_interval`, the equipment tracks hours, the equipment has a current reading (`hours`), and the task has an [hours baseline](#hours-baseline). Without a current reading, `next_due_hours` is still returned, but there is nothing to compare it with: no status and no `due_in_hours`. Without an hours baseline (performed, but never with a reading), there is no `next_due_hours` either.
 
 Which trigger drives:
 
@@ -167,7 +167,7 @@ The sign of the driving amount always agrees with the status: an **overdue** tas
 - A rule whose interval is not positive (the task form does not allow it) gives no fraction.
 - A months rule with **no date baseline** (never performed, equipment without a `commissioned_at`) gives no fraction either: there is nothing to measure elapsed time from. The urgency then comes from the hours rule if it applies, and is absent otherwise. The task is still overdue, and in the ranking it comes after the overdue tasks that have an urgency, then by name.
 
-The fraction is not rounded or clamped: it is negative when the baseline is ahead of now, e.g. a `commissioned_at` in the future, or a current reading below the last intervention's `hours_at` after a meter correction. Such a task simply ranks lower.
+The fraction is not rounded or clamped: it is negative when the baseline is ahead of now, e.g. a `commissioned_at` in the future, or a current reading below the hours baseline after a meter correction. Such a task simply ranks lower.
 
 It is computed once, with the rest of the Due status. Clients rank tasks with it and never derive urgency from dates or hours themselves.
 
@@ -200,9 +200,16 @@ The equipment's `created_at` is **never** used as a baseline. It is only the mom
 
 A `commissioned_at` that is absent, empty, or unparseable is treated as unset. It must never be treated as a zero date.
 
+The `next_due_date` is the date baseline plus `months_interval` calendar months, on the same day of the month. When that day does not exist in the target month, it is the **last day of that month**, never a day of the month after: Jan 31 + 1 month = Feb 28 (Feb 29 in a leap year), Aug 31 + 6 months = Feb 28, Feb 29 + 12 months = Feb 28.
+
 ### Hours baseline
 
-The hour-meter baseline comes from the most recent intervention's `hours_at`, or `0` when the task has never been performed. `commissioned_at` plays no part here — an hour-meter reading, not a date, is what an hour-based interval is measured against.
+The hour-meter baseline is the `hours_at` of the most recent intervention on that task **that has a reading**. Interventions logged without `hours_at` are skipped here; they still set the [date baseline](#date-baseline-precedence).
+
+- Never performed: `0`.
+- Performed, but no intervention has a reading: there is **no hours baseline**. The hours rule then gives no `next_due_hours`, no status, no `due_in_hours` and no urgency. The task's status comes from the months rule if it has one, and is OK otherwise, until a reading is logged.
+
+`commissioned_at` plays no part here — an hour-meter reading, not a date, is what an hour-based interval is measured against.
 
 ## File attachment tables
 

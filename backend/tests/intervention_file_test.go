@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -160,6 +161,90 @@ func TestInterventionFile_MissingIntervention(t *testing.T) {
 	rec := uploadPhoto(t, e, 999, "before.png", pngBytes)
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 for missing intervention, got %d", rec.Code)
+	}
+}
+
+// A rejected upload must leave nothing behind: no file on disk, and no photo
+// that a later intervention given that id would inherit (issue #92).
+func TestInterventionFile_UploadToMissingInterventionLeavesNoPhoto(t *testing.T) {
+	e, h, baseDir := newTestServer(t)
+	eqID := seedEquipment(t, h)
+	taskID := seedTask(t, h, eqID)
+
+	// A fresh DB hands out intervention id 1 next.
+	const nextID = 1
+	if rec := uploadPhoto(t, e, nextID, "before.png", pngBytes); rec.Code != http.StatusNotFound {
+		t.Fatalf("upload: expected 404 for missing intervention, got %d", rec.Code)
+	}
+
+	var stored []string
+	filepath.WalkDir(filepath.Join(baseDir, "files"), func(p string, d os.DirEntry, err error) error {
+		if err == nil && !d.IsDir() {
+			stored = append(stored, p)
+		}
+		return nil
+	})
+	if len(stored) != 0 {
+		t.Errorf("rejected upload wrote files to disk: %v", stored)
+	}
+
+	invID := seedIntervention(t, h, eqID, taskID)
+	if invID != nextID {
+		t.Fatalf("precondition: expected the new intervention to get id %d, got %d", nextID, invID)
+	}
+	req := httptest.NewRequest(http.MethodGet, "/api/interventions/"+itoa(invID)+"/files", nil)
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("list: expected 200, got %d", rec.Code)
+	}
+	var files []generated.FileInfo
+	if err := json.Unmarshal(rec.Body.Bytes(), &files); err != nil {
+		t.Fatalf("decode list: %v", err)
+	}
+	if len(files) != 0 {
+		t.Errorf("new intervention inherited %d photo(s) from the rejected upload: %+v", len(files), files)
+	}
+}
+
+// Every photo endpoint must stop at the 404 for a missing intervention, so the
+// client gets that error alone, not followed by a second response (issue #92).
+func TestInterventionFile_MissingInterventionAnswersOnly404(t *testing.T) {
+	cases := []struct {
+		name   string
+		method string
+		path   string
+	}{
+		{"upload", http.MethodPost, "/api/interventions/999/files"},
+		{"list", http.MethodGet, "/api/interventions/999/files"},
+		{"serve", http.MethodGet, "/api/interventions/999/files/a.png"},
+		{"delete", http.MethodDelete, "/api/interventions/999/files/a.png"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			e, _, _ := newTestServer(t)
+
+			var rec *httptest.ResponseRecorder
+			if tc.method == http.MethodPost {
+				rec = uploadPhoto(t, e, 999, "before.png", pngBytes)
+			} else {
+				rec = httptest.NewRecorder()
+				e.ServeHTTP(rec, httptest.NewRequest(tc.method, tc.path, nil))
+			}
+
+			if rec.Code != http.StatusNotFound {
+				t.Fatalf("expected 404, got %d", rec.Code)
+			}
+			body := rec.Body.String()
+			dec := json.NewDecoder(strings.NewReader(body))
+			var got map[string]string
+			if err := dec.Decode(&got); err != nil || got["error"] != "Intervention not found" {
+				t.Fatalf("expected the error {\"error\":\"Intervention not found\"}, got body %q", body)
+			}
+			if dec.More() {
+				t.Errorf("expected the 404 error alone, got body %q", body)
+			}
+		})
 	}
 }
 

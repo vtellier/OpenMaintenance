@@ -20,6 +20,8 @@
 - [x] Auto-update equipment hours when an intervention records higher `hours_at`
 - [x] Validate intervention `date` is not in the future
 - [x] Validate hour-meter constraints (hours_interval only if tracks_hours)
+- [x] **Hours baseline skips interventions without a reading** (issue #81): counted from the most recent `hours_at` on the task; a task done but never with a reading has no hours rule until one is logged, instead of counting from 0 and turning overdue at once
+- [x] **Month-end next due date** (issue #80): adding months clamps to the target month's last day (Jan 31 + 1 month = Feb 28/29) instead of rolling over to early March
 
 ## Milestone 3 — Frontend Foundation
 
@@ -134,6 +136,7 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] Photo grid (add / delete / full-screen view) in the full intervention form; photo-count badge in history lists
 - [x] Files removed from disk on photo delete and on intervention / task / equipment delete (cascade)
 - [x] Spec: `doc/file-storage.md`
+- [x] **Missing intervention stops at 404** (issue #92): uploading a photo to an intervention that does not exist no longer writes the file and a DB row; every photo endpoint answers the 404 alone
 
 ## Milestone 16 — Equipment Icon (issue #2)
 
