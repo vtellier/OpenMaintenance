@@ -104,7 +104,7 @@ func ComputeDueStatus(task models.Task, equipment models.Equipment, intervention
 			monthsStatus = "overdue"
 			monthsHasAmount = false
 		} else {
-			nextDate := baselineDate.AddDate(0, *task.MonthsInterval, 0)
+			nextDate := addMonths(baselineDate, *task.MonthsInterval)
 			due.NextDueDate = nextDate.Format("2006-01-02")
 			days := calendarDaysUntil(nextDate, now)
 			due.DueInDays = &days
@@ -180,6 +180,15 @@ func hoursBaseline(interventions []models.Intervention) (float64, bool) {
 		return *last.HoursAt, true
 	}
 	return 0, false
+}
+
+// addMonths returns t plus n calendar months, on the same day of the month,
+// or the target month's last day when that day does not exist there: Jan 31
+// + 1 month is Feb 28, not Mar 3 as time.AddDate gives (#80).
+func addMonths(t time.Time, n int) time.Time {
+	first := time.Date(t.Year(), t.Month()+time.Month(n), 1, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
+	lastDay := first.AddDate(0, 1, -1).Day()
+	return first.AddDate(0, 0, min(t.Day(), lastDay)-1)
 }
 
 // latest returns the most recent of interventions by date, the later logged
