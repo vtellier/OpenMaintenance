@@ -200,6 +200,8 @@ The equipment's `created_at` is **never** used as a baseline. It is only the mom
 
 A `commissioned_at` that is absent, empty, or unparseable is treated as unset. It must never be treated as a zero date.
 
+The `next_due_date` is the date baseline plus `months_interval` calendar months, on the same day of the month. When that day does not exist in the target month, it is the **last day of that month**, never a day of the month after: Jan 31 + 1 month = Feb 28 (Feb 29 in a leap year), Aug 31 + 6 months = Feb 28, Feb 29 + 12 months = Feb 28.
+
 ### Hours baseline
 
 The hour-meter baseline is the `hours_at` of the most recent intervention on that task **that has a reading**. Interventions logged without `hours_at` are skipped here; they still set the [date baseline](#date-baseline-precedence).
