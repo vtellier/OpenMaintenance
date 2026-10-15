@@ -508,3 +508,11 @@ Can start now: #65, #66, #69, #75.
 - **Tests first** (TDD skill, two agreed seams): the three "Current behaviour" cases pinned by #66 in `due_status_rules_test.go` became the new rule plus "latest reading" cases; one `httptest` case in `backend/tests/task_due_status_test.go` (reading 1 450 then a reading-less log → `next_due_hours` 1 550, OK).
 - **Review follow-up**: `enrichTask` discarded the error loading the task's interventions, so a DB failure counted from 0 and could show the task overdue. It now logs the error and leaves the due fields out (test first, `httptest`).
 - Verified with `make test-backend`, `go vet`, gofmt, and curl against a running build. Frontend untouched (it already ignores a null `due_in_hours`); `make build` not run end to end (no `pnpm` here).
+
+## 2026-10-15 — Next due date past the end of the month (issue #80)
+
+- **Bug**: the next due date used Go's `AddDate(0, months, 0)`, which rolls an overflowing day into the next month: Jan 31 + 1 month gave Mar 3, Aug 31 + 6 months Mar 3, Feb 29 + 12 months Mar 1. Tasks done at a month's end were announced a few days late.
+- **Decision**: clamp to the target month's last day (Jan 31 + 1 month = Feb 28, Feb 29 in a leap year). Spec: `doc/data-model.md` "Date baseline precedence".
+- **Test first**: the five "Current behaviour" month-end cases pinned by #66 in `due_status_rules_test.go` now expect the clamped dates.
+- **Fix**: `addMonths` helper in `logic/due_status.go`; no other code does month arithmetic (the frontend shows the backend's date).
+- Verified with `make test-backend`, `go vet`, gofmt, and curl against a running build (task done Jan 31, monthly → `next_due_date` 2026-02-28). Frontend untouched.
