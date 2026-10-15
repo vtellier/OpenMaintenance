@@ -860,46 +860,46 @@ func TestComputeDueStatusDaysAreCalendarDays(t *testing.T) {
 func TestComputeDueStatusMonthEndArithmetic(t *testing.T) {
 	runDueStatusCases(t, []dueStatusCase{
 		{
-			// Current behaviour: Jan 31 + 1 month is "Feb 31", normalised to
-			// Mar 3. Clamped to Feb 28 it would already be overdue on Mar 1.
-			name:      "Jan 31 + 1 month is Mar 3",
+			// "Feb 31" does not exist: clamped to the month's last day, not
+			// rolled over to Mar 3 (#80). So it is already overdue on Mar 1.
+			name:      "Jan 31 + 1 month is Feb 28",
 			now:       at(2026, time.March, 1, 12, 0),
 			task:      monthsTask(1),
 			equipment: noMeter(),
 			last:      done(midnight(2026, time.January, 31)),
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-03-03", trigger: TriggerMonths, dueInDays: intPtr(2), urgency: frac(29, 31)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-02-28", trigger: TriggerMonths, dueInDays: intPtr(-1), urgency: frac(29, 28)},
 		},
 		{
-			name:      "Jan 31 + 1 month in a leap year is Mar 2",
+			name:      "Jan 31 + 1 month in a leap year is Feb 29",
 			now:       at(2028, time.March, 1, 12, 0),
 			task:      monthsTask(1),
 			equipment: noMeter(),
 			last:      done(midnight(2028, time.January, 31)),
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2028-03-02", trigger: TriggerMonths, dueInDays: intPtr(1), urgency: frac(30, 31)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2028-02-29", trigger: TriggerMonths, dueInDays: intPtr(-1), urgency: frac(30, 29)},
 		},
 		{
-			name:      "Aug 31 + 6 months is Mar 3",
+			name:      "Aug 31 + 6 months is Feb 28",
 			now:       at(2026, time.March, 2, 12, 0),
 			task:      monthsTask(6),
 			equipment: noMeter(),
 			last:      done(midnight(2025, time.August, 31)),
-			want:      dueStatusWant{status: "due_soon", nextDueDate: "2026-03-03", trigger: TriggerMonths, dueInDays: intPtr(1), urgency: frac(183, 184)},
+			want:      dueStatusWant{status: "overdue", nextDueDate: "2026-02-28", trigger: TriggerMonths, dueInDays: intPtr(-2), urgency: frac(183, 181)},
 		},
 		{
-			name:      "Mar 31 + 6 months is Oct 1",
+			name:      "Mar 31 + 6 months is Sep 30",
 			now:       testNow,
 			task:      monthsTask(6),
 			equipment: noMeter(),
 			last:      done(midnight(2026, time.March, 31)),
-			want:      dueStatusWant{status: "ok", nextDueDate: "2026-10-01", trigger: TriggerMonths, dueInDays: intPtr(108), urgency: frac(76, 184)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2026-09-30", trigger: TriggerMonths, dueInDays: intPtr(107), urgency: frac(76, 183)},
 		},
 		{
-			name:      "Feb 29 + 12 months is Mar 1",
+			name:      "Feb 29 + 12 months is Feb 28",
 			now:       at(2028, time.June, 1, 0, 0),
 			task:      monthsTask(12),
 			equipment: noMeter(),
 			last:      done(midnight(2028, time.February, 29)),
-			want:      dueStatusWant{status: "ok", nextDueDate: "2029-03-01", trigger: TriggerMonths, dueInDays: intPtr(273), urgency: frac(93, 366)},
+			want:      dueStatusWant{status: "ok", nextDueDate: "2029-02-28", trigger: TriggerMonths, dueInDays: intPtr(272), urgency: frac(93, 365)},
 		},
 		{
 			name:      "Jan 31 + 12 months is Jan 31",
