@@ -28,6 +28,12 @@ describe('prefill', () => {
     expect(form.equipmentId).toBe(1)
   })
 
+  it('editing an intervention logged without a reading leaves the reading empty', () => {
+    const form = prefill({ edit: { id: 7, taskId: 10, equipmentId: 1, date: '2026-05-03' } }, ctx)
+
+    expect(form.hours).toBeNull()
+  })
+
   describe('a new log', () => {
     afterEach(() => { vi.useRealTimers() })
 
@@ -41,6 +47,10 @@ describe('prefill', () => {
         editId: null, equipmentId: 1, taskId: null, isExceptional: false, exceptionalLabel: '',
         date: '2026-06-22', hours: 120, location: '', performedBy: '', comments: '',
       })
+    })
+
+    it('on an equipment that does not track hours has no reading', () => {
+      expect(prefill({ new: { equipmentId: 2 } }, ctx).hours).toBeNull()
     })
   })
 })
@@ -83,6 +93,10 @@ describe('toRequest', () => {
 
   it('sends a reading of 0 when the equipment tracks hours', () => {
     expect(toRequest({ ...standard, hours: 0 }, ctx).interventionInput.hoursAt).toBe(0)
+  })
+
+  it('sends no reading when the field is empty', () => {
+    expect(toRequest({ ...standard, hours: null }, ctx).interventionInput.hoursAt).toBeUndefined()
   })
 
   it('sends no reading when the equipment does not track hours', () => {
@@ -157,6 +171,6 @@ describe('selectEquipment', () => {
 
     selectEquipment(form, 2, ctx)
 
-    expect(form).toMatchObject({ equipmentId: 2, hours: 0 })
+    expect(form).toMatchObject({ equipmentId: 2, hours: null })
   })
 })
