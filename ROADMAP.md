@@ -76,6 +76,7 @@ _Depends on Milestone 6 (quick-log must work, `hours_updated_at` must be set, da
 - [x] "+" log intervention CTA from global History and per-equipment History tab
 - [x] Edit intervention from history (global + per-equipment)
 - [x] Delete intervention from history with confirmation (global + per-equipment)
+- [x] **One intervention form module** (issue #73): prefill, validation, request and error reason live in `src/lib/interventionForm.ts`; editing from the global History no longer loses the equipment (empty Task list, no Hours field, exceptional entry unsavable), and the reading is sent whenever the equipment tracks hours
 
 ## Milestone 9 — Settings
 

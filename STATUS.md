@@ -516,3 +516,15 @@ Can start now: #65, #66, #69, #75.
 - **Test first**: the five "Current behaviour" month-end cases pinned by #66 in `due_status_rules_test.go` now expect the clamped dates.
 - **Fix**: `addMonths` helper in `logic/due_status.go`; no other code does month arithmetic (the frontend shows the backend's date).
 - Verified with `make test-backend`, `go vet`, gofmt, and curl against a running build (task done Jan 31, monthly → `next_due_date` 2026-02-28). Frontend untouched.
+
+## 2026-10-19 — Intervention form module (issue #73)
+
+- **Triage**: #58 closed as a duplicate of #97 (quick log has no Location field). The spec change for #97 is approved and recorded on the issue; it waits for #74 so the field is added once, in the shared module.
+- **Bug absorbed**: editing an intervention from the global History opened the form with no equipment: empty Task list, no Hours field, and Save disabled for an exceptional intervention.
+- **Test first**: `frontend/tests/non-regression/history-edit-keeps-equipment.spec.ts` (Playwright), red on the old pages.
+- **Module** (TDD skill, seams agreed: prefill, validation, request building, plus the Playwright spec): `src/lib/interventionForm.ts` with `prefill`, `selectEquipment`, `canSave`, `toRequest` and `save`, covered by `interventionForm.test.ts` in every test timezone. `FullInterventionModal` owns its state and saves through it; Equipment detail and History only open it for `{ new }` or `{ edit }`.
+- **One hour-reading rule**: the reading is sent whenever the equipment tracks hours, `0` included (History used to send it only above 0). Picking an equipment prefills its current reading. Spec: `doc/gui/interventions.md`.
+- Also fixed on the way: the edit form's Task select showed no selection, because `.value` was set before its options rendered; options now carry `selected`.
+- **Tooling on this machine**: pnpm 10.14.0, Chromium and its system libraries, and a headless JRE (for `pnpm run generate:api`) are now installed, so the full frontend workflow runs locally.
+- Verified with `pnpm test:unit`, `pnpm test` (40 Playwright specs), `pnpm run typecheck` and `pnpm run build`.
+
