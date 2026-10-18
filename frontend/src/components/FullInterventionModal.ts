@@ -89,7 +89,8 @@ export function FullInterventionModal(
   }
 
   function onHoursChange(e: Event) {
-    state.hours = Number((e.target as HTMLInputElement).value)
+    const value = (e.target as HTMLInputElement).value
+    state.hours = value === '' ? null : Number(value)
   }
 
   function onLocationChange(e: Event) {
@@ -173,7 +174,7 @@ export function FullInterventionModal(
         ${() => tracksHours() ? html`
           <div class="form-field">
             <label class="form-field__label">Hours</label>
-            <input type="number" min="0" .value="${() => String(state.hours)}" @input="${onHoursChange}" />
+            <input type="number" min="0" .value="${() => state.hours == null ? '' : String(state.hours)}" @input="${onHoursChange}" />
           </div>
         ` : null}
 

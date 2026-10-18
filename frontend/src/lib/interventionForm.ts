@@ -16,7 +16,8 @@ export interface InterventionFormValues {
   isExceptional: boolean
   exceptionalLabel: string
   date: CalendarDate | ''
-  hours: number
+  /** The hour-meter reading; null when none is entered. */
+  hours: number | null
   location: string
   performedBy: string
   comments: string
@@ -34,6 +35,12 @@ export type InterventionFormSource =
   | { new: { equipmentId: number | null } }
   | { edit: InterventionRow }
 
+/** The reading a new log starts at: the equipment's current one, or none when it does not track hours. */
+function startingReading(equipmentId: number | null, ctx: InterventionFormContext): number | null {
+  const eq = ctx.equipments.find(e => e.id === equipmentId)
+  return eq?.tracksHours ? (eq.hours ?? 0) : null
+}
+
 function equipmentOfTask(taskId: number | null | undefined, ctx: InterventionFormContext): number | null {
   if (taskId == null) return null
   return ctx.tasks.find(t => t.id === taskId)?.equipmentId ?? null
@@ -49,7 +56,7 @@ export function prefill(source: InterventionFormSource, ctx: InterventionFormCon
       isExceptional: false,
       exceptionalLabel: '',
       date: today(),
-      hours: ctx.equipments.find(e => e.id === equipmentId)?.hours ?? 0,
+      hours: startingReading(equipmentId, ctx),
       location: '',
       performedBy: '',
       comments: '',
@@ -63,7 +70,7 @@ export function prefill(source: InterventionFormSource, ctx: InterventionFormCon
     isExceptional: inv.taskId == null,
     exceptionalLabel: inv.exceptionalLabel ?? '',
     date: inv.date ?? '',
-    hours: inv.hoursAt ?? 0,
+    hours: inv.hoursAt ?? null,
     location: inv.location ?? '',
     performedBy: inv.performedBy ?? '',
     comments: inv.comments ?? '',
@@ -74,8 +81,7 @@ export function prefill(source: InterventionFormSource, ctx: InterventionFormCon
 export function selectEquipment(form: InterventionFormValues, equipmentId: number | null, ctx: InterventionFormContext): void {
   form.equipmentId = equipmentId
   form.taskId = null
-  const eq = ctx.equipments.find(e => e.id === equipmentId)
-  form.hours = eq?.tracksHours ? (eq.hours ?? 0) : 0
+  form.hours = startingReading(equipmentId, ctx)
 }
 
 /** Date always; a task for a standard intervention; an equipment and a label for an exceptional one. */
@@ -93,13 +99,13 @@ export interface InterventionRequest {
 
 /**
  * The request the form saves. The reading is sent whenever the equipment
- * tracks hours, 0 included, and never otherwise. Call only when canSave.
+ * tracks hours and one is entered, 0 included. Call only when canSave.
  */
 export function toRequest(form: InterventionFormValues, ctx: InterventionFormContext): InterventionRequest {
   const tracksHours = ctx.equipments.find(e => e.id === form.equipmentId)?.tracksHours ?? false
   const common = {
     date: toApiDateTime(form.date as CalendarDate),
-    hoursAt: tracksHours ? form.hours : undefined,
+    hoursAt: tracksHours && form.hours != null ? form.hours : undefined,
     location: form.location.trim() || undefined,
     performedBy: form.performedBy.trim() || undefined,
     comments: form.comments.trim() || undefined,
