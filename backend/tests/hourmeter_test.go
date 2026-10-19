@@ -398,9 +398,8 @@ func TestLogIntervention_NonTrackingEquipmentKeepsNoReading(t *testing.T) {
 	assertNoReading(t, f.equipment(id))
 }
 
-// Editing an intervention applies the same rule as logging one. Whether an
-// edit (or a delete) may lower the reading is not decided yet (#70): today it
-// never does.
+// Editing an intervention applies the same rule as logging one: an edit to a
+// lower reading never lowers the equipment's (#70).
 func TestEditIntervention_Reading(t *testing.T) {
 	f, h := newMeterFixture(t)
 	id := seedHourEquipment(t, h, 100, 72*time.Hour)
@@ -420,6 +419,87 @@ func TestEditIntervention_Reading(t *testing.T) {
 	after := f.equipment(id)
 	assertReading(t, after, 150)
 	assertFreshnessUnchanged(t, raised, after)
+}
+
+// Issue #70: deleting the intervention that raised the reading to 500 left
+// the equipment at 500, while the confirmation promised the hours would be
+// "recomputed". Decided: the reading is never lowered silently. A delete keeps
+// it, freshness included; only "Correct reading" can lower it.
+func TestDeleteIntervention_KeepsReading(t *testing.T) {
+	f, h := newMeterFixture(t)
+	id := seedHourEquipment(t, h, 100, 72*time.Hour)
+	taskID := seedTask(t, h, id)
+	f.createdID(f.do(http.MethodPost, "/interventions", interventionBody(taskID, 300)), "log intervention at 300")
+	invID := f.createdID(f.do(http.MethodPost, "/interventions", interventionBody(taskID, 500)), "log intervention at 500")
+	before := f.equipment(id)
+	assertReading(t, before, 500)
+
+	f.expect(f.do(http.MethodDelete, "/interventions/"+itoa(invID), nil), http.StatusNoContent, "delete intervention")
+
+	after := f.equipment(id)
+	assertReading(t, after, 500)
+	assertFreshnessUnchanged(t, before, after)
+}
+
+// ── Correct reading ──
+
+// "Correct reading" is the only path that can lower the reading: it sets the
+// value the user confirms, lower, equal or higher, and refreshes freshness.
+func TestCorrectReading(t *testing.T) {
+	cases := []struct {
+		name  string
+		hours float64
+	}{
+		{"lower reading", 300},
+		{"same reading", 500},
+		{"higher reading", 520},
+		{"zero", 0},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f, h := newMeterFixture(t)
+			id := seedHourEquipment(t, h, 500, 72*time.Hour)
+
+			rec := f.do(http.MethodPut, "/equipments/"+itoa(id)+"/hours/correction", map[string]any{"hours": tc.hours})
+			f.expect(rec, http.StatusOK, "correct reading")
+			var returned models.Equipment
+			if err := json.Unmarshal(rec.Body.Bytes(), &returned); err != nil {
+				t.Fatalf("decode equipment: %v", err)
+			}
+			assertReading(t, returned, tc.hours)
+
+			after := f.equipment(id)
+			assertReading(t, after, tc.hours)
+			assertFresh(t, after)
+		})
+	}
+}
+
+// A refused correction changes nothing.
+func TestCorrectReading_Refused(t *testing.T) {
+	t.Run("negative reading", func(t *testing.T) {
+		f, h := newMeterFixture(t)
+		id := seedHourEquipment(t, h, 500, 72*time.Hour)
+		before := f.equipment(id)
+
+		f.expect(f.do(http.MethodPut, "/equipments/"+itoa(id)+"/hours/correction", map[string]any{"hours": -1}), http.StatusBadRequest, "correct to a negative reading")
+
+		after := f.equipment(id)
+		assertReading(t, after, 500)
+		assertFreshnessUnchanged(t, before, after)
+	})
+	t.Run("equipment without hour-meter", func(t *testing.T) {
+		f, h := newMeterFixture(t)
+		id := seedEquipment(t, h)
+
+		f.expect(f.do(http.MethodPut, "/equipments/"+itoa(id)+"/hours/correction", map[string]any{"hours": 10}), http.StatusBadRequest, "correct a non-tracking equipment")
+
+		assertNoReading(t, f.equipment(id))
+	})
+	t.Run("unknown equipment", func(t *testing.T) {
+		f, _ := newMeterFixture(t)
+		f.expect(f.do(http.MethodPut, "/equipments/9999/hours/correction", map[string]any{"hours": 10}), http.StatusNotFound, "correct an unknown equipment")
+	})
 }
 
 // ── Concurrent requests ──
