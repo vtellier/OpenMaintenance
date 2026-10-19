@@ -529,3 +529,13 @@ Can start now: #65, #66, #69, #75.
 - **Tooling on this machine**: pnpm 10.14.0, Chromium and its system libraries, and a headless JRE (for `pnpm run generate:api`) are now installed, so the full frontend workflow runs locally.
 - Verified with `pnpm test:unit`, `pnpm test` (41 Playwright specs), `pnpm run typecheck` and `pnpm run build`.
 
+## 2026-10-19 — Quick log uses the intervention form module (issue #74)
+
+- Stacked on PR #98 (#73), branch `refactor/issue-74-quick-log-module`.
+- **Bug absorbed**: a refused Dashboard quick log showed "Failed to save intervention" instead of the backend's reason (the #51 fix had reached Equipment detail and History only).
+- **Test first**: `frontend/tests/non-regression/dashboard-quick-log-error-shows-reason.spec.ts` (Playwright, a future date refused by the backend), red on the old Dashboard.
+- **Module** (TDD skill, seams agreed: quick-log prefill and request in `interventionForm.test.ts`, plus the Playwright spec): a new `{ quickLog: { taskId } }` source fixes the task and takes its equipment, today's date and the equipment's current reading (none when it does not track hours).
+- **One quick log**: `src/components/QuickLogModal.ts` prefills, validates and saves through the module; the Dashboard and Equipment detail build it when "Done" is clicked and only toggle it. On the Dashboard it now sits outside the page's reactive content, so a data reload cannot rebuild it.
+- **Behaviour change**: an emptied Hours field in the quick log sends no reading (it used to send `0`). Spec: `doc/gui/interventions.md`.
+- #97 (Location in the quick log) can now add the field once, in `QuickLogModal`.
+- Verified with `pnpm test:unit`, `pnpm test` (42 Playwright specs), `pnpm run typecheck`, `pnpm run build` and `make build`.

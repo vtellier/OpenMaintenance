@@ -12,10 +12,12 @@ Triggered by the **"Mark done"** button available on:
 
 Opens a small modal/sheet with a minimal form:
 - **Date** (defaults to today in the user's timezone, editable).
-- **Hours** (only if equipment tracks hours; pre-filled with current equipment hours, editable).
+- **Hours** (only if equipment tracks hours; pre-filled with current equipment hours, editable). Same reading rule as the full form: the value entered is sent, `0` included; an empty field sends no reading.
 - **Done by** (optional, single-line text, placeholder "e.g. Self, Garage du Port").
 - **Comments** (optional, single line).
 - Two buttons: **Save** / **Cancel**.
+
+The Dashboard and Equipment detail quick logs are the same form. A save the backend refuses keeps the modal open and shows the backend's reason (e.g. *"intervention date cannot be in the future"*), as the full form does.
 
 Location is not asked in quick mode (kept for the full form).
 
