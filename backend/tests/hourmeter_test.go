@@ -488,6 +488,18 @@ func TestCorrectReading_Refused(t *testing.T) {
 		assertReading(t, after, 500)
 		assertFreshnessUnchanged(t, before, after)
 	})
+	// A body without hours must not read as a correction to 0 (PR #106 review).
+	t.Run("missing reading", func(t *testing.T) {
+		f, h := newMeterFixture(t)
+		id := seedHourEquipment(t, h, 500, 72*time.Hour)
+		before := f.equipment(id)
+
+		f.expect(f.do(http.MethodPut, "/equipments/"+itoa(id)+"/hours/correction", map[string]any{}), http.StatusBadRequest, "correct without a reading")
+
+		after := f.equipment(id)
+		assertReading(t, after, 500)
+		assertFreshnessUnchanged(t, before, after)
+	})
 	t.Run("equipment without hour-meter", func(t *testing.T) {
 		f, h := newMeterFixture(t)
 		id := seedEquipment(t, h)
