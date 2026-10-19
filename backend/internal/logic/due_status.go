@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"math"
 	"time"
 
 	"github.com/vtellier/OpenMaintenance/internal/models"
@@ -9,9 +10,10 @@ import (
 const hoursDueSoonMargin = 10.0
 const monthsDueSoonMargin = 30 * 24 * time.Hour
 
-// commissionedAtLayout is the storage format of equipments.commissioned_at
-// (a TEXT column holding a plain calendar date).
-const commissionedAtLayout = "2006-01-02"
+// calendarDateLayout is the storage format of the TEXT columns holding a
+// plain calendar date: equipments.commissioned_at,
+// tasks.current_expiry_date and interventions.expiry_date.
+const calendarDateLayout = "2006-01-02"
 
 // dateBaseline returns the date a task's time-based interval is counted from,
 // and false when there is none.
@@ -29,7 +31,7 @@ func dateBaseline(equipment models.Equipment, lastIntervention *models.Intervent
 	}
 
 	if equipment.CommissionedAt != nil {
-		if commissioned, err := time.Parse(commissionedAtLayout, *equipment.CommissionedAt); err == nil && !commissioned.IsZero() {
+		if commissioned, err := time.Parse(calendarDateLayout, *equipment.CommissionedAt); err == nil && !commissioned.IsZero() {
 			return commissioned, true
 		}
 	}
@@ -41,6 +43,7 @@ func dateBaseline(equipment models.Equipment, lastIntervention *models.Intervent
 const (
 	TriggerMonths = "months"
 	TriggerHours  = "hours"
+	TriggerExpiry = "expiry"
 )
 
 // DueStatus is a task's derived due status. See "Derived: due status" in
@@ -83,6 +86,10 @@ type DueStatus struct {
 // overdue hours rule the hours rule drives, because it has a concrete amount
 // to show, and the urgency comes from the hours rule alone, or is absent.
 func ComputeDueStatus(task models.Task, equipment models.Equipment, interventions []models.Intervention, now time.Time) DueStatus {
+	if task.IsExpiry() {
+		return expiryDueStatus(task, interventions, now)
+	}
+
 	lastIntervention := latest(interventions)
 	baselineDate, hasBaselineDate := dateBaseline(equipment, lastIntervention)
 	baselineHours, hasBaselineHours := hoursBaseline(interventions)
@@ -115,12 +122,7 @@ func ComputeDueStatus(task models.Task, equipment models.Equipment, intervention
 				monthsFraction = &f
 			}
 
-			monthsStatus = "ok"
-			if now.After(nextDate) {
-				monthsStatus = "overdue"
-			} else if now.After(nextDate.Add(-monthsDueSoonMargin)) {
-				monthsStatus = "due_soon"
-			}
+			monthsStatus = dateRuleStatus(nextDate, now)
 		}
 	}
 
@@ -158,6 +160,76 @@ func ComputeDueStatus(task models.Task, equipment models.Equipment, intervention
 	due.Urgency = greater(monthsFraction, hoursFraction)
 
 	return due
+}
+
+// fittedExpiredUrgency is the urgency of an expiry task whose part was
+// fitted already expired: the largest double, above any fraction.
+const fittedExpiredUrgency = math.MaxFloat64
+
+// expiryDueStatus derives an expiry task's due status: it is due on the
+// expiry date of the part fitted by the latest intervention. See "Expiry
+// rule" in doc/data-model.md.
+func expiryDueStatus(task models.Task, interventions []models.Intervention, now time.Time) DueStatus {
+	due := DueStatus{Trigger: TriggerExpiry}
+	last := latest(interventions)
+	expiry, ok := currentExpiryDate(task, last)
+	if !ok {
+		// No part with a known expiry date: there is no way to know when the
+		// task is due, so it is reported overdue with no date, rather than
+		// inventing one.
+		due.Status = "overdue"
+		return due
+	}
+
+	due.NextDueDate = expiry.Format("2006-01-02")
+	days := calendarDaysUntil(expiry, now)
+	due.DueInDays = &days
+	due.Status = dateRuleStatus(expiry, now)
+
+	// With only the task's current expiry date there is no date fitted to
+	// measure from: no urgency.
+	if last != nil {
+		// The fraction of the shelf life left when fitted that has elapsed.
+		// A part fitted already expired has none to divide by: it ranks at
+		// the top of the overdue tasks.
+		f := fittedExpiredUrgency
+		if shelfLife := calendarDaysUntil(expiry, last.Date); shelfLife > 0 {
+			f = float64(shelfLife-days) / float64(shelfLife)
+		}
+		due.Urgency = &f
+	}
+	return due
+}
+
+// currentExpiryDate returns the expiry date an expiry task is due on, and
+// false when there is none: the latest intervention's expiry date, else,
+// before any intervention, the task's current expiry date. A missing or
+// malformed date means there is none (never a zero time).
+func currentExpiryDate(task models.Task, last *models.Intervention) (time.Time, bool) {
+	date := task.CurrentExpiryDate
+	if last != nil {
+		date = last.ExpiryDate
+	}
+	if date == nil {
+		return time.Time{}, false
+	}
+	expiry, err := time.Parse(calendarDateLayout, *date)
+	if err != nil || expiry.IsZero() {
+		return time.Time{}, false
+	}
+	return expiry, true
+}
+
+// dateRuleStatus is the status of a rule due on a date: overdue once the date
+// has started, due soon within the 30 days before it, ok before that.
+func dateRuleStatus(dueDate, now time.Time) string {
+	switch {
+	case now.After(dueDate):
+		return "overdue"
+	case now.After(dueDate.Add(-monthsDueSoonMargin)):
+		return "due_soon"
+	}
+	return "ok"
 }
 
 // hoursBaseline returns the reading a task's hour-based interval is counted
