@@ -2,21 +2,54 @@ package db
 
 import (
 	"database/sql"
-	"github.com/vtellier/OpenMaintenance/internal/models"
 	"time"
+
+	"github.com/vtellier/OpenMaintenance/internal/models"
 )
+
+const taskColumns = "id, equipment_id, name, description, kind, hours_interval, months_interval, current_expiry_date, created_at, updated_at"
+
+func scanTask(s interface {
+	Scan(...any) error
+}, task *models.Task) error {
+	var currentExpiryDate sql.NullString
+	err := s.Scan(
+		&task.ID,
+		&task.EquipmentID,
+		&task.Name,
+		&task.Description,
+		&task.Kind,
+		&task.HoursInterval,
+		&task.MonthsInterval,
+		&currentExpiryDate,
+		&task.CreatedAt,
+		&task.UpdatedAt,
+	)
+	if err != nil {
+		return err
+	}
+	if currentExpiryDate.Valid {
+		task.CurrentExpiryDate = &currentExpiryDate.String
+	}
+	return nil
+}
 
 func CreateTask(db *sql.DB, task *models.Task) error {
 	task.CreatedAt = time.Now()
 	task.UpdatedAt = time.Now()
+	if task.Kind == "" {
+		task.Kind = models.KindInterval
+	}
 
 	result, err := db.Exec(
-		"INSERT INTO tasks (equipment_id, name, description, hours_interval, months_interval, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO tasks (equipment_id, name, description, kind, hours_interval, months_interval, current_expiry_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
 		task.EquipmentID,
 		task.Name,
 		task.Description,
+		task.Kind,
 		task.HoursInterval,
 		task.MonthsInterval,
+		task.CurrentExpiryDate,
 		task.CreatedAt,
 		task.UpdatedAt,
 	)
@@ -30,36 +63,28 @@ func CreateTask(db *sql.DB, task *models.Task) error {
 }
 
 func GetTask(db *sql.DB, id int) (*models.Task, error) {
-	row := db.QueryRow("SELECT id, equipment_id, name, description, hours_interval, months_interval, created_at, updated_at FROM tasks WHERE id = ?", id)
+	row := db.QueryRow("SELECT "+taskColumns+" FROM tasks WHERE id = ?", id)
 
 	task := &models.Task{}
-	err := row.Scan(
-		&task.ID,
-		&task.EquipmentID,
-		&task.Name,
-		&task.Description,
-		&task.HoursInterval,
-		&task.MonthsInterval,
-		&task.CreatedAt,
-		&task.UpdatedAt,
-	)
-	if err != nil {
+	if err := scanTask(row, task); err != nil {
 		return nil, err
 	}
-
 	return task, nil
 }
 
+// UpdateTask saves a task's editable fields. The kind is fixed at creation
+// and never written here.
 func UpdateTask(db *sql.DB, task *models.Task) error {
 	task.UpdatedAt = time.Now()
 
 	_, err := db.Exec(
-		"UPDATE tasks SET equipment_id = ?, name = ?, description = ?, hours_interval = ?, months_interval = ?, updated_at = ? WHERE id = ?",
+		"UPDATE tasks SET equipment_id = ?, name = ?, description = ?, hours_interval = ?, months_interval = ?, current_expiry_date = ?, updated_at = ? WHERE id = ?",
 		task.EquipmentID,
 		task.Name,
 		task.Description,
 		task.HoursInterval,
 		task.MonthsInterval,
+		task.CurrentExpiryDate,
 		task.UpdatedAt,
 		task.ID,
 	)
@@ -86,36 +111,15 @@ func DeleteTasksByEquipment(db *sql.DB, equipmentID int) error {
 }
 
 func ListTasks(db *sql.DB) ([]models.Task, error) {
-	rows, err := db.Query("SELECT id, equipment_id, name, description, hours_interval, months_interval, created_at, updated_at FROM tasks")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	tasks := make([]models.Task, 0)
-	for rows.Next() {
-		task := models.Task{}
-		err := rows.Scan(
-			&task.ID,
-			&task.EquipmentID,
-			&task.Name,
-			&task.Description,
-			&task.HoursInterval,
-			&task.MonthsInterval,
-			&task.CreatedAt,
-			&task.UpdatedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-		tasks = append(tasks, task)
-	}
-
-	return tasks, nil
+	return listTasks(db, "SELECT "+taskColumns+" FROM tasks")
 }
 
 func ListTasksByEquipment(db *sql.DB, equipmentID int) ([]models.Task, error) {
-	rows, err := db.Query("SELECT id, equipment_id, name, description, hours_interval, months_interval, created_at, updated_at FROM tasks WHERE equipment_id = ?", equipmentID)
+	return listTasks(db, "SELECT "+taskColumns+" FROM tasks WHERE equipment_id = ?", equipmentID)
+}
+
+func listTasks(db *sql.DB, query string, args ...any) ([]models.Task, error) {
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -124,21 +128,10 @@ func ListTasksByEquipment(db *sql.DB, equipmentID int) ([]models.Task, error) {
 	tasks := make([]models.Task, 0)
 	for rows.Next() {
 		task := models.Task{}
-		err := rows.Scan(
-			&task.ID,
-			&task.EquipmentID,
-			&task.Name,
-			&task.Description,
-			&task.HoursInterval,
-			&task.MonthsInterval,
-			&task.CreatedAt,
-			&task.UpdatedAt,
-		)
-		if err != nil {
+		if err := scanTask(rows, &task); err != nil {
 			return nil, err
 		}
 		tasks = append(tasks, task)
 	}
-
-	return tasks, nil
+	return tasks, rows.Err()
 }

@@ -525,3 +525,39 @@ Can start now: #65, #66, #69, #75.
 - **Test first**: the five "Current behaviour" month-end cases pinned by #66 in `due_status_rules_test.go` now expect the clamped dates.
 - **Fix**: `addMonths` helper in `logic/due_status.go`; no other code does month arithmetic (the frontend shows the backend's date).
 - Verified with `make test-backend`, `go vet`, gofmt, and curl against a running build (task done Jan 31, monthly → `next_due_date` 2026-02-28). Frontend untouched.
+
+## 2026-10-19 — Intervention form module (issue #73)
+
+- **Triage**: #58 closed as a duplicate of #97 (quick log has no Location field). The spec change for #97 is approved and recorded on the issue; it waits for #74 so the field is added once, in the shared module.
+- **Bug absorbed**: editing an intervention from the global History opened the form with no equipment: empty Task list, no Hours field, and Save disabled for an exceptional intervention.
+- **Test first**: `frontend/tests/non-regression/history-edit-keeps-equipment.spec.ts` (Playwright), red on the old pages.
+- **Module** (TDD skill, seams agreed: prefill, validation, request building, plus the Playwright spec): `src/lib/interventionForm.ts` with `prefill`, `selectEquipment`, `canSave`, `toRequest` and `save`, covered by `interventionForm.test.ts` in every test timezone. `FullInterventionModal` owns its state and saves through it; Equipment detail and History only open it for `{ new }` or `{ edit }`.
+- **One hour-reading rule**: the reading is sent whenever the equipment tracks hours, `0` included (History used to send it only above 0). Picking an equipment prefills its current reading. Spec: `doc/gui/interventions.md`.
+- Also fixed on the way: the edit form's Task select showed no selection, because `.value` was set before its options rendered; options now carry `selected`.
+- **Review follow-ups on PR #98**: an edit of an intervention logged without a reading no longer saves `0 h` (which would have become the task's hours baseline after #81); the form's reading is `number | null`. The form is now built when opened, outside the page's reactive expression, so the page's data arriving while it is open (a slow first load of History) no longer rebuilds it and wipes what was typed. Each landed test first: `interventionForm.test.ts` cases, `intervention-form-keeps-input-on-data-load.spec.ts`.
+- **Tooling on this machine**: pnpm 10.14.0, Chromium and its system libraries, and a headless JRE (for `pnpm run generate:api`) are now installed, so the full frontend workflow runs locally.
+- Verified with `pnpm test:unit`, `pnpm test` (41 Playwright specs), `pnpm run typecheck` and `pnpm run build`.
+
+## 2026-10-19 — Quick log uses the intervention form module (issue #74)
+
+- Stacked on PR #98 (#73), branch `refactor/issue-74-quick-log-module`.
+- **Bug absorbed**: a refused Dashboard quick log showed "Failed to save intervention" instead of the backend's reason (the #51 fix had reached Equipment detail and History only).
+- **Test first**: `frontend/tests/non-regression/dashboard-quick-log-error-shows-reason.spec.ts` (Playwright, a future date refused by the backend), red on the old Dashboard.
+- **Module** (TDD skill, seams agreed: quick-log prefill and request in `interventionForm.test.ts`, plus the Playwright spec): a new `{ quickLog: { taskId } }` source fixes the task and takes its equipment, today's date and the equipment's current reading (none when it does not track hours).
+- **One quick log**: `src/components/QuickLogModal.ts` prefills, validates and saves through the module; the Dashboard and Equipment detail build it when "Done" is clicked and only toggle it. On the Dashboard it now sits outside the page's reactive content, so a data reload cannot rebuild it.
+- **Behaviour change**: an emptied Hours field in the quick log sends no reading (it used to send `0`). Spec: `doc/gui/interventions.md`.
+- #97 (Location in the quick log) can now add the field once, in `QuickLogModal`.
+- Verified with `pnpm test:unit`, `pnpm test` (42 Playwright specs), `pnpm run typecheck`, `pnpm run build` and `make build`.
+- **Follow-up fix**: an equipment that tracks hours but has no reading yet no longer gets an invented reading of `0` in a new log, a quick log or after picking the equipment (saving untouched used to set the meter to 0, mark it fresh and hide the Dashboard reminder). The Hours field stays empty until the user fills it. Failing Vitest cases first (`interventionForm.test.ts`), then the fix in `startingReading`. Showing such an equipment as incomplete is #103.
+
+## 2026-10-19 — Expiry tasks (issue #99)
+
+- Stacked on PR #100 (#74), itself on PR #98 (#73); branch `feat/issue-99-expiry-tasks`.
+- **Spec first** (decisions from the issue's grilling session, approved): the repo's first root `CONTEXT.md` (Expiry task, Interval task, Expiry date, Current expiry date), `doc/data-model.md` (Task kinds, Expiry rule, expiry urgency), `doc/gui/tasks.md`, `interventions.md`, `dashboard.md`, and ADR `doc/adr/0001-expiry-task-kind.md` (a separate kind, fixed at creation).
+- **API**: `Task.kind` (`interval` | `expiry`, default `interval`; another kind on update is a 400, none keeps it), `Task.current_expiry_date` and `Intervention.expiry_date` (`format: date`); `due_trigger` gains `expiry`. Schema v8 adds the three columns; existing tasks become interval tasks.
+- **Due status**: the latest intervention's expiry date, else the current expiry date, else overdue with no date. Due soon 30 days before, overdue from the date itself (as the months rule). Urgency (today − fitted) ÷ (expiry − fitted); none with only a current expiry date; the largest double for a part fitted already expired, so it tops the overdue tasks.
+- **Tests first** (TDD skill, agreed seams): table-driven `due_status_expiry_test.go` and ranking cases in `urgency_rank_test.go`; `httptest` contract tests in `backend/tests/expiry_task_test.go`; `interventionForm.test.ts` cases for the expiry date in the full form and the quick log; one Playwright happy path, `expiry-task-happy-path.spec.ts`.
+- **Frontend**: the quick log, full form and edit form show a required Expiry date for expiry tasks; the task form picks the kind on create, shows it as text on edit, and asks for the current expiry date only while the task has no intervention. Timing text: "Expires in N days", "Expires today", "Expired N days ago", "no expiry date"; trigger summary "On expiry date".
+- Verified with `go test ./...`, `go build`, `pnpm test:unit`, `pnpm test`, `pnpm run typecheck`, `pnpm run build` and `make build`.
+- **Follow-ups** (after review): merged PR #100's no-reading fix. Logging a replacement (or editing an intervention onto an expiry task) now clears the task's current expiry date in the same transaction, so deleting every intervention leaves the task overdue with no date and the task form asks for the date again (user decision; showing it as incomplete is #103). Spec in `doc/data-model.md` and `doc/gui/tasks.md`, failing `httptest` cases first in `expiry_task_test.go`, then the fix in `internal/db/intervention.go`. The quick log and full form share one `expiryDateField` (`src/components/ExpiryDateField.ts`); `DueStatus` comments now cover the expiry rule.
+- **More tests** (all passing at once): `httptest` cases for moving an intervention between task kinds and updating a missing task (404) in `expiry_task_test.go`; the repo's first migration test, `internal/db/migrations_test.go`, opens a schema v7 database and checks an existing task migrates to an interval task with no current expiry date and its intervention with no expiry date.

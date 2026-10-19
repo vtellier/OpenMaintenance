@@ -72,7 +72,10 @@ func (h *Handler) CreateTask(ctx echo.Context) error {
 		return ctx.JSON(400, map[string]string{"error": "equipment_id is required and must be a positive integer"})
 	}
 
-	if err := validateTaskIntervals(h.DB, task); err != nil {
+	if task.Kind == "" {
+		task.Kind = models.KindInterval
+	}
+	if err := validateTask(h.DB, task); err != nil {
 		return ctx.JSON(400, map[string]string{"error": err.Error()})
 	}
 
@@ -103,7 +106,18 @@ func (h *Handler) UpdateTask(ctx echo.Context, id int) error {
 	}
 	task.ID = id
 
-	if err := validateTaskIntervals(h.DB, task); err != nil {
+	existing, err := dbpackage.GetTask(h.DB, id)
+	if err != nil {
+		return ctx.JSON(404, map[string]string{"error": "Task not found"})
+	}
+	// The kind is fixed at creation: none sent keeps it, another is refused.
+	if task.Kind == "" {
+		task.Kind = existing.Kind
+	} else if task.Kind != existing.Kind {
+		return ctx.JSON(400, map[string]string{"error": "the task kind cannot be changed"})
+	}
+
+	if err := validateTask(h.DB, task); err != nil {
 		return ctx.JSON(400, map[string]string{"error": err.Error()})
 	}
 
@@ -114,6 +128,37 @@ func (h *Handler) UpdateTask(ctx echo.Context, id int) error {
 	h.enrichTask(task)
 
 	return ctx.JSON(200, task)
+}
+
+// validateTask checks a task's fields against its kind (see "Task kinds" in
+// doc/data-model.md). An empty current_expiry_date reads as none.
+func validateTask(db *sql.DB, task *models.Task) error {
+	if task.CurrentExpiryDate != nil && *task.CurrentExpiryDate == "" {
+		task.CurrentExpiryDate = nil
+	}
+
+	switch task.Kind {
+	case models.KindExpiry:
+		if task.HoursInterval != nil || task.MonthsInterval != nil {
+			return fmt.Errorf("an expiry task has no hours_interval or months_interval")
+		}
+		if task.CurrentExpiryDate != nil && !isCalendarDate(*task.CurrentExpiryDate) {
+			return fmt.Errorf("current_expiry_date must be a YYYY-MM-DD date")
+		}
+		return nil
+	case models.KindInterval:
+		if task.CurrentExpiryDate != nil {
+			return fmt.Errorf("current_expiry_date is only for expiry tasks")
+		}
+		return validateTaskIntervals(db, task)
+	}
+	return fmt.Errorf("kind must be interval or expiry")
+}
+
+// isCalendarDate reports whether s is a valid YYYY-MM-DD date.
+func isCalendarDate(s string) bool {
+	_, err := time.Parse("2006-01-02", s)
+	return err == nil
 }
 
 func validateTaskIntervals(db *sql.DB, task *models.Task) error {

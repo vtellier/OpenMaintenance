@@ -47,6 +47,7 @@
 - [x] Edit task flow (modal with prefilled form)
 - [x] Delete task (modal with cascade-delete warning)
 - [x] "Mark done" quick-log from task row (opens intervention quick-log modal pre-filled with task)
+- [x] **Expiry tasks** (issue #99): a task kind, fixed at creation, for parts due on a printed expiry date; each intervention records the new part's expiry date, and the task form asks for the current one until the first is logged
 
 ## Milestone 6 — Bug Fixes
 
@@ -76,6 +77,8 @@ _Depends on Milestone 6 (quick-log must work, `hours_updated_at` must be set, da
 - [x] "+" log intervention CTA from global History and per-equipment History tab
 - [x] Edit intervention from history (global + per-equipment)
 - [x] Delete intervention from history with confirmation (global + per-equipment)
+- [x] **One intervention form module** (issue #73): prefill, validation, request and error reason live in `src/lib/interventionForm.ts`; editing from the global History no longer loses the equipment (empty Task list, no Hours field, exceptional entry unsavable), and the reading is sent whenever the equipment tracks hours
+- [x] **Quick log uses the intervention form module** (issue #74): the Dashboard and Equipment detail "Mark done" logs share one modal that prefills and saves through `interventionForm.ts`; a refused Dashboard quick log now shows the backend's reason, and an empty reading sends none
 
 ## Milestone 9 — Settings
 

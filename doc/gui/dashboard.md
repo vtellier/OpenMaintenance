@@ -54,8 +54,12 @@ The relative time after the status label. It is rendered from the task's driving
 | hours           | `due_in_hours` rounds to 0      | *"now"*       |
 | hours           | `due_in_hours` rounds above 0   | *"in 8 h"*    |
 | months          | none (no date baseline)         | *"never done"* |
+| expiry          | `due_in_days` < 0               | *"Expired 3 days ago"* (*"Expired 1 day ago"*) |
+| expiry          | `due_in_days` = 0               | *"Expires today"* |
+| expiry          | `due_in_days` > 0               | *"Expires in 12 days"* (*"Expires in 1 day"*) |
+| expiry          | none (no expiry date)           | *"no expiry date"* |
 
-Hours are rounded to the nearest whole hour and use the same number format as the hour-meter value (*"1,500 h ago"*). A task overdue by hours shows the hours, even when its calendar due date is still ahead. A months-driven task that is overdue only because it has no date baseline (never performed, equipment without a commissioning date) has no amount to show: it reads *"Overdue — never done"*. The status label is never left dangling.
+Hours are rounded to the nearest whole hour and use the same number format as the hour-meter value (*"1,500 h ago"*). A task overdue by hours shows the hours, even when its calendar due date is still ahead. A months-driven task that is overdue only because it has no date baseline (never performed, equipment without a commissioning date) has no amount to show: it reads *"Overdue — never done"*. The status label is never left dangling. An expiry task's text names the expiry (*"Overdue — Expired 3 days ago"*, *"Due soon — Expires in 12 days"*); one with no expiry date reads *"Overdue — no expiry date"*.
 
 ## Filtering / scope
 
@@ -75,7 +79,7 @@ Note: the hour-meter freshness banner is independent of the tasks empty state. I
 ### Flow: Log an intervention from the dashboard
 1. User sees an overdue/due task.
 2. User taps **"Mark done"** on the task row.
-3. Quick log form opens (date defaults to today in the user's timezone; hours pre-filled if equipment tracks hours).
+3. Quick log form opens (date defaults to today in the user's timezone; hours pre-filled if equipment tracks hours, empty when it has no reading yet).
 4. User confirms.
 5. Task disappears from the dashboard (or moves down if other tasks of the same equipment remain).
 

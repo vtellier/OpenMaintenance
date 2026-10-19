@@ -52,10 +52,8 @@ func (h *Handler) CreateIntervention(ctx echo.Context) error {
 		return ctx.JSON(400, map[string]string{"error": err.Error()})
 	}
 
-	if intervention.TaskID != nil {
-		if err := populateEquipmentIDFromTask(h.DB, intervention); err != nil {
-			return ctx.JSON(400, map[string]string{"error": err.Error()})
-		}
+	if err := validateForTask(h.DB, intervention); err != nil {
+		return ctx.JSON(400, map[string]string{"error": err.Error()})
 	}
 
 	if err := dbpackage.CreateIntervention(h.DB, intervention); err != nil {
@@ -91,10 +89,8 @@ func (h *Handler) UpdateIntervention(ctx echo.Context, id int) error {
 		return ctx.JSON(400, map[string]string{"error": err.Error()})
 	}
 
-	if intervention.TaskID != nil {
-		if err := populateEquipmentIDFromTask(h.DB, intervention); err != nil {
-			return ctx.JSON(400, map[string]string{"error": err.Error()})
-		}
+	if err := validateForTask(h.DB, intervention); err != nil {
+		return ctx.JSON(400, map[string]string{"error": err.Error()})
 	}
 
 	if err := h.saveInterventionMovingPhotos(intervention); err != nil {
@@ -139,11 +135,33 @@ func validateIntervention(intervention *models.Intervention) error {
 	return nil
 }
 
-func populateEquipmentIDFromTask(db *sql.DB, intervention *models.Intervention) error {
-	task, err := dbpackage.GetTask(db, *intervention.TaskID)
-	if err != nil {
-		return fmt.Errorf("task not found")
+// validateForTask checks what depends on the intervention's task, and takes
+// the equipment from it for a standard intervention. A standard intervention
+// on an expiry task requires the expiry date of the part fitted, any date,
+// past included; no other intervention has one. An empty expiry_date reads as
+// none.
+func validateForTask(db *sql.DB, intervention *models.Intervention) error {
+	if intervention.ExpiryDate != nil && *intervention.ExpiryDate == "" {
+		intervention.ExpiryDate = nil
 	}
-	intervention.EquipmentID = &task.EquipmentID
+
+	isExpiryTask := false
+	if intervention.TaskID != nil {
+		task, err := dbpackage.GetTask(db, *intervention.TaskID)
+		if err != nil {
+			return fmt.Errorf("task not found")
+		}
+		intervention.EquipmentID = &task.EquipmentID
+		isExpiryTask = task.IsExpiry()
+	}
+
+	switch {
+	case isExpiryTask && intervention.ExpiryDate == nil:
+		return fmt.Errorf("expiry_date is required for an intervention on an expiry task")
+	case isExpiryTask && !isCalendarDate(*intervention.ExpiryDate):
+		return fmt.Errorf("expiry_date must be a YYYY-MM-DD date")
+	case !isExpiryTask && intervention.ExpiryDate != nil:
+		return fmt.Errorf("expiry_date is only for interventions on expiry tasks")
+	}
 	return nil
 }

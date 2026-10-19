@@ -16,7 +16,7 @@ The Tasks tab inside an **equipment detail** screen. There is no global tasks vi
 A list of tasks for this equipment, each row showing:
 
 - **Name** of the task.
-- **Trigger summary**: e.g. *"Every 100 h or 6 months"*, *"Every 12 months"*.
+- **Trigger summary**: e.g. *"Every 100 h or 6 months"*, *"Every 12 months"*. An expiry task reads *"On expiry date"*.
 - **Urgency indicator**: color + status label + timing text, same as the dashboard (see [dashboard.md](./dashboard.md#timing-text)). An OK task shows *"OK"* only.
 - **Last intervention**: date (or *"never"*).
 - Quick actions:
@@ -30,14 +30,19 @@ A prominent **"+ Add task"** button on the tab.
 ## Task form (create / edit)
 
 Fields:
+- **Kind** (create only): **Interval** (default) or **Expiry date**, two radio buttons. The kind cannot be changed later, so the edit form does not show the choice; it shows the kind as text instead (*"Interval task"* / *"Expiry task"*). See [data-model.md](../data-model.md#task-kinds).
 - **Name** (required)
 - **Description** (optional)
-- **Hours interval** (optional, integer ≥ 1) — only shown if the equipment tracks hours.
-- **Months interval** (optional, integer ≥ 1)
+- Interval tasks:
+  - **Hours interval** (optional, integer ≥ 1) — only shown if the equipment tracks hours.
+  - **Months interval** (optional, integer ≥ 1)
+- Expiry tasks:
+  - **Current expiry date** (optional, date): the expiry date of the part already fitted. Shown only while the task has no intervention (always on create). Left empty, the task is overdue with no date until a part is logged. Logging a replacement clears it, so after every intervention is deleted the field is empty again and the task is overdue with no date until it is filled.
 
 Validation rules:
-- At least one of `hours_interval` or `months_interval` must be provided.
+- Interval task: at least one of `hours_interval` or `months_interval` must be provided.
 - If the equipment does not track hours, the hours field is hidden and cannot be set.
+- Expiry task: only the name is required.
 
 ## Empty state
 
@@ -50,8 +55,8 @@ When an equipment has no tasks yet:
 ### Flow: Add a task
 1. From the equipment's Tasks tab, user taps **"+ Add task"**.
 2. Task form opens.
-3. User fills name, optional description, and at least one interval.
-4. On save, the task appears in the list with status computed from the equipment's commissioning date (no interventions yet); if the equipment has no commissioning date, a time-based task is shown as overdue.
+3. User picks the kind, fills name, optional description, and at least one interval (interval task) or, optionally, the current expiry date (expiry task).
+4. On save, the task appears in the list with status computed from the equipment's commissioning date (no interventions yet); if the equipment has no commissioning date, a time-based task is shown as overdue. An expiry task's status comes from its current expiry date (*"Due soon — Expires in 12 days"*); without one it is shown as overdue (*"Overdue — no expiry date"*).
 
 ### Flow: Edit a task
 1. User taps Edit on a task row.

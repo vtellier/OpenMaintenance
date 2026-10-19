@@ -944,6 +944,13 @@ code {
   gap: 8px;
 }
 
+.task-kind {
+  border: none;
+  padding: 0;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
 .form-field__checkbox-label {
   display: flex;
   align-items: center;
@@ -953,7 +960,8 @@ code {
   user-select: none;
 }
 
-.form-field__checkbox-label input[type="checkbox"] {
+.form-field__checkbox-label input[type="checkbox"],
+.form-field__checkbox-label input[type="radio"] {
   width: auto;
   margin: 0;
   cursor: pointer;

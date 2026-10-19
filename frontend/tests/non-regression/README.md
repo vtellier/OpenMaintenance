@@ -58,3 +58,7 @@ If both are already running (e.g. `make dev`), they are reused as-is.
 | `date-shifts-back-east-of-utc.spec.ts` | East of UTC, a saved intervention date (UTC+2) or commissioning date (UTC+14) showed one day early, and each edit-and-save moved it back another day (issue #71) | — |
 | `dashboard-quick-log-defaults-to-local-date.spec.ts` | Dashboard quick log pre-filled the UTC date instead of the local date (issue #71) | — |
 | `manual-update-check.spec.ts` | Feature, not a bug: Settings "Check for updates" button shows a busy state, then a newer version, up to date, a reused result or the failure reason (issue #57). API mocked, never reaches GitHub | — |
+| `history-edit-keeps-equipment.spec.ts` | Editing an intervention from the global History screen lost its equipment: empty Task list, no Hours field, and an exceptional intervention could not be saved (issue #73) | — |
+| `intervention-form-keeps-input-on-data-load.spec.ts` | The full intervention form was rebuilt and lost what the user typed when the page data arrived while it was open (slow first load of History) (issue #73) | — |
+| `dashboard-quick-log-error-shows-reason.spec.ts` | A failed Dashboard quick log showed "Failed to save intervention" instead of the backend's reason (issue #74) | — |
+| `expiry-task-happy-path.spec.ts` | Feature, not a bug: an expiry task is created with its current expiry date, shows "Expires in N days", and is marked done with the new part's expiry date (issue #99) | — |

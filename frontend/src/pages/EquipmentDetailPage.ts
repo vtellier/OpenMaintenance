@@ -5,17 +5,20 @@ import { Intervention } from '@generated/api/models/Intervention'
 import { FileInfo } from '@generated/api/models/FileInfo'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { formatHours, formatFileSize, buildInterventionMeta, extractErrorMessage } from '@/lib/format'
+import { formatHours, formatFileSize, buildInterventionMeta } from '@/lib/format'
 import { dueTimingText } from '@/lib/dueTiming'
 import { byUrgency } from '@/lib/urgency'
 import { relativeTime, formatTimestampDate, isHoursVeryStale } from '@/lib/timestamp'
-import { WithCalendarDates, today, formatCalendarDate, compareCalendarDates, fromApiDate, fromApiDateTime, toApiDate, toApiDateTime } from '@/lib/calendar-date'
+import { WithCalendarDates, formatCalendarDate, compareCalendarDates, fromApiDate, fromApiDateTime, toApiDate } from '@/lib/calendar-date'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
+import { QuickLogModal } from '@/components/QuickLogModal'
+import { InterventionFormSource } from '@/lib/interventionForm'
 import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
 
 type EquipmentRow = WithCalendarDates<Equipment, 'commissionedAt'>
-type TaskRow = WithCalendarDates<Task, 'nextDueDate'>
-type InterventionRow = WithCalendarDates<Intervention, 'date'>
+type TaskRow = WithCalendarDates<Task, 'nextDueDate' | 'currentExpiryDate'>
+type TaskKind = 'interval' | 'expiry'
+type InterventionRow = WithCalendarDates<Intervention, 'date' | 'expiryDate'>
 
 function mapEquipment(eq: any): EquipmentRow {
   return {
@@ -48,6 +51,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       addDescription: '',
       addHoursInterval: 0,
       addMonthsInterval: 0,
+      addKind: 'interval' as TaskKind,
+      addCurrentExpiryDate: '',
       addSaving: false,
       addError: null as string | null,
       showEditTask: false,
@@ -56,6 +61,10 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       editDescription: '',
       editHoursInterval: 0,
       editMonthsInterval: 0,
+      editKind: 'interval' as TaskKind,
+      editCurrentExpiryDate: '',
+      /** The current expiry date is asked only while the task has no intervention. */
+      editHasIntervention: false,
       editSaving: false,
       editError: null as string | null,
       showDeleteTask: false,
@@ -63,29 +72,9 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       deleteTaskName: '',
       deleteSaving: false,
       deleteError: null as string | null,
-      showQuickLog: false,
-      quickTaskId: null as number | null,
-      quickTaskName: '',
-      quickDate: '',
-      quickHours: 0,
-      quickPerformedBy: '',
-      quickComments: '',
-      quickSaving: false,
-      quickError: null as string | null,
+      quickLogOpen: false,
 
-      showFullForm: false,
-      editId: null as number | null,
-      equipmentId: null as number | null,
-      taskId: null as number | null,
-      isExceptional: false,
-      exceptionalLabel: '',
-      date: '',
-      hours: 0,
-      location: '',
-      performedBy: '',
-      comments: '',
-      saving: false,
-      error: null as string | null,
+      fullFormOpen: false,
 
       showHistoryDelete: false,
       historyDeleteTarget: null as InterventionRow | null,
@@ -118,12 +107,14 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
         const newTasks = ts.map((t: any) => ({
           ...t,
           nextDueDate: fromApiDate(t.nextDueDate),
+          currentExpiryDate: fromApiDate(t.currentExpiryDate),
           updatedAt: t.updatedAt?.toISOString(),
         }))
 
         const newAllTasks = allTs.map((t: any) => ({
           ...t,
           nextDueDate: fromApiDate(t.nextDueDate),
+          currentExpiryDate: fromApiDate(t.currentExpiryDate),
           updatedAt: t.updatedAt?.toISOString(),
         }))
 
@@ -135,6 +126,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
         ).map((inv: any) => ({
           ...inv,
           date: fromApiDateTime(inv.date),
+          expiryDate: fromApiDate(inv.expiryDate),
           createdAt: inv.createdAt?.toISOString(),
           updatedAt: inv.updatedAt?.toISOString(),
         }))
@@ -217,6 +209,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       state.addDescription = ''
       state.addHoursInterval = 0
       state.addMonthsInterval = 0
+      state.addKind = 'interval'
+      state.addCurrentExpiryDate = ''
       state.addError = null
     }
 
@@ -228,9 +222,25 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       if ((e.target as HTMLElement).classList.contains('modal-overlay')) onCancelAdd()
     }
 
+    /** A name always; at least one interval for an interval task. An expiry task's current expiry date is optional. */
+    function canSaveTask(name: string, kind: TaskKind, hoursInterval: number, monthsInterval: number): boolean {
+      if (!name.trim()) return false
+      return kind === 'expiry' || hoursInterval > 0 || monthsInterval > 0
+    }
+
+    /** The kind-specific fields of a task request: the intervals, or the current expiry date. */
+    function kindFields(kind: TaskKind, hoursInterval: number, monthsInterval: number, currentExpiryDate: string) {
+      if (kind === 'expiry') {
+        return { hoursInterval: undefined, monthsInterval: undefined, currentExpiryDate: currentExpiryDate ? toApiDate(currentExpiryDate) : undefined }
+      }
+      return {
+        hoursInterval: hoursInterval > 0 ? hoursInterval : undefined,
+        monthsInterval: monthsInterval > 0 ? monthsInterval : undefined,
+      }
+    }
+
     async function onSaveAdd() {
-      if (!state.addName.trim()) return
-      if (state.addHoursInterval <= 0 && state.addMonthsInterval <= 0) return
+      if (!canSaveTask(state.addName, state.addKind, state.addHoursInterval, state.addMonthsInterval)) return
       state.addSaving = true
       state.addError = null
       try {
@@ -239,8 +249,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
             equipmentId,
             name: state.addName.trim(),
             description: state.addDescription.trim() || undefined,
-            hoursInterval: state.addHoursInterval > 0 ? state.addHoursInterval : undefined,
-            monthsInterval: state.addMonthsInterval > 0 ? state.addMonthsInterval : undefined,
+            kind: state.addKind,
+            ...kindFields(state.addKind, state.addHoursInterval, state.addMonthsInterval, state.addCurrentExpiryDate),
           },
         })
         state.showAddTask = false
@@ -261,6 +271,9 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       state.editDescription = task.description ?? ''
       state.editHoursInterval = task.hoursInterval ?? 0
       state.editMonthsInterval = task.monthsInterval ?? 0
+      state.editKind = task.kind === 'expiry' ? 'expiry' : 'interval'
+      state.editCurrentExpiryDate = task.currentExpiryDate ?? ''
+      state.editHasIntervention = getLastIntervention(task.id) != null
       state.editError = null
     }
 
@@ -273,8 +286,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
     }
 
     async function onSaveEdit() {
-      if (!state.editName.trim() || state.editTaskId == null) return
-      if (state.editHoursInterval <= 0 && state.editMonthsInterval <= 0) return
+      if (state.editTaskId == null) return
+      if (!canSaveTask(state.editName, state.editKind, state.editHoursInterval, state.editMonthsInterval)) return
       state.editSaving = true
       state.editError = null
       try {
@@ -284,8 +297,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
             equipmentId,
             name: state.editName.trim(),
             description: state.editDescription.trim() || undefined,
-            hoursInterval: state.editHoursInterval > 0 ? state.editHoursInterval : undefined,
-            monthsInterval: state.editMonthsInterval > 0 ? state.editMonthsInterval : undefined,
+            kind: state.editKind,
+            ...kindFields(state.editKind, state.editHoursInterval, state.editMonthsInterval, state.editCurrentExpiryDate),
           },
         })
         state.showEditTask = false
@@ -331,132 +344,62 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
     // ── Quick Log ──
 
+    // Built when opened, like the full form below.
+    let quickLog: ReturnType<typeof QuickLogModal> | null = null
+
     function onQuickLog(task: TaskRow) {
-      state.showQuickLog = true
-      state.quickTaskId = task.id ?? null
-      state.quickTaskName = task.name ?? ''
-      state.quickDate = today()
-      state.quickHours = state.equipment?.hours ?? 0
-      state.quickPerformedBy = ''
-      state.quickComments = ''
-      state.quickError = null
+      if (task.id == null) return
+      quickLog = QuickLogModal({ id: task.id, name: task.name ?? '' }, {
+        equipments: () => [state.equipment!],
+        tasks: () => state.tasks,
+        onClose: onCloseQuickLog,
+        onSaved: onQuickLogSaved,
+      })
+      state.quickLogOpen = true
     }
 
-    function onCancelQuickLog() {
-      state.showQuickLog = false
+    function onCloseQuickLog() {
+      state.quickLogOpen = false
     }
 
-    function onQuickLogOverlayClick(e: Event) {
-      if ((e.target as HTMLElement).classList.contains('modal-overlay')) onCancelQuickLog()
-    }
-
-    async function onSaveQuickLog() {
-      if (state.quickTaskId == null || !state.quickDate) return
-      state.quickSaving = true
-      state.quickError = null
-      try {
-        await interventionApi.createIntervention({
-          interventionInput: {
-            taskId: state.quickTaskId,
-            date: toApiDateTime(state.quickDate),
-            hoursAt: tracksHours() ? state.quickHours : undefined,
-            performedBy: state.quickPerformedBy.trim() || undefined,
-            comments: state.quickComments.trim() || undefined,
-          },
-        })
-        state.showQuickLog = false
-        await load()
-      } catch (err: unknown) {
-        state.quickError = await extractErrorMessage(err, 'Failed to save intervention')
-      } finally {
-        state.quickSaving = false
-      }
+    async function onQuickLogSaved() {
+      state.quickLogOpen = false
+      await load()
     }
 
     // ── Full Intervention Form ──
 
+    // Built when opened, outside any reactive expression: the form prefills
+    // from the page's data once, and a later change to that data does not
+    // rebuild it and lose what the user typed.
+    let fullForm: ReturnType<typeof FullInterventionModal> | null = null
+
+    function openFullForm(source: InterventionFormSource) {
+      fullForm = FullInterventionModal(source, {
+        equipments: () => [state.equipment!],
+        allTasks: () => state.allTasks,
+        equipmentIdFixed: equipmentId,
+        onClose: onCloseFullForm,
+        onSaved: onFullFormSaved,
+      })
+      state.fullFormOpen = true
+    }
+
     function onAddFromHistory() {
-      state.showFullForm = true
-      state.editId = null
-      state.equipmentId = equipmentId
-      state.taskId = null
-      state.isExceptional = false
-      state.exceptionalLabel = ''
-      state.date = today()
-      state.hours = state.equipment?.hours ?? 0
-      state.location = ''
-      state.performedBy = ''
-      state.comments = ''
-      state.saving = false
-      state.error = null
+      openFullForm({ new: { equipmentId } })
     }
 
     function onEditFromHistory(inv: InterventionRow) {
-      state.showFullForm = true
-      state.editId = inv.id ?? null
-      state.equipmentId = equipmentId
-      state.taskId = inv.taskId ?? null
-      state.isExceptional = inv.taskId == null
-      state.exceptionalLabel = inv.exceptionalLabel ?? ''
-      state.date = inv.date ?? ''
-      state.hours = inv.hoursAt ?? 0
-      state.location = inv.location ?? ''
-      state.performedBy = inv.performedBy ?? ''
-      state.comments = inv.comments ?? ''
-      state.saving = false
-      state.error = null
+      openFullForm({ edit: inv })
     }
 
-    function onCancelFullForm() {
-      state.showFullForm = false
+    function onCloseFullForm() {
+      state.fullFormOpen = false
     }
 
-    function onFullFormOverlayClick(e: Event) {
-      if ((e.target as HTMLElement).classList.contains('modal-overlay')) onCancelFullForm()
-    }
-
-    async function onSaveFullForm() {
-      if (!state.date) return
-      if (state.isExceptional && !state.exceptionalLabel.trim()) return
-      if (!state.isExceptional && state.taskId == null) return
-      state.saving = true
-      state.error = null
-
-      const body = state.isExceptional ? {
-        equipmentId: equipmentId,
-        exceptionalLabel: state.exceptionalLabel.trim(),
-        date: toApiDateTime(state.date),
-        hoursAt: tracksHours() ? state.hours : undefined,
-        location: state.location.trim() || undefined,
-        performedBy: state.performedBy.trim() || undefined,
-        comments: state.comments.trim() || undefined,
-      } : {
-        taskId: state.taskId!,
-        date: toApiDateTime(state.date),
-        hoursAt: tracksHours() ? state.hours : undefined,
-        location: state.location.trim() || undefined,
-        performedBy: state.performedBy.trim() || undefined,
-        comments: state.comments.trim() || undefined,
-      }
-
-      try {
-        if (state.editId != null) {
-          await interventionApi.updateIntervention({
-            id: state.editId,
-            interventionInput: body,
-          })
-        } else {
-          await interventionApi.createIntervention({
-            interventionInput: body,
-          })
-        }
-        state.showFullForm = false
-        await load()
-      } catch (err: unknown) {
-        state.error = await extractErrorMessage(err, 'Failed to save intervention')
-      } finally {
-        state.saving = false
-      }
+    async function onFullFormSaved() {
+      state.fullFormOpen = false
+      await load()
     }
 
     function onHistoryDeleteClick(inv: InterventionRow) {
@@ -612,18 +555,9 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           ${() => state.showAddTask ? addTaskModal() : null}
           ${() => state.showEditTask ? editTaskModal() : null}
           ${() => state.showDeleteTask ? deleteTaskModal() : null}
-          ${() => state.showQuickLog ? quickLogModal() : null}
+          ${() => state.quickLogOpen ? quickLog : null}
           ${() => state.showDeleteDoc ? deleteDocModal() : null}
-          ${() => state.showFullForm ? FullInterventionModal(state as any, {
-            equipments: () => [state.equipment!],
-            allTasks: () => state.allTasks,
-            equipmentIdFixed: equipmentId,
-            interventionId: state.editId,
-            title: state.editId != null ? 'Edit intervention' : 'Log intervention',
-            onCancel: onCancelFullForm,
-            onOverlayClick: onFullFormOverlayClick,
-            onSave: onSaveFullForm,
-          }) : null}
+          ${() => state.fullFormOpen ? fullForm : null}
 
           ${() => state.showHistoryDelete ? html`
             <div class="modal-overlay" @click="${onHistoryDeleteOverlayClick}">
@@ -663,7 +597,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               const parts: string[] = []
               if (t.hoursInterval) parts.push('Every ' + t.hoursInterval + 'h')
               if (t.monthsInterval) parts.push(t.monthsInterval + 'mo')
-              const trigger = parts.join(' or ')
+              const trigger = t.kind === 'expiry' ? 'On expiry date' : parts.join(' or ')
               const lastLabel = lastInv ? formatCalendarDate(lastInv.date) + (lastInv.hoursAt != null ? ' \u2022 ' + formatHours(lastInv.hoursAt) : '') : 'never'
               return html`<div class="task-row">
                 <div class="task-row__info">
@@ -816,19 +750,40 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               <label class="form-field__label">Description</label>
               <textarea placeholder="Optional" .value="${() => state.addDescription}" @input="${(e: Event) => { state.addDescription = (e.target as HTMLTextAreaElement).value }}"></textarea>
             </div>
-            ${() => tracksHours() ? html`
+            <fieldset class="form-field form-field--inline task-kind">
+              <legend class="form-field__label">Kind</legend>
+              <label class="form-field__checkbox-label">
+                <input type="radio" name="task-kind" value="interval" checked="${() => state.addKind === 'interval'}" @change="${() => { state.addKind = 'interval' }}" />
+                Interval
+              </label>
+              <label class="form-field__checkbox-label">
+                <input type="radio" name="task-kind" value="expiry" checked="${() => state.addKind === 'expiry'}" @change="${() => { state.addKind = 'expiry' }}" />
+                Expiry date
+              </label>
+            </fieldset>
+            ${() => state.addKind === 'expiry' ? html`
               <div class="form-field">
-                <label class="form-field__label">Hours interval</label>
-                <input type="number" min="1" placeholder="e.g. 100" .value="${() => state.addHoursInterval > 0 ? String(state.addHoursInterval) : ''}" @input="${(e: Event) => { state.addHoursInterval = parseInt((e.target as HTMLInputElement).value) || 0 }}" />
+                <label class="form-field__label">Current expiry date</label>
+                <input type="date" aria-label="Current expiry date" .value="${() => state.addCurrentExpiryDate}" @input="${(e: Event) => { state.addCurrentExpiryDate = (e.target as HTMLInputElement).value }}" />
+                <p class="form-field__hint">The date printed on the part fitted now. Leave empty if unknown.</p>
               </div>
-            ` : null}
-            <div class="form-field">
-              <label class="form-field__label">Months interval</label>
-              <input type="number" min="1" placeholder="e.g. 6" .value="${() => state.addMonthsInterval > 0 ? String(state.addMonthsInterval) : ''}" @input="${(e: Event) => { state.addMonthsInterval = parseInt((e.target as HTMLInputElement).value) || 0 }}" />
-            </div>
+            ` : html`
+              <div>
+                ${() => tracksHours() ? html`
+                  <div class="form-field">
+                    <label class="form-field__label">Hours interval</label>
+                    <input type="number" min="1" placeholder="e.g. 100" .value="${() => state.addHoursInterval > 0 ? String(state.addHoursInterval) : ''}" @input="${(e: Event) => { state.addHoursInterval = parseInt((e.target as HTMLInputElement).value) || 0 }}" />
+                  </div>
+                ` : null}
+                <div class="form-field">
+                  <label class="form-field__label">Months interval</label>
+                  <input type="number" min="1" placeholder="e.g. 6" .value="${() => state.addMonthsInterval > 0 ? String(state.addMonthsInterval) : ''}" @input="${(e: Event) => { state.addMonthsInterval = parseInt((e.target as HTMLInputElement).value) || 0 }}" />
+                </div>
+              </div>
+            `}
             <div class="modal__actions">
               <button class="btn" @click="${onCancelAdd}">Cancel</button>
-              <button class="btn btn--accent" @click="${onSaveAdd}" disabled="${() => state.addSaving || !state.addName.trim() || (state.addHoursInterval <= 0 && state.addMonthsInterval <= 0)}">
+              <button class="btn btn--accent" @click="${onSaveAdd}" disabled="${() => state.addSaving || !canSaveTask(state.addName, state.addKind, state.addHoursInterval, state.addMonthsInterval)}">
                 ${() => state.addSaving ? 'Saving...' : 'Save'}
               </button>
             </div>
@@ -850,19 +805,32 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               <label class="form-field__label">Description</label>
               <textarea placeholder="Optional" .value="${() => state.editDescription}" @input="${(e: Event) => { state.editDescription = (e.target as HTMLTextAreaElement).value }}"></textarea>
             </div>
-            ${() => tracksHours() ? html`
-              <div class="form-field">
-                <label class="form-field__label">Hours interval</label>
-                <input type="number" min="1" placeholder="e.g. 100" .value="${() => state.editHoursInterval > 0 ? String(state.editHoursInterval) : ''}" @input="${(e: Event) => { state.editHoursInterval = parseInt((e.target as HTMLInputElement).value) || 0 }}" />
+            <p class="form-field__hint">${() => state.editKind === 'expiry' ? 'Expiry task' : 'Interval task'}</p>
+            ${() => state.editKind === 'expiry'
+              ? (state.editHasIntervention ? null : html`
+                <div class="form-field">
+                  <label class="form-field__label">Current expiry date</label>
+                  <input type="date" aria-label="Current expiry date" .value="${() => state.editCurrentExpiryDate}" @input="${(e: Event) => { state.editCurrentExpiryDate = (e.target as HTMLInputElement).value }}" />
+                  <p class="form-field__hint">The date printed on the part fitted now. Leave empty if unknown.</p>
+                </div>
+              `)
+              : html`
+              <div>
+                ${() => tracksHours() ? html`
+                  <div class="form-field">
+                    <label class="form-field__label">Hours interval</label>
+                    <input type="number" min="1" placeholder="e.g. 100" .value="${() => state.editHoursInterval > 0 ? String(state.editHoursInterval) : ''}" @input="${(e: Event) => { state.editHoursInterval = parseInt((e.target as HTMLInputElement).value) || 0 }}" />
+                  </div>
+                ` : null}
+                <div class="form-field">
+                  <label class="form-field__label">Months interval</label>
+                  <input type="number" min="1" placeholder="e.g. 6" .value="${() => state.editMonthsInterval > 0 ? String(state.editMonthsInterval) : ''}" @input="${(e: Event) => { state.editMonthsInterval = parseInt((e.target as HTMLInputElement).value) || 0 }}" />
+                </div>
               </div>
-            ` : null}
-            <div class="form-field">
-              <label class="form-field__label">Months interval</label>
-              <input type="number" min="1" placeholder="e.g. 6" .value="${() => state.editMonthsInterval > 0 ? String(state.editMonthsInterval) : ''}" @input="${(e: Event) => { state.editMonthsInterval = parseInt((e.target as HTMLInputElement).value) || 0 }}" />
-            </div>
+            `}
             <div class="modal__actions">
               <button class="btn" @click="${onCancelEdit}">Cancel</button>
-              <button class="btn btn--accent" @click="${onSaveEdit}" disabled="${() => state.editSaving || !state.editName.trim() || (state.editHoursInterval <= 0 && state.editMonthsInterval <= 0)}">
+              <button class="btn btn--accent" @click="${onSaveEdit}" disabled="${() => state.editSaving || !canSaveTask(state.editName, state.editKind, state.editHoursInterval, state.editMonthsInterval)}">
                 ${() => state.editSaving ? 'Saving...' : 'Save'}
               </button>
             </div>
@@ -881,40 +849,6 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               <button class="btn" @click="${onCancelDelete}">Cancel</button>
               <button class="btn btn--danger" @click="${onConfirmDelete}" disabled="${() => state.deleteSaving}">
                 ${() => state.deleteSaving ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>`
-    }
-
-    function quickLogModal() {
-      return html`
-        <div class="modal-overlay" @click="${onQuickLogOverlayClick}">
-          <div class="modal">
-            <h2 class="modal__title">Mark done: ${() => state.quickTaskName}</h2>
-            ${() => state.quickError ? html`<div class="flash flash--error">${state.quickError}</div>` : null}
-            <div class="form-field">
-              <label class="form-field__label">Date *</label>
-              <input type="date" .value="${() => state.quickDate}" @input="${(e: Event) => { state.quickDate = (e.target as HTMLInputElement).value }}" />
-            </div>
-            ${() => tracksHours() ? html`
-              <div class="form-field">
-                <label class="form-field__label">Hours</label>
-                <input type="number" min="0" .value="${() => String(state.quickHours)}" @input="${(e: Event) => { state.quickHours = Number((e.target as HTMLInputElement).value) }}" />
-              </div>
-            ` : null}
-            <div class="form-field">
-              <label class="form-field__label">Done by</label>
-              <input placeholder="e.g. Self, Garage du Port" .value="${() => state.quickPerformedBy}" @input="${(e: Event) => { state.quickPerformedBy = (e.target as HTMLInputElement).value }}" />
-            </div>
-            <div class="form-field">
-              <label class="form-field__label">Notes</label>
-              <input placeholder="Optional" .value="${() => state.quickComments}" @input="${(e: Event) => { state.quickComments = (e.target as HTMLInputElement).value }}" />
-            </div>
-            <div class="modal__actions">
-              <button class="btn" @click="${onCancelQuickLog}">Cancel</button>
-              <button class="btn btn--accent" @click="${onSaveQuickLog}" disabled="${() => state.quickSaving || !state.quickDate}">
-                ${() => state.quickSaving ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>

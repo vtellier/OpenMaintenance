@@ -8,15 +8,16 @@ import { formatHours } from '@/lib/format'
 import { dueTimingText } from '@/lib/dueTiming'
 import { byUrgency } from '@/lib/urgency'
 import { relativeTime, isHoursStale, isHoursVeryStale } from '@/lib/timestamp'
-import { WithCalendarDates, today, fromApiDate, fromApiDateTime, toApiDateTime } from '@/lib/calendar-date'
+import { WithCalendarDates, fromApiDate, fromApiDateTime } from '@/lib/calendar-date'
 import { equipmentAvatar } from '@/components/EquipmentAvatar'
+import { QuickLogModal } from '@/components/QuickLogModal'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
 const interventionApi = new InterventionApi(apiConfig)
 
 type TaskRow = WithCalendarDates<Task, 'nextDueDate'>
-type InterventionRow = WithCalendarDates<Intervention, 'date'>
+type InterventionRow = WithCalendarDates<Intervention, 'date' | 'expiryDate'>
 
 export function DashboardPage() {
   return component(() => {
@@ -26,15 +27,7 @@ export function DashboardPage() {
       interventions: [] as InterventionRow[],
       loaded: false,
       loadError: null as string | null,
-      showQuickLog: false,
-      quickTaskId: null as number | null,
-      quickTaskName: '',
-      quickDate: '',
-      quickHours: 0,
-      quickPerformedBy: '',
-      quickComments: '',
-      quickSaving: false,
-      quickError: null as string | null,
+      quickLogOpen: false,
       sameHoursSavingId: null as number | null,
     })
 
@@ -63,6 +56,7 @@ export function DashboardPage() {
         state.interventions = invs.map((inv: any) => ({
           ...inv,
           date: fromApiDateTime(inv.date),
+          expiryDate: fromApiDate(inv.expiryDate),
           createdAt: inv.createdAt?.toISOString(),
           updatedAt: inv.updatedAt?.toISOString(),
         }))
@@ -91,57 +85,29 @@ export function DashboardPage() {
       }
     }
 
-    function getEquipmentForTask(taskId: number | undefined): Equipment | undefined {
-      if (taskId == null) return undefined
-      const task = state.tasks.find(t => t.id === taskId)
-      if (!task || task.equipmentId == null) return undefined
-      const eq = state.equipments.find(e => e.id === task.equipmentId)
-      return eq
-    }
+    // Built when opened, outside any reactive expression: the quick log
+    // prefills from the page's data once, and a later change to that data
+    // does not rebuild it and lose what the user typed.
+    let quickLog: ReturnType<typeof QuickLogModal> | null = null
 
     function onQuickLog(task: TaskRow) {
-      state.showQuickLog = true
-      state.quickTaskId = task.id ?? null
-      state.quickTaskName = task.name ?? ''
-      state.quickDate = today()
-      const eq = getEquipmentForTask(task.id)
-      state.quickHours = eq?.hours ?? 0
-      state.quickPerformedBy = ''
-      state.quickComments = ''
-      state.quickError = null
+      if (task.id == null) return
+      quickLog = QuickLogModal({ id: task.id, name: task.name ?? '' }, {
+        equipments: () => state.equipments,
+        tasks: () => state.tasks,
+        onClose: onCloseQuickLog,
+        onSaved: onQuickLogSaved,
+      })
+      state.quickLogOpen = true
     }
 
-    function onCancelQuickLog() {
-      state.showQuickLog = false
+    function onCloseQuickLog() {
+      state.quickLogOpen = false
     }
 
-    function onQuickLogOverlayClick(e: Event) {
-      if ((e.target as HTMLElement).classList.contains('modal-overlay')) onCancelQuickLog()
-    }
-
-    async function onSaveQuickLog() {
-      if (state.quickTaskId == null || !state.quickDate) return
-      state.quickSaving = true
-      state.quickError = null
-      try {
-        const eq = getEquipmentForTask(state.quickTaskId)
-        const tracksHours = eq?.tracksHours ?? false
-        await interventionApi.createIntervention({
-          interventionInput: {
-            taskId: state.quickTaskId,
-            date: toApiDateTime(state.quickDate),
-            hoursAt: tracksHours ? state.quickHours : undefined,
-            performedBy: state.quickPerformedBy.trim() || undefined,
-            comments: state.quickComments.trim() || undefined,
-          },
-        })
-        state.showQuickLog = false
-        await load()
-      } catch {
-        state.quickError = 'Failed to save intervention'
-      } finally {
-        state.quickSaving = false
-      }
+    async function onQuickLogSaved() {
+      state.quickLogOpen = false
+      await load()
     }
 
     return html`<section class="page">
@@ -267,44 +233,10 @@ export function DashboardPage() {
               })}
             </div>`
           }}
-
-          ${() => state.showQuickLog ? html`
-            <div class="modal-overlay" @click="${onQuickLogOverlayClick}">
-              <div class="modal">
-                <h2 class="modal__title">Mark done: ${() => state.quickTaskName}</h2>
-                ${() => state.quickError ? html`<div class="flash flash--error">${state.quickError}</div>` : null}
-                <div class="form-field">
-                  <label class="form-field__label">Date *</label>
-                  <input type="date" .value="${() => state.quickDate}" @input="${(e: Event) => { state.quickDate = (e.target as HTMLInputElement).value }}" />
-                </div>
-                ${() => {
-                  const eq = getEquipmentForTask(state.quickTaskId!)
-                  const tracksHours = eq?.tracksHours ?? false
-                  return tracksHours ? html`
-                    <div class="form-field">
-                      <label class="form-field__label">Hours</label>
-                      <input type="number" min="0" .value="${() => String(state.quickHours)}" @input="${(e: Event) => { state.quickHours = Number((e.target as HTMLInputElement).value) }}" />
-                    </div>
-                  ` : null
-                }}
-                <div class="form-field">
-                  <label class="form-field__label">Done by</label>
-                  <input placeholder="e.g. Self, Garage du Port" .value="${() => state.quickPerformedBy}" @input="${(e: Event) => { state.quickPerformedBy = (e.target as HTMLInputElement).value }}" />
-                </div>
-                <div class="form-field">
-                  <label class="form-field__label">Notes</label>
-                  <input placeholder="Optional" .value="${() => state.quickComments}" @input="${(e: Event) => { state.quickComments = (e.target as HTMLInputElement).value }}" />
-                </div>
-                <div class="modal__actions">
-                  <button class="btn" @click="${onCancelQuickLog}">Cancel</button>
-                  <button class="btn btn--accent" @click="${onSaveQuickLog}" disabled="${() => state.quickSaving || !state.quickDate}">
-                    ${() => state.quickSaving ? 'Saving...' : 'Save'}
-                  </button>
-                </div>
-              </div>
-            </div>` : null}
         `
       }}
+
+      ${() => state.quickLogOpen ? quickLog : null}
     </section>`
   })()
 }
