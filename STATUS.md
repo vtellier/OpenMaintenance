@@ -525,6 +525,7 @@ Can start now: #65, #66, #69, #75.
 - **Module** (TDD skill, seams agreed: prefill, validation, request building, plus the Playwright spec): `src/lib/interventionForm.ts` with `prefill`, `selectEquipment`, `canSave`, `toRequest` and `save`, covered by `interventionForm.test.ts` in every test timezone. `FullInterventionModal` owns its state and saves through it; Equipment detail and History only open it for `{ new }` or `{ edit }`.
 - **One hour-reading rule**: the reading is sent whenever the equipment tracks hours, `0` included (History used to send it only above 0). Picking an equipment prefills its current reading. Spec: `doc/gui/interventions.md`.
 - Also fixed on the way: the edit form's Task select showed no selection, because `.value` was set before its options rendered; options now carry `selected`.
+- **Review follow-ups on PR #98**: an edit of an intervention logged without a reading no longer saves `0 h` (which would have become the task's hours baseline after #81); the form's reading is `number | null`. The form is now built when opened, outside the page's reactive expression, so the page's data arriving while it is open (a slow first load of History) no longer rebuilds it and wipes what was typed. Each landed test first: `interventionForm.test.ts` cases, `intervention-form-keeps-input-on-data-load.spec.ts`.
 - **Tooling on this machine**: pnpm 10.14.0, Chromium and its system libraries, and a headless JRE (for `pnpm run generate:api`) are now installed, so the full frontend workflow runs locally.
-- Verified with `pnpm test:unit`, `pnpm test` (40 Playwright specs), `pnpm run typecheck` and `pnpm run build`.
+- Verified with `pnpm test:unit`, `pnpm test` (41 Playwright specs), `pnpm run typecheck` and `pnpm run build`.
 
