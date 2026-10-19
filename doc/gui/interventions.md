@@ -32,7 +32,7 @@ The user must first pick the equipment and the task (or these are pre-selected w
 - **Task** (required when checkbox is unchecked; greyed out and disabled when checkbox is checked)
 - **Exceptional intervention label** (text field, visible and mandatory only when the checkbox is checked; placeholder: "e.g. Replaced broken impeller")
 - **Date** (required, defaults to today in the user's timezone)
-- **Hours** (if equipment tracks hours, pre-filled with current value)
+- **Hours** (if equipment tracks hours, pre-filled with current value). Whenever the selected equipment tracks hours, the value entered is sent as the intervention's reading, `0` included; an empty field, or an equipment that does not track hours, sends no reading. Editing an intervention logged without a reading shows the field empty.
 - **Location** (optional, free text)
 - **Done by** (optional, free text, placeholder "e.g. Self, Garage du Port")
 - **Comments** (optional, multi-line)
@@ -57,7 +57,7 @@ Save is disabled until all required fields are filled: date is always required; 
 - Past interventions are editable and deletable from:
   - The equipment's **History** tab.
   - The global **History** screen.
-- Editing opens the full form prefilled. Saving an edit applies the same hour-meter rule as logging: a higher hours value raises the equipment's reading, an equal or lower one leaves it unchanged.
+- Editing opens the full form prefilled, from every entry point, with the intervention's equipment: the task's equipment for a standard intervention, the intervention's own for an exceptional one. Saving an edit applies the same hour-meter rule as logging: a higher hours value raises the equipment's reading, an equal or lower one leaves it unchanged.
 - Deleting requires a confirmation. Side effects (next-due, equipment hours) are recomputed from the remaining history.
 
 ## User flow: quick log from dashboard

@@ -11,6 +11,7 @@ import { byUrgency } from '@/lib/urgency'
 import { relativeTime, formatTimestampDate, isHoursVeryStale } from '@/lib/timestamp'
 import { WithCalendarDates, today, formatCalendarDate, compareCalendarDates, fromApiDate, fromApiDateTime, toApiDate, toApiDateTime } from '@/lib/calendar-date'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
+import { InterventionFormSource } from '@/lib/interventionForm'
 import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
 
 type EquipmentRow = WithCalendarDates<Equipment, 'commissionedAt'>
@@ -73,19 +74,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       quickSaving: false,
       quickError: null as string | null,
 
-      showFullForm: false,
-      editId: null as number | null,
-      equipmentId: null as number | null,
-      taskId: null as number | null,
-      isExceptional: false,
-      exceptionalLabel: '',
-      date: '',
-      hours: 0,
-      location: '',
-      performedBy: '',
-      comments: '',
-      saving: false,
-      error: null as string | null,
+      fullFormOpen: false,
 
       showHistoryDelete: false,
       historyDeleteTarget: null as InterventionRow | null,
@@ -375,88 +364,37 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
     // ── Full Intervention Form ──
 
+    // Built when opened, outside any reactive expression: the form prefills
+    // from the page's data once, and a later change to that data does not
+    // rebuild it and lose what the user typed.
+    let fullForm: ReturnType<typeof FullInterventionModal> | null = null
+
+    function openFullForm(source: InterventionFormSource) {
+      fullForm = FullInterventionModal(source, {
+        equipments: () => [state.equipment!],
+        allTasks: () => state.allTasks,
+        equipmentIdFixed: equipmentId,
+        onClose: onCloseFullForm,
+        onSaved: onFullFormSaved,
+      })
+      state.fullFormOpen = true
+    }
+
     function onAddFromHistory() {
-      state.showFullForm = true
-      state.editId = null
-      state.equipmentId = equipmentId
-      state.taskId = null
-      state.isExceptional = false
-      state.exceptionalLabel = ''
-      state.date = today()
-      state.hours = state.equipment?.hours ?? 0
-      state.location = ''
-      state.performedBy = ''
-      state.comments = ''
-      state.saving = false
-      state.error = null
+      openFullForm({ new: { equipmentId } })
     }
 
     function onEditFromHistory(inv: InterventionRow) {
-      state.showFullForm = true
-      state.editId = inv.id ?? null
-      state.equipmentId = equipmentId
-      state.taskId = inv.taskId ?? null
-      state.isExceptional = inv.taskId == null
-      state.exceptionalLabel = inv.exceptionalLabel ?? ''
-      state.date = inv.date ?? ''
-      state.hours = inv.hoursAt ?? 0
-      state.location = inv.location ?? ''
-      state.performedBy = inv.performedBy ?? ''
-      state.comments = inv.comments ?? ''
-      state.saving = false
-      state.error = null
+      openFullForm({ edit: inv })
     }
 
-    function onCancelFullForm() {
-      state.showFullForm = false
+    function onCloseFullForm() {
+      state.fullFormOpen = false
     }
 
-    function onFullFormOverlayClick(e: Event) {
-      if ((e.target as HTMLElement).classList.contains('modal-overlay')) onCancelFullForm()
-    }
-
-    async function onSaveFullForm() {
-      if (!state.date) return
-      if (state.isExceptional && !state.exceptionalLabel.trim()) return
-      if (!state.isExceptional && state.taskId == null) return
-      state.saving = true
-      state.error = null
-
-      const body = state.isExceptional ? {
-        equipmentId: equipmentId,
-        exceptionalLabel: state.exceptionalLabel.trim(),
-        date: toApiDateTime(state.date),
-        hoursAt: tracksHours() ? state.hours : undefined,
-        location: state.location.trim() || undefined,
-        performedBy: state.performedBy.trim() || undefined,
-        comments: state.comments.trim() || undefined,
-      } : {
-        taskId: state.taskId!,
-        date: toApiDateTime(state.date),
-        hoursAt: tracksHours() ? state.hours : undefined,
-        location: state.location.trim() || undefined,
-        performedBy: state.performedBy.trim() || undefined,
-        comments: state.comments.trim() || undefined,
-      }
-
-      try {
-        if (state.editId != null) {
-          await interventionApi.updateIntervention({
-            id: state.editId,
-            interventionInput: body,
-          })
-        } else {
-          await interventionApi.createIntervention({
-            interventionInput: body,
-          })
-        }
-        state.showFullForm = false
-        await load()
-      } catch (err: unknown) {
-        state.error = await extractErrorMessage(err, 'Failed to save intervention')
-      } finally {
-        state.saving = false
-      }
+    async function onFullFormSaved() {
+      state.fullFormOpen = false
+      await load()
     }
 
     function onHistoryDeleteClick(inv: InterventionRow) {
@@ -614,16 +552,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           ${() => state.showDeleteTask ? deleteTaskModal() : null}
           ${() => state.showQuickLog ? quickLogModal() : null}
           ${() => state.showDeleteDoc ? deleteDocModal() : null}
-          ${() => state.showFullForm ? FullInterventionModal(state as any, {
-            equipments: () => [state.equipment!],
-            allTasks: () => state.allTasks,
-            equipmentIdFixed: equipmentId,
-            interventionId: state.editId,
-            title: state.editId != null ? 'Edit intervention' : 'Log intervention',
-            onCancel: onCancelFullForm,
-            onOverlayClick: onFullFormOverlayClick,
-            onSave: onSaveFullForm,
-          }) : null}
+          ${() => state.fullFormOpen ? fullForm : null}
 
           ${() => state.showHistoryDelete ? html`
             <div class="modal-overlay" @click="${onHistoryDeleteOverlayClick}">

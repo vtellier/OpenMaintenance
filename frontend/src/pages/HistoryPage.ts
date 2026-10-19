@@ -4,9 +4,10 @@ import { Task } from '@generated/api/models/Task'
 import { Intervention } from '@generated/api/models/Intervention'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { buildInterventionMeta, extractErrorMessage } from '@/lib/format'
-import { WithCalendarDates, today, formatCalendarDate, compareCalendarDates, fromApiDateTime, toApiDateTime } from '@/lib/calendar-date'
+import { buildInterventionMeta } from '@/lib/format'
+import { WithCalendarDates, formatCalendarDate, compareCalendarDates, fromApiDateTime } from '@/lib/calendar-date'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
+import { InterventionFormSource } from '@/lib/interventionForm'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -27,19 +28,7 @@ export function HistoryPage() {
       filterDateFrom: '',
       filterDateTo: '',
 
-      showForm: false,
-      editId: null as number | null,
-      equipmentId: null as number | null,
-      taskId: null as number | null,
-      isExceptional: false,
-      exceptionalLabel: '',
-      date: '',
-      hours: 0,
-      location: '',
-      performedBy: '',
-      comments: '',
-      saving: false,
-      error: null as string | null,
+      formOpen: false,
 
       showDeleteConfirm: false,
       deleteTarget: null as InterventionRow | null,
@@ -96,92 +85,36 @@ export function HistoryPage() {
       return state.tasks.find(t => t.id === taskId)
     }
 
-    function resetForm() {
-      state.editId = null
-      state.equipmentId = null
-      state.taskId = null
-      state.isExceptional = false
-      state.exceptionalLabel = ''
-      state.date = today()
-      state.hours = 0
-      state.location = ''
-      state.performedBy = ''
-      state.comments = ''
-      state.saving = false
-      state.error = null
+    // Built when opened, outside any reactive expression: the form prefills
+    // from the page's data once, and a later change to that data does not
+    // rebuild it and lose what the user typed.
+    let form: ReturnType<typeof FullInterventionModal> | null = null
+
+    function openForm(source: InterventionFormSource) {
+      form = FullInterventionModal(source, {
+        equipments: () => state.equipments,
+        allTasks: () => state.tasks,
+        onClose: onCloseForm,
+        onSaved: onFormSaved,
+      })
+      state.formOpen = true
     }
 
     function onAddClick() {
-      resetForm()
-      state.showForm = true
+      openForm({ new: { equipmentId: null } })
     }
 
     function onEditClick(inv: InterventionRow) {
-      state.editId = inv.id ?? null
-      state.equipmentId = null
-      state.taskId = inv.taskId ?? null
-      state.isExceptional = inv.taskId == null
-      state.exceptionalLabel = inv.exceptionalLabel ?? ''
-      state.date = inv.date ?? ''
-      state.hours = inv.hoursAt ?? 0
-      state.location = inv.location ?? ''
-      state.performedBy = inv.performedBy ?? ''
-      state.comments = inv.comments ?? ''
-      state.saving = false
-      state.error = null
-      state.showForm = true
+      openForm({ edit: inv })
     }
 
-    function onCancelForm() {
-      state.showForm = false
+    function onCloseForm() {
+      state.formOpen = false
     }
 
-    function onFormOverlayClick(e: Event) {
-      if ((e.target as HTMLElement).classList.contains('modal-overlay')) onCancelForm()
-    }
-
-    async function onSaveForm() {
-      if (!state.date) return
-      if (state.isExceptional && !state.exceptionalLabel.trim()) return
-      if (!state.isExceptional && state.taskId == null) return
-      state.saving = true
-      state.error = null
-
-      const body = state.isExceptional ? {
-        equipmentId: state.equipmentId ?? undefined,
-        exceptionalLabel: state.exceptionalLabel.trim(),
-        date: toApiDateTime(state.date),
-        hoursAt: state.hours > 0 ? state.hours : undefined,
-        location: state.location.trim() || undefined,
-        performedBy: state.performedBy.trim() || undefined,
-        comments: state.comments.trim() || undefined,
-      } : {
-        taskId: state.taskId!,
-        date: toApiDateTime(state.date),
-        hoursAt: state.hours > 0 ? state.hours : undefined,
-        location: state.location.trim() || undefined,
-        performedBy: state.performedBy.trim() || undefined,
-        comments: state.comments.trim() || undefined,
-      }
-
-      try {
-        if (state.editId != null) {
-          await interventionApi.updateIntervention({
-            id: state.editId,
-            interventionInput: body,
-          })
-        } else {
-          await interventionApi.createIntervention({
-            interventionInput: body,
-          })
-        }
-        state.showForm = false
-        await load()
-      } catch (err: unknown) {
-        state.error = await extractErrorMessage(err, 'Failed to save intervention')
-      } finally {
-        state.saving = false
-      }
+    async function onFormSaved() {
+      state.formOpen = false
+      await load()
     }
 
     function onDeleteClick(inv: InterventionRow) {
@@ -328,15 +261,7 @@ export function HistoryPage() {
         </div>`
       }}
 
-      ${() => state.showForm ? FullInterventionModal(state as any, {
-        equipments: () => state.equipments,
-        allTasks: () => state.tasks,
-        interventionId: state.editId,
-        title: state.editId != null ? 'Edit intervention' : 'Log intervention',
-        onCancel: onCancelForm,
-        onOverlayClick: onFormOverlayClick,
-        onSave: onSaveForm,
-      }) : null}
+      ${() => state.formOpen ? form : null}
 
       ${() => state.showDeleteConfirm ? html`
         <div class="modal-overlay" @click="${onDeleteOverlayClick}">
