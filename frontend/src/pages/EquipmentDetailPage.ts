@@ -5,12 +5,13 @@ import { Intervention } from '@generated/api/models/Intervention'
 import { FileInfo } from '@generated/api/models/FileInfo'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { formatHours, formatFileSize, buildInterventionMeta, extractErrorMessage } from '@/lib/format'
+import { formatHours, formatFileSize, buildInterventionMeta } from '@/lib/format'
 import { dueTimingText } from '@/lib/dueTiming'
 import { byUrgency } from '@/lib/urgency'
 import { relativeTime, formatTimestampDate, isHoursVeryStale } from '@/lib/timestamp'
-import { WithCalendarDates, today, formatCalendarDate, compareCalendarDates, fromApiDate, fromApiDateTime, toApiDate, toApiDateTime } from '@/lib/calendar-date'
+import { WithCalendarDates, formatCalendarDate, compareCalendarDates, fromApiDate, fromApiDateTime, toApiDate } from '@/lib/calendar-date'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
+import { QuickLogModal } from '@/components/QuickLogModal'
 import { InterventionFormSource } from '@/lib/interventionForm'
 import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
 
@@ -64,15 +65,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       deleteTaskName: '',
       deleteSaving: false,
       deleteError: null as string | null,
-      showQuickLog: false,
-      quickTaskId: null as number | null,
-      quickTaskName: '',
-      quickDate: '',
-      quickHours: 0,
-      quickPerformedBy: '',
-      quickComments: '',
-      quickSaving: false,
-      quickError: null as string | null,
+      quickLogOpen: false,
 
       fullFormOpen: false,
 
@@ -320,46 +313,27 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
     // ── Quick Log ──
 
+    // Built when opened, like the full form below.
+    let quickLog: ReturnType<typeof QuickLogModal> | null = null
+
     function onQuickLog(task: TaskRow) {
-      state.showQuickLog = true
-      state.quickTaskId = task.id ?? null
-      state.quickTaskName = task.name ?? ''
-      state.quickDate = today()
-      state.quickHours = state.equipment?.hours ?? 0
-      state.quickPerformedBy = ''
-      state.quickComments = ''
-      state.quickError = null
+      if (task.id == null) return
+      quickLog = QuickLogModal({ id: task.id, name: task.name ?? '' }, {
+        equipments: () => [state.equipment!],
+        tasks: () => state.tasks,
+        onClose: onCloseQuickLog,
+        onSaved: onQuickLogSaved,
+      })
+      state.quickLogOpen = true
     }
 
-    function onCancelQuickLog() {
-      state.showQuickLog = false
+    function onCloseQuickLog() {
+      state.quickLogOpen = false
     }
 
-    function onQuickLogOverlayClick(e: Event) {
-      if ((e.target as HTMLElement).classList.contains('modal-overlay')) onCancelQuickLog()
-    }
-
-    async function onSaveQuickLog() {
-      if (state.quickTaskId == null || !state.quickDate) return
-      state.quickSaving = true
-      state.quickError = null
-      try {
-        await interventionApi.createIntervention({
-          interventionInput: {
-            taskId: state.quickTaskId,
-            date: toApiDateTime(state.quickDate),
-            hoursAt: tracksHours() ? state.quickHours : undefined,
-            performedBy: state.quickPerformedBy.trim() || undefined,
-            comments: state.quickComments.trim() || undefined,
-          },
-        })
-        state.showQuickLog = false
-        await load()
-      } catch (err: unknown) {
-        state.quickError = await extractErrorMessage(err, 'Failed to save intervention')
-      } finally {
-        state.quickSaving = false
-      }
+    async function onQuickLogSaved() {
+      state.quickLogOpen = false
+      await load()
     }
 
     // ── Full Intervention Form ──
@@ -550,7 +524,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           ${() => state.showAddTask ? addTaskModal() : null}
           ${() => state.showEditTask ? editTaskModal() : null}
           ${() => state.showDeleteTask ? deleteTaskModal() : null}
-          ${() => state.showQuickLog ? quickLogModal() : null}
+          ${() => state.quickLogOpen ? quickLog : null}
           ${() => state.showDeleteDoc ? deleteDocModal() : null}
           ${() => state.fullFormOpen ? fullForm : null}
 
@@ -810,40 +784,6 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               <button class="btn" @click="${onCancelDelete}">Cancel</button>
               <button class="btn btn--danger" @click="${onConfirmDelete}" disabled="${() => state.deleteSaving}">
                 ${() => state.deleteSaving ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>`
-    }
-
-    function quickLogModal() {
-      return html`
-        <div class="modal-overlay" @click="${onQuickLogOverlayClick}">
-          <div class="modal">
-            <h2 class="modal__title">Mark done: ${() => state.quickTaskName}</h2>
-            ${() => state.quickError ? html`<div class="flash flash--error">${state.quickError}</div>` : null}
-            <div class="form-field">
-              <label class="form-field__label">Date *</label>
-              <input type="date" .value="${() => state.quickDate}" @input="${(e: Event) => { state.quickDate = (e.target as HTMLInputElement).value }}" />
-            </div>
-            ${() => tracksHours() ? html`
-              <div class="form-field">
-                <label class="form-field__label">Hours</label>
-                <input type="number" min="0" .value="${() => String(state.quickHours)}" @input="${(e: Event) => { state.quickHours = Number((e.target as HTMLInputElement).value) }}" />
-              </div>
-            ` : null}
-            <div class="form-field">
-              <label class="form-field__label">Done by</label>
-              <input placeholder="e.g. Self, Garage du Port" .value="${() => state.quickPerformedBy}" @input="${(e: Event) => { state.quickPerformedBy = (e.target as HTMLInputElement).value }}" />
-            </div>
-            <div class="form-field">
-              <label class="form-field__label">Notes</label>
-              <input placeholder="Optional" .value="${() => state.quickComments}" @input="${(e: Event) => { state.quickComments = (e.target as HTMLInputElement).value }}" />
-            </div>
-            <div class="modal__actions">
-              <button class="btn" @click="${onCancelQuickLog}">Cancel</button>
-              <button class="btn btn--accent" @click="${onSaveQuickLog}" disabled="${() => state.quickSaving || !state.quickDate}">
-                ${() => state.quickSaving ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>
