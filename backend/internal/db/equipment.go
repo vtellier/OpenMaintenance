@@ -129,6 +129,17 @@ func SetEquipmentHours(db *sql.DB, id int, hours float64, at time.Time) (bool, e
 	return n > 0, nil
 }
 
+// CorrectEquipmentHours writes the hour-meter reading and its freshness
+// whatever the stored reading, lower included. It is "Correct reading", the
+// one path allowed to lower the meter; only the hourmeter package calls it.
+func CorrectEquipmentHours(db *sql.DB, id int, hours float64, at time.Time) error {
+	_, err := db.Exec(
+		`UPDATE equipments SET hours = ?, hours_updated_at = ?, updated_at = ? WHERE id = ?`,
+		hours, at, at, id,
+	)
+	return err
+}
+
 func DeleteEquipment(db *sql.DB, id int) error {
 	// Remove photos of any intervention belonging to this equipment (including
 	// exceptional interventions, which are not tied to a task) before the

@@ -13,6 +13,8 @@ import { WithCalendarDates, formatCalendarDate, compareCalendarDates, fromApiDat
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { QuickLogModal } from '@/components/QuickLogModal'
 import { InterventionFormSource } from '@/lib/interventionForm'
+import { ReadingDoubt, readingDoubt } from '@/lib/readingDoubt'
+import { ReadingDoubtModal } from '@/components/ReadingDoubtModal'
 import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
 
 type EquipmentRow = WithCalendarDates<Equipment, 'commissionedAt'>
@@ -80,6 +82,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       historyDeleteTarget: null as InterventionRow | null,
       historyDeleteSaving: false,
       historyDeleteError: null as string | null,
+      doubtOpen: false,
 
       iconError: null as string | null,
 
@@ -378,6 +381,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       fullForm = FullInterventionModal(source, {
         equipments: () => [state.equipment!],
         allTasks: () => state.allTasks,
+        interventions: () => state.interventions,
         equipmentIdFixed: equipmentId,
         onClose: onCloseFullForm,
         onSaved: onFullFormSaved,
@@ -397,9 +401,20 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       state.fullFormOpen = false
     }
 
-    async function onFullFormSaved() {
+    async function onFullFormSaved(doubt: ReadingDoubt | null) {
       state.fullFormOpen = false
       await load()
+      askAboutReading(doubt)
+    }
+
+    // Built when asked, like the form: the question about the reading a
+    // delete or an edit may have set (doc/gui/interventions.md).
+    let doubtModal: ReturnType<typeof ReadingDoubtModal> | null = null
+
+    function askAboutReading(doubt: ReadingDoubt | null) {
+      if (doubt == null) return
+      doubtModal = ReadingDoubtModal(doubt, () => { state.doubtOpen = false })
+      state.doubtOpen = true
     }
 
     function onHistoryDeleteClick(inv: InterventionRow) {
@@ -420,10 +435,15 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       if (state.historyDeleteTarget == null || state.historyDeleteTarget.id == null) return
       state.historyDeleteSaving = true
       state.historyDeleteError = null
+      const doubt = state.equipment == null ? null : readingDoubt(
+        { deleted: state.historyDeleteTarget },
+        { equipments: [state.equipment], tasks: state.allTasks, interventions: state.interventions },
+      )
       try {
         await interventionApi.deleteIntervention({ id: state.historyDeleteTarget.id })
         state.showHistoryDelete = false
         await load()
+        askAboutReading(doubt)
       } catch {
         state.historyDeleteError = 'Failed to delete intervention'
       } finally {
@@ -521,6 +541,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
         const editHref = '/equipments/' + equipmentId + '/edit'
         const deleteHref = '/equipments/' + equipmentId + '/delete'
         const updateHoursHref = '/equipments/' + equipmentId + '/edit/hours'
+        const correctHoursHref = '/equipments/' + equipmentId + '/edit/hours/correct'
 
         return html`
           <div class="detail-header">
@@ -531,6 +552,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               </div>
               <div class="detail-header__actions">
                 ${eq.tracksHours ? html`<a href="${updateHoursHref}" class="btn">Update hours</a>` : null}
+                ${eq.tracksHours ? html`<a href="${correctHoursHref}" class="btn">Correct reading</a>` : null}
                 <a href="${editHref}" class="btn">Edit</a>
                 <a href="${deleteHref}" class="btn">Delete</a>
               </div>
@@ -558,13 +580,14 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           ${() => state.quickLogOpen ? quickLog : null}
           ${() => state.showDeleteDoc ? deleteDocModal() : null}
           ${() => state.fullFormOpen ? fullForm : null}
+          ${() => state.doubtOpen ? doubtModal : null}
 
           ${() => state.showHistoryDelete ? html`
             <div class="modal-overlay" @click="${onHistoryDeleteOverlayClick}">
               <div class="modal">
                 <h2 class="modal__title">Delete intervention</h2>
                 ${() => state.historyDeleteError ? html`<div class="flash flash--error">${state.historyDeleteError}</div>` : null}
-                <p class="confirm-text">Are you sure you want to delete this intervention? Equipment hours and task due dates will be recomputed from the remaining history.</p>
+                <p class="confirm-text">Are you sure you want to delete this intervention? Task due dates will be recomputed from the remaining history. The equipment's hour-meter reading is not lowered.</p>
                 <div class="modal__actions">
                   <button class="btn" @click="${onCancelHistoryDelete}">Cancel</button>
                   <button class="btn btn--danger" @click="${onConfirmHistoryDelete}" disabled="${() => state.historyDeleteSaving}">
