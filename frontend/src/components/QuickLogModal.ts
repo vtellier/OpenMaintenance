@@ -41,6 +41,10 @@ export function QuickLogModal(
     state.hours = value === '' ? null : Number(value)
   }
 
+  function onLocationChange(e: Event) {
+    state.location = (e.target as HTMLInputElement).value
+  }
+
   function onPerformedByChange(e: Event) {
     state.performedBy = (e.target as HTMLInputElement).value
   }
@@ -83,6 +87,10 @@ export function QuickLogModal(
           </div>
         ` : null}
         ${() => isExpiryTask(state, ctx()) ? expiryDateField(state) : null}
+        <div class="form-field">
+          <label class="form-field__label">Location</label>
+          <input placeholder="e.g. Marina X, Home garage" .value="${() => state.location}" @input="${onLocationChange}" />
+        </div>
         <div class="form-field">
           <label class="form-field__label">Done by</label>
           <input placeholder="e.g. Self, Garage du Port" .value="${() => state.performedBy}" @input="${onPerformedByChange}" />
