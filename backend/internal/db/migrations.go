@@ -7,7 +7,7 @@ import (
 
 // CurrentSchemaVersion is the schema version the running binary expects.
 // Bump this and append to `migrations` whenever a schema change is added.
-const CurrentSchemaVersion = 7
+const CurrentSchemaVersion = 8
 
 type migration struct {
 	Version int
@@ -82,6 +82,17 @@ var migrations = []migration{
 		// wherever an equipment is referenced.
 		SQL: []string{
 			`ALTER TABLE equipments ADD COLUMN icon TEXT NOT NULL DEFAULT '🔧'`,
+		},
+	},
+	{
+		Version: 8,
+		// Expiry tasks (#99): a task kind fixed at creation (existing tasks
+		// are interval tasks), the task's current expiry date and the expiry
+		// date of the part an intervention fits, both YYYY-MM-DD text.
+		SQL: []string{
+			`ALTER TABLE tasks ADD COLUMN kind TEXT NOT NULL DEFAULT 'interval'`,
+			`ALTER TABLE tasks ADD COLUMN current_expiry_date TEXT`,
+			`ALTER TABLE interventions ADD COLUMN expiry_date TEXT`,
 		},
 	},
 }

@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const interventionColumns = "id, task_id, equipment_id, exceptional_label, date, location, performed_by, comments, hours_at, created_at, updated_at"
+const interventionColumns = "id, task_id, equipment_id, exceptional_label, date, location, performed_by, comments, hours_at, expiry_date, created_at, updated_at"
 
 func scanIntervention(s interface {
 	Scan(...any) error
@@ -15,6 +15,7 @@ func scanIntervention(s interface {
 	var equipmentID sql.NullInt64
 	var exceptionalLabel sql.NullString
 	var hoursAt sql.NullFloat64
+	var expiryDate sql.NullString
 
 	err := s.Scan(
 		&intervention.ID,
@@ -26,6 +27,7 @@ func scanIntervention(s interface {
 		&intervention.PerformedBy,
 		&intervention.Comments,
 		&hoursAt,
+		&expiryDate,
 		&intervention.CreatedAt,
 		&intervention.UpdatedAt,
 	)
@@ -46,6 +48,9 @@ func scanIntervention(s interface {
 	if hoursAt.Valid {
 		intervention.HoursAt = &hoursAt.Float64
 	}
+	if expiryDate.Valid {
+		intervention.ExpiryDate = &expiryDate.String
+	}
 	return nil
 }
 
@@ -54,7 +59,7 @@ func CreateIntervention(db *sql.DB, intervention *models.Intervention) error {
 	intervention.UpdatedAt = time.Now()
 
 	result, err := db.Exec(
-		"INSERT INTO interventions (task_id, equipment_id, exceptional_label, date, location, performed_by, comments, hours_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO interventions (task_id, equipment_id, exceptional_label, date, location, performed_by, comments, hours_at, expiry_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 		intervention.TaskID,
 		intervention.EquipmentID,
 		intervention.ExceptionalLabel,
@@ -63,6 +68,7 @@ func CreateIntervention(db *sql.DB, intervention *models.Intervention) error {
 		intervention.PerformedBy,
 		intervention.Comments,
 		intervention.HoursAt,
+		intervention.ExpiryDate,
 		intervention.CreatedAt,
 		intervention.UpdatedAt,
 	)
@@ -90,7 +96,7 @@ func UpdateIntervention(db execer, intervention *models.Intervention) error {
 	intervention.UpdatedAt = time.Now()
 
 	_, err := db.Exec(
-		"UPDATE interventions SET task_id = ?, equipment_id = ?, exceptional_label = ?, date = ?, location = ?, performed_by = ?, comments = ?, hours_at = ?, updated_at = ? WHERE id = ?",
+		"UPDATE interventions SET task_id = ?, equipment_id = ?, exceptional_label = ?, date = ?, location = ?, performed_by = ?, comments = ?, hours_at = ?, expiry_date = ?, updated_at = ? WHERE id = ?",
 		intervention.TaskID,
 		intervention.EquipmentID,
 		intervention.ExceptionalLabel,
@@ -99,6 +105,7 @@ func UpdateIntervention(db execer, intervention *models.Intervention) error {
 		intervention.PerformedBy,
 		intervention.Comments,
 		intervention.HoursAt,
+		intervention.ExpiryDate,
 		intervention.UpdatedAt,
 		intervention.ID,
 	)
