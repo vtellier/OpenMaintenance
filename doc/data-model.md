@@ -36,7 +36,7 @@ The `icon` is chosen from an emoji picker — a button (or, on the detail header
 
 #### What changes the reading
 
-The reading (`hours`) and its freshness (`hours_updated_at`) change only through the paths below. **None of them lowers the reading**: the meter cannot go backwards.
+The reading (`hours`) and its freshness (`hours_updated_at`) change only through the paths below. **None of them lowers the reading, except "Correct reading"**: the meter cannot go backwards, and a reading is never lowered silently.
 
 | Path | Reading (`hours`) | Freshness (`hours_updated_at`) |
 |------|-------------------|--------------------------------|
@@ -46,9 +46,39 @@ The reading (`hours`) and its freshness (`hours_updated_at`) change only through
 | Edit metadata (name, description, commissioning date, icon, including the detail-header icon picker) | Unchanged: an hours value sent with the edit is ignored | Unchanged |
 | **"Update hours"** or **"Same hours"** | Set to the value submitted, which must be **greater than or equal to** the current one; a lower value is rejected | "now", even when the value is unchanged |
 | Log or edit an intervention with `hours_at` | Raised to `hours_at` only when it is **strictly greater** than the current reading | "now" only when the reading is raised |
+| Delete an intervention, or edit it to a lower `hours_at` (or none) | Unchanged. When the reading may have come from that intervention, the user is asked whether to keep or correct it (see [Reading in doubt](#reading-in-doubt)) | Unchanged |
+| **"Correct reading"** | Set to the value the user confirms, **lower included**. The only path that can lower the reading | "now" |
 
 - An intervention's `hours_at` on an equipment that does not track hours leaves the hour-meter untouched.
-- Deleting an intervention does not change the reading today; whether it should be recomputed from the remaining history is not decided yet (issue #70).
+- Deleting or editing an intervention still recomputes task due dates and hours baselines from the remaining history; only the equipment's reading is left as it is.
+
+#### Reading in doubt
+
+Deleting an intervention, or editing it to a lower `hours_at` (clearing it, or moving the intervention to another equipment, counts as lowering), never changes the reading by itself. But the reading may have come from that intervention, e.g. a mistyped value. There is **doubt** when all of these hold:
+
+- the equipment tracks hours and has a reading;
+- the intervention's `hours_at`, before the change, **equals** the equipment's current reading;
+- after the change, the intervention no longer carries that reading on that equipment (deleted, `hours_at` lowered or cleared, or moved to another equipment).
+
+When the current reading is higher than the intervention's `hours_at`, something else set it (a later intervention, or "Update hours"): the reading is kept without asking.
+
+In the doubt case, once the delete or the edit is saved, the user is asked:
+
+- **Keep the reading** (the default): nothing changes, freshness included.
+- **Correct the reading**: opens "Correct reading", prefilled with the **highest `hours_at` left on the equipment's interventions** after the change (the edited intervention's new reading included), or empty if there is none. The user confirms or adjusts it.
+
+The app keeps no history of "Update hours" readings, only the current value, so the highest remaining intervention reading may be older than the last "Update hours". That is why the correction is prefilled, never applied.
+
+The frontend detects the doubt and computes the prefill (`frontend/src/lib/readingDoubt.ts`), from the equipment and the interventions it has already loaded; the delete and edit endpoints are unchanged.
+
+#### Correct reading
+
+The deliberate way to set a lower reading, e.g. one that was mistyped. Served by `PUT /equipments/{id}/hours/correction`:
+
+- The equipment must track hours; the value must be `0` or more. Any such value is accepted, lower, equal or higher than the current one.
+- The reading becomes that value and `hours_updated_at` becomes "now".
+- Every other path keeps the "never goes backwards" rule.
+- Readings wiped before PR #79 (issue #69) by turning the hour-meter off are out of scope: turning tracking back on already asks for a reading.
 
 #### `hours_updated_at` (freshness tracking)
 
@@ -125,6 +155,7 @@ Exactly one of `task_id` or `exceptional_label` must be provided (they are mutua
 - When an intervention is recorded (or edited) with `hours_at`, the equipment tracks hours, and that value is greater than the equipment's current `hours`:
   - The equipment's `hours` is updated to that value.
   - The equipment's `hours_updated_at` is set to "now".
+- Deleting an intervention, or lowering its `hours_at`, never lowers the equipment's `hours`; see [Reading in doubt](#reading-in-doubt).
 - For **standard** interventions: the next due date for the task is recomputed from the latest intervention. On an expiry task, it is the latest intervention's `expiry_date`: editing or deleting that intervention updates it.
 - For **exceptional** interventions: no task due-date side effect.
 

@@ -102,6 +102,32 @@ func (h *Handler) UpdateEquipmentHours(ctx echo.Context, id int) error {
 	return ctx.JSON(200, existing)
 }
 
+// CorrectEquipmentHours is "Correct reading": it sets the reading the user
+// confirms, lower included, and refreshes its freshness. It is the only path
+// that can lower the reading (doc/data-model.md, "Correct reading").
+func (h *Handler) CorrectEquipmentHours(ctx echo.Context, id int) error {
+	// A pointer, so that a body without hours is refused instead of read as 0.
+	var input struct {
+		Hours *float64 `json:"hours"`
+	}
+	if err := ctx.Bind(&input); err != nil {
+		return ctx.JSON(400, map[string]string{"error": err.Error()})
+	}
+	if input.Hours == nil {
+		return ctx.JSON(400, map[string]string{"error": "hours is required"})
+	}
+
+	existing, err := dbpackage.GetEquipment(h.DB, id)
+	if err != nil {
+		return ctx.JSON(404, map[string]string{"error": "Equipment not found"})
+	}
+	if err := hourmeter.Correct(h.DB, existing, *input.Hours); err != nil {
+		return ctx.JSON(hourMeterStatus(err), map[string]string{"error": err.Error()})
+	}
+
+	return ctx.JSON(200, existing)
+}
+
 func (h *Handler) DeleteEquipment(ctx echo.Context, id int) error {
 	if err := dbpackage.DeleteEquipment(h.DB, id); err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
@@ -126,7 +152,7 @@ func equipmentMetadata(in *models.Equipment) *models.Equipment {
 // hourMeterStatus maps an hourmeter error to an HTTP status: a broken
 // hour-meter rule is a bad request, anything else a server error.
 func hourMeterStatus(err error) int {
-	if errors.Is(err, hourmeter.ErrBackwards) || errors.Is(err, hourmeter.ErrNotTracked) {
+	if errors.Is(err, hourmeter.ErrBackwards) || errors.Is(err, hourmeter.ErrNotTracked) || errors.Is(err, hourmeter.ErrNegative) {
 		return 400
 	}
 	return 500

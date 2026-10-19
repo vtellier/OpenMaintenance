@@ -21,6 +21,7 @@
 - [x] Validate intervention `date` is not in the future
 - [x] Validate hour-meter constraints (hours_interval only if tracks_hours)
 - [x] **Hours baseline skips interventions without a reading** (issue #81): counted from the most recent `hours_at` on the task; a task done but never with a reading has no hours rule until one is logged, instead of counting from 0 and turning overdue at once
+- [x] **Reading never lowered silently** (issue #70): deleting or editing down an intervention keeps the equipment's reading; when the reading may have come from it, the user keeps it or corrects it ("Correct reading", prefilled with the highest reading left), the only path that can lower it
 - [x] **Month-end next due date** (issue #80): adding months clamps to the target month's last day (Jan 31 + 1 month = Feb 28/29) instead of rolling over to early March
 
 ## Milestone 3 — Frontend Foundation

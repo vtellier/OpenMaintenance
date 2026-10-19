@@ -561,3 +561,12 @@ Can start now: #65, #66, #69, #75.
 - Verified with `go test ./...`, `go build`, `pnpm test:unit`, `pnpm test`, `pnpm run typecheck`, `pnpm run build` and `make build`.
 - **Follow-ups** (after review): merged PR #100's no-reading fix. Logging a replacement (or editing an intervention onto an expiry task) now clears the task's current expiry date in the same transaction, so deleting every intervention leaves the task overdue with no date and the task form asks for the date again (user decision; showing it as incomplete is #103). Spec in `doc/data-model.md` and `doc/gui/tasks.md`, failing `httptest` cases first in `expiry_task_test.go`, then the fix in `internal/db/intervention.go`. The quick log and full form share one `expiryDateField` (`src/components/ExpiryDateField.ts`); `DueStatus` comments now cover the expiry rule.
 - **More tests** (all passing at once): `httptest` cases for moving an intervention between task kinds and updating a missing task (404) in `expiry_task_test.go`; the repo's first migration test, `internal/db/migrations_test.go`, opens a schema v7 database and checks an existing task migrates to an interval task with no current expiry date and its intervention with no expiry date.
+
+## 2026-10-19 — Never lower the hour-meter reading silently (issue #70)
+
+- Branch `fix/issue-70-never-lower-reading-silently`; decisions from the issue's agent brief (maintainer grilling session).
+- **Spec first**: `doc/data-model.md` ("What changes the reading", new "Reading in doubt" and "Correct reading"), `doc/gui/interventions.md` (delete copy, the question), `doc/gui/equipments.md` ("Correct reading" flow and header action), `doc/gui/history.md`; `openapi.yaml` adds `PUT /equipments/{id}/hours/correction`.
+- **Design choice**: the frontend detects the doubt (`src/lib/readingDoubt.ts`), from the equipment and interventions the page already holds; the delete and edit endpoints are unchanged. The backend only gains the correction path (`hourmeter.Correct`, the one path allowed to lower).
+- **Tests first** (TDD, agreed seams): `httptest` in `backend/tests/hourmeter_test.go` (delete keeps the reading; correction lowers, refreshes freshness, refuses negative / non-tracking / unknown); Vitest `readingDoubt.test.ts`; Playwright `delete-intervention-asks-about-reading.spec.ts`.
+- **Frontend**: after a delete or an edit that leaves the reading in doubt, `ReadingDoubtModal` asks Keep (default, focused) or Correct; "Correct reading" page at `/equipments/{id}/edit/hours/correct?hours=`, also linked from the equipment header.
+

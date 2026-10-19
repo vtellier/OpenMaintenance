@@ -2,7 +2,8 @@
 // reading (hours) and its freshness (hours_updated_at). It enforces the rules
 // of doc/data-model.md, "What changes the reading":
 //
-//   - the reading never goes backwards;
+//   - the reading never goes backwards, except through Correct ("Correct
+//     reading"), the user's deliberate fix of a wrong reading;
 //   - an explicit reading (the initial one, "Update hours", "Same hours")
 //     always refreshes the freshness, even when the value is unchanged;
 //   - a reading captured by an intervention refreshes it only when it raises
@@ -29,6 +30,8 @@ var (
 	// ErrBackwards is returned when an explicit reading is lower than the
 	// current one.
 	ErrBackwards = errors.New("hours cannot be lower than the current reading")
+	// ErrNegative is returned when a corrected reading is below 0.
+	ErrNegative = errors.New("hours cannot be negative")
 )
 
 // TurnOn records the initial reading when the hour-meter is turned on, at
@@ -71,6 +74,28 @@ func RecordIntervention(db *sql.DB, intervention *models.Intervention) error {
 	if err := write(db, eq, hours); err != nil && !errors.Is(err, ErrBackwards) {
 		return err
 	}
+	return nil
+}
+
+// Correct records the reading the user confirms through "Correct reading":
+// any value of 0 or more, lower than the current one included. It is the only
+// path that can lower the reading, and it refreshes the freshness. Deleting an
+// intervention, or lowering its hours_at, never calls it by itself: the user
+// decides (doc/data-model.md, "Reading in doubt").
+func Correct(db *sql.DB, eq *models.Equipment, hours float64) error {
+	if !eq.TracksHours {
+		return ErrNotTracked
+	}
+	if hours < 0 {
+		return ErrNegative
+	}
+	now := time.Now()
+	if err := dbpackage.CorrectEquipmentHours(db, eq.ID, hours, now); err != nil {
+		return err
+	}
+	eq.Hours = &hours
+	eq.HoursUpdatedAt = &now
+	eq.UpdatedAt = now
 	return nil
 }
 

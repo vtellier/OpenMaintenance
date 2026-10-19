@@ -13,7 +13,9 @@ import {
   prefill,
   save,
   selectEquipment,
+  toRequest,
 } from '@/lib/interventionForm'
+import { InterventionReading, ReadingDoubt, readingDoubt } from '@/lib/readingDoubt'
 
 const interventionApi = new InterventionApi(apiConfig)
 
@@ -27,10 +29,13 @@ export function FullInterventionModal(
   opts: {
     equipments: () => Pick<Equipment, 'id' | 'name' | 'tracksHours' | 'hours'>[]
     allTasks: () => Pick<Task, 'id' | 'name' | 'equipmentId' | 'kind'>[]
+    /** The interventions already loaded, to tell whether an edit leaves the reading in doubt. */
+    interventions: () => InterventionReading[]
     /** Hides the equipment picker: the form is opened from that equipment's page. */
     equipmentIdFixed?: number
     onClose: () => void
-    onSaved: () => void | Promise<void>
+    /** Called once saved, with the doubt an edit leaves on the equipment's reading, if any. */
+    onSaved: (doubt: ReadingDoubt | null) => void | Promise<void>
   },
 ) {
   const equipments = opts.equipments
@@ -111,14 +116,26 @@ export function FullInterventionModal(
 
   const isSaveDisabled = () => state.saving || !canSave(state, ctx())
 
+  // Computed before saving, from the reading and the interventions as they
+  // were: the edit never lowers the reading, the user decides.
+  function doubtLeftByEdit(): ReadingDoubt | null {
+    if (!('edit' in source)) return null
+    const after = toRequest(state, ctx()).interventionInput
+    return readingDoubt(
+      { edited: source.edit, to: { equipmentId: state.equipmentId, hoursAt: after.hoursAt } },
+      { equipments: equipments(), tasks: allTasks(), interventions: opts.interventions() },
+    )
+  }
+
   async function onSave() {
     if (!canSave(state, ctx())) return
     state.saving = true
     state.error = null
+    const doubt = doubtLeftByEdit()
     const error = await save(state, ctx(), interventionApi)
     state.saving = false
     if (error) state.error = error
-    else await opts.onSaved()
+    else await opts.onSaved(doubt)
   }
 
   function onOverlayClick(e: Event) {

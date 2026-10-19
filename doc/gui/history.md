@@ -52,7 +52,7 @@ The per-equipment History tab has the equipment filter implicit (pinned).
 1. User opens History (global or per-equipment).
 2. Scrolls/filters to find the entry.
 3. Taps the row → details expand, or opens the full form for edit.
-4. On save, side effects (equipment hours, next-due) are recomputed.
+4. On save, next-due dates are recomputed. A higher hours value raises the equipment's reading; a lower one never lowers it, and may ask whether to keep or correct it (see [interventions.md](./interventions.md#reading-in-doubt-after-a-delete-or-an-edit)).
 
 ### Flow: Backdated intervention
 1. User taps **"+ Log intervention"** in the History screen.
