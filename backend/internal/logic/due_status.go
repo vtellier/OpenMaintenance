@@ -51,15 +51,17 @@ const (
 type DueStatus struct {
 	// Status is "overdue", "due_soon" or "ok".
 	Status string
-	// NextDueDate is "" when the months rule does not apply.
+	// NextDueDate is the months rule's due date or, for an expiry task, the
+	// current expiry date. "" when neither rule gives a date.
 	NextDueDate string
 	// NextDueHours is nil when the task has no hours rule on this equipment.
 	NextDueHours *float64
-	// Trigger is the rule that drives Status (TriggerMonths or
-	// TriggerHours), or "" when no rule applies.
+	// Trigger is the rule that drives Status (TriggerMonths, TriggerHours
+	// or, for an expiry task, always TriggerExpiry), or "" when no rule
+	// applies.
 	Trigger string
 	// DueInDays is the whole calendar days to NextDueDate, negative once
-	// past. Nil when the months rule does not apply.
+	// past. Nil when NextDueDate is "".
 	DueInDays *int
 	// DueInHours is NextDueHours minus the current reading, negative once
 	// reached or passed. Nil when the hours rule does not apply.
