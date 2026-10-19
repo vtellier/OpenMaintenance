@@ -14,13 +14,12 @@ Opens a small modal/sheet with a minimal form:
 - **Date** (defaults to today in the user's timezone, editable).
 - **Hours** (only if equipment tracks hours; pre-filled with current equipment hours, editable; empty when the equipment has no reading yet — the app never invents one). Same reading rule as the full form: the value entered is sent, `0` included; an empty field sends no reading.
 - **Expiry date** (only for an [expiry task](../data-model.md#task-kinds); required, empty by default): the date printed on the part fitted. Same rule as the full form.
+- **Location** (optional, single-line text): sent trimmed when not blank, omitted otherwise. Same field as the full form.
 - **Done by** (optional, single-line text, placeholder "e.g. Self, Garage du Port").
 - **Comments** (optional, single line).
 - Two buttons: **Save** / **Cancel**.
 
 The Dashboard and Equipment detail quick logs are the same form. A save the backend refuses keeps the modal open and shows the backend's reason (e.g. *"intervention date cannot be in the future"*), as the full form does.
-
-Location is not asked in quick mode (kept for the full form).
 
 ### 2. Full intervention form
 
@@ -91,6 +90,7 @@ See [file-storage.md](../file-storage.md) for the storage design.
 +-----------------------------+
 |  Date    [ 2026-05-13   ▾ ] |
 |  Hours   [ 1245           ] |   (only if applicable)
+|  Location [               ] |
 |  Done by [                ] |
 |  Notes   [                ] |
 |                             |
