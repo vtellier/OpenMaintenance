@@ -102,6 +102,12 @@ func (h *Handler) UpdateEquipmentHours(ctx echo.Context, id int) error {
 	return ctx.JSON(200, existing)
 }
 
+// CorrectEquipmentHours is "Correct reading" (doc/data-model.md): not
+// implemented yet (#70).
+func (h *Handler) CorrectEquipmentHours(ctx echo.Context, id int) error {
+	return ctx.JSON(501, map[string]string{"error": "not implemented"})
+}
+
 func (h *Handler) DeleteEquipment(ctx echo.Context, id int) error {
 	if err := dbpackage.DeleteEquipment(h.DB, id); err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})

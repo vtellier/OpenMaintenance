@@ -222,6 +222,41 @@ paths:
           description: Invalid input (equipment does not track hours, or value below current)
         '404':
           description: Equipment not found
+  /equipments/{id}/hours/correction:
+    put:
+      operationId: correctEquipmentHours
+      summary: Correct an equipment's hour-meter reading
+      description: >
+        "Correct reading": the deliberate way to fix a wrong reading, and the
+        only path that can lower it. Sets the equipment's hours to the
+        submitted value, lower, equal or higher than the current one, and
+        refreshes hours_updated_at to now.
+      tags:
+        - Equipment
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the equipment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentHoursCorrectionInput'
+      responses:
+        '200':
+          description: Reading corrected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+        '400':
+          description: Invalid input (equipment does not track hours, or negative value)
+        '404':
+          description: Equipment not found
   /equipments/{equipment_id}/files:
     get:
       operationId: listEquipmentFiles
@@ -555,7 +590,10 @@ paths:
     put:
       operationId: updateIntervention
       summary: Update an intervention
-      description: Update an existing intervention
+      description: >
+        Update an existing intervention. A higher hours_at raises the
+        equipment's reading; a lower one, or none, never lowers it (see
+        PUT /equipments/{id}/hours/correction).
       tags:
         - Intervention
       parameters:
@@ -585,7 +623,10 @@ paths:
     delete:
       operationId: deleteIntervention
       summary: Delete an intervention
-      description: Remove an intervention from the system
+      description: >
+        Remove an intervention from the system. Task due dates are recomputed
+        from the remaining history; the equipment's hour-meter reading is never
+        lowered (see PUT /equipments/{id}/hours/correction).
       tags:
         - Intervention
       parameters:
@@ -795,6 +836,15 @@ components:
         hours:
           type: number
           description: New hour-meter reading. Must be greater than or equal to the current value.
+    EquipmentHoursCorrectionInput:
+      type: object
+      required:
+        - hours
+      properties:
+        hours:
+          type: number
+          minimum: 0
+          description: Corrected hour-meter reading. Any value of 0 or more, lower than the current one included.
     Task:
       type: object
       properties:
