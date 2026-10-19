@@ -561,3 +561,11 @@ Can start now: #65, #66, #69, #75.
 - Verified with `go test ./...`, `go build`, `pnpm test:unit`, `pnpm test`, `pnpm run typecheck`, `pnpm run build` and `make build`.
 - **Follow-ups** (after review): merged PR #100's no-reading fix. Logging a replacement (or editing an intervention onto an expiry task) now clears the task's current expiry date in the same transaction, so deleting every intervention leaves the task overdue with no date and the task form asks for the date again (user decision; showing it as incomplete is #103). Spec in `doc/data-model.md` and `doc/gui/tasks.md`, failing `httptest` cases first in `expiry_task_test.go`, then the fix in `internal/db/intervention.go`. The quick log and full form share one `expiryDateField` (`src/components/ExpiryDateField.ts`); `DueStatus` comments now cover the expiry rule.
 - **More tests** (all passing at once): `httptest` cases for moving an intervention between task kinds and updating a missing task (404) in `expiry_task_test.go`; the repo's first migration test, `internal/db/migrations_test.go`, opens a schema v7 database and checks an existing task migrates to an interval task with no current expiry date and its intervention with no expiry date.
+
+## 2026-10-19 — Reject a negative hour reading (issue #102)
+
+- Branch `fix/issue-102-reject-negative-hours`. Spec in `doc/data-model.md` ("A reading is never negative"), `minimum: 0` in `openapi.yaml`.
+- **Tests first**: `backend/tests/negative_hours_test.go` (`httptest`), red on `main` for every path: log (standard and exceptional) and edit an intervention, create an equipment, turn the hour-meter on, "Update hours". Each asserts a 400 whose reason says the reading cannot be negative, and that nothing was stored.
+- **Fix**: `hourmeter.CheckReading` / `ErrNegative`, used by every explicit reading and by `validateIntervention` for `hours_at`; equipment creation checks before the row is written.
+- The intervention forms already show the backend's reason (`save()` in `interventionForm.ts`). The equipment create form and "Update hours" page still show a generic error message.
+- Verified with `go test ./...`, `go build`, `pnpm test:unit`, `pnpm run build` and `make build`.

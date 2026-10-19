@@ -23,6 +23,14 @@ func (h *Handler) CreateEquipment(ctx echo.Context) error {
 		return ctx.JSON(400, map[string]string{"error": err.Error()})
 	}
 
+	// Checked before the equipment is stored so that a rejected reading
+	// creates nothing.
+	if input.TracksHours && input.Hours != nil {
+		if err := hourmeter.CheckReading(*input.Hours); err != nil {
+			return ctx.JSON(hourMeterStatus(err), map[string]string{"error": err.Error()})
+		}
+	}
+
 	equipment := equipmentMetadata(input)
 	if err := dbpackage.CreateEquipment(h.DB, equipment); err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
@@ -126,7 +134,8 @@ func equipmentMetadata(in *models.Equipment) *models.Equipment {
 // hourMeterStatus maps an hourmeter error to an HTTP status: a broken
 // hour-meter rule is a bad request, anything else a server error.
 func hourMeterStatus(err error) int {
-	if errors.Is(err, hourmeter.ErrBackwards) || errors.Is(err, hourmeter.ErrNotTracked) {
+	if errors.Is(err, hourmeter.ErrBackwards) || errors.Is(err, hourmeter.ErrNotTracked) ||
+		errors.Is(err, hourmeter.ErrNegative) {
 		return 400
 	}
 	return 500
