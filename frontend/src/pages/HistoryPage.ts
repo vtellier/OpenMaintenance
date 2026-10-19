@@ -5,7 +5,7 @@ import { Intervention } from '@generated/api/models/Intervention'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { buildInterventionMeta } from '@/lib/format'
-import { WithCalendarDates, formatCalendarDate, compareCalendarDates, fromApiDateTime } from '@/lib/calendar-date'
+import { WithCalendarDates, formatCalendarDate, compareCalendarDates, fromApiDate, fromApiDateTime } from '@/lib/calendar-date'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { InterventionFormSource } from '@/lib/interventionForm'
 
@@ -13,7 +13,7 @@ const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
 const interventionApi = new InterventionApi(apiConfig)
 
-type InterventionRow = WithCalendarDates<Intervention, 'date'>
+type InterventionRow = WithCalendarDates<Intervention, 'date' | 'expiryDate'>
 
 export function HistoryPage() {
   return component(() => {
@@ -61,6 +61,7 @@ export function HistoryPage() {
         state.interventions = invs.map((inv: any) => ({
           ...inv,
           date: fromApiDateTime(inv.date),
+          expiryDate: fromApiDate(inv.expiryDate),
           createdAt: inv.createdAt?.toISOString(),
           updatedAt: inv.updatedAt?.toISOString(),
         }))

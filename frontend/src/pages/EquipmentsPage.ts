@@ -17,7 +17,7 @@ const taskApi = new TaskApi(apiConfig)
 const interventionApi = new InterventionApi(apiConfig)
 
 type TaskRow = WithCalendarDates<Task, 'nextDueDate'>
-type InterventionRow = WithCalendarDates<Intervention, 'date'>
+type InterventionRow = WithCalendarDates<Intervention, 'date' | 'expiryDate'>
 
 export const EquipmentsPage = component(() => {
   const state = reactive({
@@ -55,6 +55,7 @@ export const EquipmentsPage = component(() => {
       state.interventions = interventions.map((inv: any) => ({
         ...inv,
         date: fromApiDateTime(inv.date),
+        expiryDate: fromApiDate(inv.expiryDate),
         createdAt: inv.createdAt?.toISOString(),
         updatedAt: inv.updatedAt?.toISOString(),
       }))

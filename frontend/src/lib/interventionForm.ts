@@ -3,7 +3,7 @@ import { Intervention } from '@generated/api/models/Intervention'
 import { InterventionInput } from '@generated/api/models/InterventionInput'
 import { Task } from '@generated/api/models/Task'
 import { extractErrorMessage } from '@/lib/format'
-import { CalendarDate, WithCalendarDates, today, toApiDateTime } from '@/lib/calendar-date'
+import { CalendarDate, WithCalendarDates, today, toApiDate, toApiDateTime } from '@/lib/calendar-date'
 
 // The intervention forms (the full form to log and edit, and the quick log
 // that marks a task done): their values, how they are prefilled, when they can
@@ -19,16 +19,18 @@ export interface InterventionFormValues {
   date: CalendarDate | ''
   /** The hour-meter reading; null when none is entered. */
   hours: number | null
+  /** The expiry date of the part fitted, for an expiry task; '' when none is entered. */
+  expiryDate: CalendarDate | ''
   location: string
   performedBy: string
   comments: string
 }
 
-export type InterventionRow = WithCalendarDates<Intervention, 'date'>
+export type InterventionRow = WithCalendarDates<Intervention, 'date' | 'expiryDate'>
 
 export interface InterventionFormContext {
   equipments: Pick<Equipment, 'id' | 'tracksHours' | 'hours'>[]
-  tasks: Pick<Task, 'id' | 'equipmentId'>[]
+  tasks: Pick<Task, 'id' | 'equipmentId' | 'kind'>[]
 }
 
 /**
@@ -63,6 +65,7 @@ function newLog(equipmentId: number | null, taskId: number | null, ctx: Interven
     exceptionalLabel: '',
     date: today(),
     hours: startingReading(equipmentId, ctx),
+    expiryDate: '',
     location: '',
     performedBy: '',
     comments: '',
@@ -84,6 +87,7 @@ export function prefill(source: InterventionFormSource, ctx: InterventionFormCon
     exceptionalLabel: inv.exceptionalLabel ?? '',
     date: inv.date ?? '',
     hours: inv.hoursAt ?? null,
+    expiryDate: inv.expiryDate ?? '',
     location: inv.location ?? '',
     performedBy: inv.performedBy ?? '',
     comments: inv.comments ?? '',
@@ -97,11 +101,25 @@ export function selectEquipment(form: InterventionFormValues, equipmentId: numbe
   form.hours = startingReading(equipmentId, ctx)
 }
 
-/** Date always; a task for a standard intervention; an equipment and a label for an exceptional one. */
-export function canSave(form: InterventionFormValues): boolean {
+/**
+ * Whether the form logs the part fitted on an expiry task: a standard
+ * intervention whose task is one. The form then asks for its expiry date.
+ */
+export function isExpiryTask(form: InterventionFormValues, ctx: InterventionFormContext): boolean {
+  if (form.isExceptional || form.taskId == null) return false
+  return ctx.tasks.find(t => t.id === form.taskId)?.kind === 'expiry'
+}
+
+/**
+ * Date always; a task for a standard intervention, and the part's expiry date
+ * when it is an expiry task (any date, past included); an equipment and a
+ * label for an exceptional one.
+ */
+export function canSave(form: InterventionFormValues, ctx: InterventionFormContext): boolean {
   if (!form.date) return false
   if (form.isExceptional) return form.equipmentId != null && form.exceptionalLabel.trim() !== ''
-  return form.taskId != null
+  if (form.taskId == null) return false
+  return !isExpiryTask(form, ctx) || form.expiryDate !== ''
 }
 
 export interface InterventionRequest {
@@ -112,7 +130,8 @@ export interface InterventionRequest {
 
 /**
  * The request the form saves. The reading is sent whenever the equipment
- * tracks hours and one is entered, 0 included. Call only when canSave.
+ * tracks hours and one is entered, 0 included. The expiry date is sent only
+ * for an expiry task. Call only when canSave.
  */
 export function toRequest(form: InterventionFormValues, ctx: InterventionFormContext): InterventionRequest {
   const tracksHours = ctx.equipments.find(e => e.id === form.equipmentId)?.tracksHours ?? false
@@ -125,7 +144,9 @@ export function toRequest(form: InterventionFormValues, ctx: InterventionFormCon
   }
   const interventionInput: InterventionInput = form.isExceptional
     ? { equipmentId: form.equipmentId ?? undefined, exceptionalLabel: form.exceptionalLabel.trim(), ...common }
-    : { taskId: form.taskId ?? undefined, ...common }
+    : isExpiryTask(form, ctx)
+      ? { taskId: form.taskId ?? undefined, ...common, expiryDate: toApiDate(form.expiryDate as CalendarDate) }
+      : { taskId: form.taskId ?? undefined, ...common }
   return { id: form.editId ?? undefined, interventionInput }
 }
 

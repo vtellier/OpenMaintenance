@@ -17,7 +17,7 @@ const taskApi = new TaskApi(apiConfig)
 const interventionApi = new InterventionApi(apiConfig)
 
 type TaskRow = WithCalendarDates<Task, 'nextDueDate'>
-type InterventionRow = WithCalendarDates<Intervention, 'date'>
+type InterventionRow = WithCalendarDates<Intervention, 'date' | 'expiryDate'>
 
 export function DashboardPage() {
   return component(() => {
@@ -56,6 +56,7 @@ export function DashboardPage() {
         state.interventions = invs.map((inv: any) => ({
           ...inv,
           date: fromApiDateTime(inv.date),
+          expiryDate: fromApiDate(inv.expiryDate),
           createdAt: inv.createdAt?.toISOString(),
           updatedAt: inv.updatedAt?.toISOString(),
         }))

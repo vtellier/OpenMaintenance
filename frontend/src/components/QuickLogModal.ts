@@ -3,7 +3,8 @@ import { Equipment } from '@generated/api/models/Equipment'
 import { Task } from '@generated/api/models/Task'
 import { InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { InterventionFormContext, canSave, prefill, save } from '@/lib/interventionForm'
+import { expiryDateField } from '@/components/ExpiryDateField'
+import { InterventionFormContext, canSave, isExpiryTask, prefill, save } from '@/lib/interventionForm'
 
 const interventionApi = new InterventionApi(apiConfig)
 
@@ -16,7 +17,7 @@ export function QuickLogModal(
   task: { id: number, name: string },
   opts: {
     equipments: () => Pick<Equipment, 'id' | 'tracksHours' | 'hours'>[]
-    tasks: () => Pick<Task, 'id' | 'equipmentId'>[]
+    tasks: () => Pick<Task, 'id' | 'equipmentId' | 'kind'>[]
     onClose: () => void
     onSaved: () => void | Promise<void>
   },
@@ -48,10 +49,10 @@ export function QuickLogModal(
     state.comments = (e.target as HTMLInputElement).value
   }
 
-  const isSaveDisabled = () => state.saving || !canSave(state)
+  const isSaveDisabled = () => state.saving || !canSave(state, ctx())
 
   async function onSave() {
-    if (!canSave(state)) return
+    if (!canSave(state, ctx())) return
     state.saving = true
     state.error = null
     const error = await save(state, ctx(), interventionApi)
@@ -81,6 +82,7 @@ export function QuickLogModal(
             <input type="number" min="0" .value="${() => state.hours == null ? '' : String(state.hours)}" @input="${onHoursChange}" />
           </div>
         ` : null}
+        ${() => isExpiryTask(state, ctx()) ? expiryDateField(state) : null}
         <div class="form-field">
           <label class="form-field__label">Done by</label>
           <input placeholder="e.g. Self, Garage du Port" .value="${() => state.performedBy}" @input="${onPerformedByChange}" />

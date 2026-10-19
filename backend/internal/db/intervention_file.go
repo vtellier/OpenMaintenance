@@ -119,7 +119,7 @@ func UpdateInterventionWithFilePaths(db *sql.DB, intervention *models.Interventi
 	}
 	defer tx.Rollback() // no-op once committed
 
-	if err := UpdateIntervention(tx, intervention); err != nil {
+	if err := updateIntervention(tx, intervention); err != nil {
 		return err
 	}
 	for oldPath, newPath := range newPaths {

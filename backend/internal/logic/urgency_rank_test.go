@@ -151,6 +151,31 @@ func TestUrgencyRanksTasks(t *testing.T) {
 			first:  rankedTask{task: monthsTask(6), equipment: noMeter(), last: done(midnight(2026, time.January, 15))},
 			second: rankedTask{task: monthsTask(6), equipment: noMeter(), last: done(midnight(2026, time.January, 16))},
 		},
+		{
+			// Issue #99: a part fitted already expired has no shelf life to
+			// measure; it ranks above a task three intervals past due.
+			name:   "a part fitted already expired ranks at the top of the overdue tasks",
+			now:    testNow,
+			first:  rankedTask{task: expiryTask(""), equipment: noMeter(), last: fitted(midnight(2026, time.June, 1), "2026-05-01")},
+			second: rankedTask{task: hoursTask(100), equipment: issue68},
+		},
+		{
+			// Issue #99: 10 days left of a 365-day shelf life (0.97)
+			// against 10 days left of a 182-day interval (0.945).
+			name:   "an expiry task ranks with interval tasks by the fraction elapsed",
+			now:    testNow,
+			first:  rankedTask{task: expiryTask(""), equipment: noMeter(), last: fitted(midnight(2025, time.June, 25), "2026-06-25")},
+			second: rankedTask{task: monthsTask(6), equipment: noMeter(), last: done(midnight(2025, time.December, 25))},
+		},
+		{
+			// Issue #99: only a current expiry date, nothing fitted yet: no
+			// urgency, so it comes after a due-soon task that has one, even
+			// one less far through its interval.
+			name:   "an expiry task with only a current expiry date ranks after one with urgency",
+			now:    testNow,
+			first:  rankedTask{task: monthsTask(6), equipment: noMeter(), last: done(midnight(2025, time.December, 25))},
+			second: rankedTask{task: expiryTask("2026-06-20"), equipment: noMeter()},
+		},
 	}
 
 	for _, tc := range cases {

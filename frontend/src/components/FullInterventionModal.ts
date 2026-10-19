@@ -3,11 +3,13 @@ import { Equipment } from '@generated/api/models/Equipment'
 import { Task } from '@generated/api/models/Task'
 import { InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
+import { expiryDateField } from '@/components/ExpiryDateField'
 import { InterventionPhotos } from '@/components/InterventionPhotos'
 import {
   InterventionFormContext,
   InterventionFormSource,
   canSave,
+  isExpiryTask,
   prefill,
   save,
   selectEquipment,
@@ -24,7 +26,7 @@ export function FullInterventionModal(
   source: InterventionFormSource,
   opts: {
     equipments: () => Pick<Equipment, 'id' | 'name' | 'tracksHours' | 'hours'>[]
-    allTasks: () => Pick<Task, 'id' | 'name' | 'equipmentId'>[]
+    allTasks: () => Pick<Task, 'id' | 'name' | 'equipmentId' | 'kind'>[]
     /** Hides the equipment picker: the form is opened from that equipment's page. */
     equipmentIdFixed?: number
     onClose: () => void
@@ -107,10 +109,10 @@ export function FullInterventionModal(
 
   const modalTitle = state.editId != null ? 'Edit intervention' : 'Log intervention'
 
-  const isSaveDisabled = () => state.saving || !canSave(state)
+  const isSaveDisabled = () => state.saving || !canSave(state, ctx())
 
   async function onSave() {
-    if (!canSave(state)) return
+    if (!canSave(state, ctx())) return
     state.saving = true
     state.error = null
     const error = await save(state, ctx(), interventionApi)
@@ -177,6 +179,8 @@ export function FullInterventionModal(
             <input type="number" min="0" .value="${() => state.hours == null ? '' : String(state.hours)}" @input="${onHoursChange}" />
           </div>
         ` : null}
+
+        ${() => isExpiryTask(state, ctx()) ? expiryDateField(state) : null}
 
         <div class="form-field">
           <label class="form-field__label">Location</label>

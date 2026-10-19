@@ -47,6 +47,7 @@
 - [x] Edit task flow (modal with prefilled form)
 - [x] Delete task (modal with cascade-delete warning)
 - [x] "Mark done" quick-log from task row (opens intervention quick-log modal pre-filled with task)
+- [x] **Expiry tasks** (issue #99): a task kind, fixed at creation, for parts due on a printed expiry date; each intervention records the new part's expiry date, and the task form asks for the current one until the first is logged
 
 ## Milestone 6 — Bug Fixes
 

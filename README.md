@@ -9,6 +9,7 @@ Define your own maintenance program, log interventions, and see at a glance what
 - **Dashboard** — see all upcoming and overdue tasks at a glance
 - **Multiple equipments** — manage any number of devices in one place, each with a custom emoji icon
 - **Custom maintenance program** — define tasks by time interval, hour-meter interval, or both
+- **Expiry tasks** — track parts that carry a printed expiry date (e.g. a life jacket's CO2 cartridge), due on the date of the part fitted
 - **Intervention history** — log what you did, when, where, and who performed it, per equipment
 - **Equipment documents** — attach manuals, invoices, or warranty papers to each equipment
 - **Intervention photos** — attach photos to an intervention to record the state of a part before/after the work
