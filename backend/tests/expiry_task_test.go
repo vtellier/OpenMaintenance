@@ -285,3 +285,40 @@ func TestExpiryDate_RejectedOutsideExpiryTasks(t *testing.T) {
 		"equipment_id": eqID, "exceptional_label": "Replaced flare", "date": time.Now().Add(-time.Hour), "expiry_date": day(30),
 	}), http.StatusBadRequest, "on an exceptional intervention")
 }
+
+func TestIntervention_MovingBetweenTaskKindsChecksTheExpiryDate(t *testing.T) {
+	e, h, _ := newTestServer(t)
+	eqID := seedEquipment(t, h)
+	expiry := expectJSON(t, send(t, e, http.MethodPost, "/api/tasks", map[string]any{
+		"equipment_id": eqID, "name": "Replace CO2 cartridge", "kind": "expiry", "current_expiry_date": day(5),
+	}), http.StatusCreated, "create expiry task")
+	interval := expectJSON(t, send(t, e, http.MethodPost, "/api/tasks", map[string]any{
+		"equipment_id": eqID, "name": "Hull inspection", "months_interval": 12,
+	}), http.StatusCreated, "create interval task")
+	date := time.Now().Add(-time.Hour)
+
+	onInterval := expectJSON(t, send(t, e, http.MethodPost, "/api/interventions", map[string]any{
+		"task_id": interval["id"], "date": date,
+	}), http.StatusCreated, "log on the interval task")
+	expectJSON(t, send(t, e, http.MethodPut, "/api/interventions/"+itoa(int(onInterval["id"].(float64))), map[string]any{
+		"task_id": expiry["id"], "date": date,
+	}), http.StatusBadRequest, "interval-task intervention onto the expiry task without an expiry date")
+
+	onExpiry := expectJSON(t, send(t, e, http.MethodPost, "/api/interventions", map[string]any{
+		"task_id": expiry["id"], "date": date, "expiry_date": day(300),
+	}), http.StatusCreated, "log on the expiry task")
+	expectJSON(t, send(t, e, http.MethodPut, "/api/interventions/"+itoa(int(onExpiry["id"].(float64))), map[string]any{
+		"task_id": interval["id"], "date": date, "expiry_date": day(300),
+	}), http.StatusBadRequest, "expiry-task intervention onto the interval task still sending an expiry date")
+}
+
+// UpdateTask now reads the stored task first to keep its kind: a task that
+// does not exist must still be a 404, not a 400 or 500.
+func TestTask_UpdateMissingTaskIsNotFound(t *testing.T) {
+	e, h, _ := newTestServer(t)
+	eqID := seedEquipment(t, h)
+
+	expectJSON(t, send(t, e, http.MethodPut, "/api/tasks/9999", map[string]any{
+		"equipment_id": eqID, "name": "Hull inspection", "months_interval": 12,
+	}), http.StatusNotFound, "update a missing task")
+}
