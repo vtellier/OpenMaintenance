@@ -28,7 +28,7 @@ export function HistoryPage() {
       filterDateFrom: '',
       filterDateTo: '',
 
-      formSource: null as InterventionFormSource | null,
+      formOpen: false,
 
       showDeleteConfirm: false,
       deleteTarget: null as InterventionRow | null,
@@ -85,20 +85,35 @@ export function HistoryPage() {
       return state.tasks.find(t => t.id === taskId)
     }
 
+    // Built when opened, outside any reactive expression: the form prefills
+    // from the page's data once, and a later change to that data does not
+    // rebuild it and lose what the user typed.
+    let form: ReturnType<typeof FullInterventionModal> | null = null
+
+    function openForm(source: InterventionFormSource) {
+      form = FullInterventionModal(source, {
+        equipments: () => state.equipments,
+        allTasks: () => state.tasks,
+        onClose: onCloseForm,
+        onSaved: onFormSaved,
+      })
+      state.formOpen = true
+    }
+
     function onAddClick() {
-      state.formSource = { new: { equipmentId: null } }
+      openForm({ new: { equipmentId: null } })
     }
 
     function onEditClick(inv: InterventionRow) {
-      state.formSource = { edit: inv }
+      openForm({ edit: inv })
     }
 
     function onCloseForm() {
-      state.formSource = null
+      state.formOpen = false
     }
 
     async function onFormSaved() {
-      state.formSource = null
+      state.formOpen = false
       await load()
     }
 
@@ -246,12 +261,7 @@ export function HistoryPage() {
         </div>`
       }}
 
-      ${() => state.formSource ? FullInterventionModal(state.formSource, {
-        equipments: () => state.equipments,
-        allTasks: () => state.tasks,
-        onClose: onCloseForm,
-        onSaved: onFormSaved,
-      }) : null}
+      ${() => state.formOpen ? form : null}
 
       ${() => state.showDeleteConfirm ? html`
         <div class="modal-overlay" @click="${onDeleteOverlayClick}">

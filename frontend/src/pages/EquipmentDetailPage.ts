@@ -74,7 +74,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       quickSaving: false,
       quickError: null as string | null,
 
-      formSource: null as InterventionFormSource | null,
+      fullFormOpen: false,
 
       showHistoryDelete: false,
       historyDeleteTarget: null as InterventionRow | null,
@@ -364,20 +364,36 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
     // ── Full Intervention Form ──
 
+    // Built when opened, outside any reactive expression: the form prefills
+    // from the page's data once, and a later change to that data does not
+    // rebuild it and lose what the user typed.
+    let fullForm: ReturnType<typeof FullInterventionModal> | null = null
+
+    function openFullForm(source: InterventionFormSource) {
+      fullForm = FullInterventionModal(source, {
+        equipments: () => [state.equipment!],
+        allTasks: () => state.allTasks,
+        equipmentIdFixed: equipmentId,
+        onClose: onCloseFullForm,
+        onSaved: onFullFormSaved,
+      })
+      state.fullFormOpen = true
+    }
+
     function onAddFromHistory() {
-      state.formSource = { new: { equipmentId } }
+      openFullForm({ new: { equipmentId } })
     }
 
     function onEditFromHistory(inv: InterventionRow) {
-      state.formSource = { edit: inv }
+      openFullForm({ edit: inv })
     }
 
     function onCloseFullForm() {
-      state.formSource = null
+      state.fullFormOpen = false
     }
 
     async function onFullFormSaved() {
-      state.formSource = null
+      state.fullFormOpen = false
       await load()
     }
 
@@ -536,13 +552,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           ${() => state.showDeleteTask ? deleteTaskModal() : null}
           ${() => state.showQuickLog ? quickLogModal() : null}
           ${() => state.showDeleteDoc ? deleteDocModal() : null}
-          ${() => state.formSource ? FullInterventionModal(state.formSource, {
-            equipments: () => [state.equipment!],
-            allTasks: () => state.allTasks,
-            equipmentIdFixed: equipmentId,
-            onClose: onCloseFullForm,
-            onSaved: onFullFormSaved,
-          }) : null}
+          ${() => state.fullFormOpen ? fullForm : null}
 
           ${() => state.showHistoryDelete ? html`
             <div class="modal-overlay" @click="${onHistoryDeleteOverlayClick}">
