@@ -37,7 +37,7 @@ Fields:
   - **Hours interval** (optional, integer ≥ 1) — only shown if the equipment tracks hours.
   - **Months interval** (optional, integer ≥ 1)
 - Expiry tasks:
-  - **Current expiry date** (optional, date): the expiry date of the part already fitted. Shown only while the task has no intervention (always on create). Left empty, the task is overdue with no date until a part is logged.
+  - **Current expiry date** (optional, date): the expiry date of the part already fitted. Shown only while the task has no intervention (always on create). Left empty, the task is overdue with no date until a part is logged. Logging a replacement clears it, so after every intervention is deleted the field is empty again and the task is overdue with no date until it is filled.
 
 Validation rules:
 - Interval task: at least one of `hours_interval` or `months_interval` must be provided.

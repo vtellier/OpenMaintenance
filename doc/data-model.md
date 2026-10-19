@@ -74,7 +74,7 @@ A maintenance checkpoint tied to one Equipment. Defines the maintenance program.
 | `kind`          | enum    | yes      | `interval` (default) or `expiry`. Chosen at creation, never changed. See [Task kinds](#task-kinds). |
 | `hours_interval`  | int   | no       | Trigger every N hours of usage. Only allowed if equipment tracks hours. Interval tasks only. |
 | `months_interval` | int   | no       | Trigger every N months. Interval tasks only.                        |
-| `current_expiry_date` | date | no  | Expiry tasks only: the expiry date of the part already fitted when the task is created (`YYYY-MM-DD`). Used only while the task has no intervention. |
+| `current_expiry_date` | date | no  | Expiry tasks only: the expiry date of the part already fitted when the task is created (`YYYY-MM-DD`). Used only while the task has no intervention; cleared once a replacement is logged. |
 
 ### Task kinds
 
@@ -92,6 +92,7 @@ The kind is chosen when the task is created and **cannot be changed** afterwards
 - `hours_interval` requires the parent equipment to have `tracks_hours = true`.
 - An interval task has no `current_expiry_date`.
 - An expiry task has **no** `hours_interval` and **no** `months_interval`. Its `current_expiry_date` is optional. The task form shows it only while the task has no intervention; once one exists the date comes from the interventions.
+- Saving an intervention with an `expiry_date` on an expiry task (a new one, or an edit that moves it onto that task) **clears** the task's `current_expiry_date`: that date belonged to a part that has since been replaced. Deleting every intervention later leaves the task with no expiry date, so the task form asks for it again.
 
 ## Intervention
 
@@ -171,7 +172,7 @@ The sign of the driving amount always agrees with the status: an **overdue** tas
 An expiry task's `next_due_date` is its **current expiry date**, resolved in this order:
 
 1. **The latest intervention's `expiry_date`** (latest by date, then the later logged): the part fitted then.
-2. **The task's `current_expiry_date`**, while the task has no intervention.
+2. **The task's `current_expiry_date`**, while the task has no intervention. It is cleared when the first replacement is logged, so it never comes back once that intervention is deleted.
 
 If neither exists, the task is **overdue with no date**, like an interval task with no date baseline: no `next_due_date`, no `due_in_days`, no `urgency`. `due_trigger` is still `expiry`.
 
