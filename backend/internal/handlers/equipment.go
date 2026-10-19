@@ -106,18 +106,22 @@ func (h *Handler) UpdateEquipmentHours(ctx echo.Context, id int) error {
 // confirms, lower included, and refreshes its freshness. It is the only path
 // that can lower the reading (doc/data-model.md, "Correct reading").
 func (h *Handler) CorrectEquipmentHours(ctx echo.Context, id int) error {
+	// A pointer, so that a body without hours is refused instead of read as 0.
 	var input struct {
-		Hours float64 `json:"hours"`
+		Hours *float64 `json:"hours"`
 	}
 	if err := ctx.Bind(&input); err != nil {
 		return ctx.JSON(400, map[string]string{"error": err.Error()})
+	}
+	if input.Hours == nil {
+		return ctx.JSON(400, map[string]string{"error": "hours is required"})
 	}
 
 	existing, err := dbpackage.GetEquipment(h.DB, id)
 	if err != nil {
 		return ctx.JSON(404, map[string]string{"error": "Equipment not found"})
 	}
-	if err := hourmeter.Correct(h.DB, existing, input.Hours); err != nil {
+	if err := hourmeter.Correct(h.DB, existing, *input.Hours); err != nil {
 		return ctx.JSON(hourMeterStatus(err), map[string]string{"error": err.Error()})
 	}
 
