@@ -539,3 +539,13 @@ Can start now: #65, #66, #69, #75.
 - **Behaviour change**: an emptied Hours field in the quick log sends no reading (it used to send `0`). Spec: `doc/gui/interventions.md`.
 - #97 (Location in the quick log) can now add the field once, in `QuickLogModal`.
 - Verified with `pnpm test:unit`, `pnpm test` (42 Playwright specs), `pnpm run typecheck`, `pnpm run build` and `make build`.
+
+## 2026-10-19 — Expiry tasks (issue #99)
+
+- Stacked on PR #100 (#74), itself on PR #98 (#73); branch `feat/issue-99-expiry-tasks`.
+- **Spec first** (decisions from the issue's grilling session, approved): the repo's first root `CONTEXT.md` (Expiry task, Interval task, Expiry date, Current expiry date), `doc/data-model.md` (Task kinds, Expiry rule, expiry urgency), `doc/gui/tasks.md`, `interventions.md`, `dashboard.md`, and ADR `doc/adr/0001-expiry-task-kind.md` (a separate kind, fixed at creation).
+- **API**: `Task.kind` (`interval` | `expiry`, default `interval`; another kind on update is a 400, none keeps it), `Task.current_expiry_date` and `Intervention.expiry_date` (`format: date`); `due_trigger` gains `expiry`. Schema v8 adds the three columns; existing tasks become interval tasks.
+- **Due status**: the latest intervention's expiry date, else the current expiry date, else overdue with no date. Due soon 30 days before, overdue from the date itself (as the months rule). Urgency (today − fitted) ÷ (expiry − fitted); none with only a current expiry date; the largest double for a part fitted already expired, so it tops the overdue tasks.
+- **Tests first** (TDD skill, agreed seams): table-driven `due_status_expiry_test.go` and ranking cases in `urgency_rank_test.go`; `httptest` contract tests in `backend/tests/expiry_task_test.go`; `interventionForm.test.ts` cases for the expiry date in the full form and the quick log; one Playwright happy path, `expiry-task-happy-path.spec.ts`.
+- **Frontend**: the quick log, full form and edit form show a required Expiry date for expiry tasks; the task form picks the kind on create, shows it as text on edit, and asks for the current expiry date only while the task has no intervention. Timing text: "Expires in N days", "Expires today", "Expired N days ago", "no expiry date"; trigger summary "On expiry date".
+- Verified with `go test ./...`, `go build`, `pnpm test:unit`, `pnpm test`, `pnpm run typecheck`, `pnpm run build` and `make build`.
