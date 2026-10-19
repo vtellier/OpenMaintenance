@@ -3,6 +3,7 @@ import { Equipment } from '@generated/api/models/Equipment'
 import { Task } from '@generated/api/models/Task'
 import { InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
+import { expiryDateField } from '@/components/ExpiryDateField'
 import { InterventionPhotos } from '@/components/InterventionPhotos'
 import {
   InterventionFormContext,
@@ -87,10 +88,6 @@ export function FullInterventionModal(
 
   function onDateChange(e: Event) {
     state.date = (e.target as HTMLInputElement).value
-  }
-
-  function onExpiryDateChange(e: Event) {
-    state.expiryDate = (e.target as HTMLInputElement).value
   }
 
   function onHoursChange(e: Event) {
@@ -183,12 +180,7 @@ export function FullInterventionModal(
           </div>
         ` : null}
 
-        ${() => isExpiryTask(state, ctx()) ? html`
-          <div class="form-field">
-            <label class="form-field__label">Expiry date *</label>
-            <input type="date" aria-label="Expiry date" .value="${() => state.expiryDate}" @input="${onExpiryDateChange}" />
-          </div>
-        ` : null}
+        ${() => isExpiryTask(state, ctx()) ? expiryDateField(state) : null}
 
         <div class="form-field">
           <label class="form-field__label">Location</label>

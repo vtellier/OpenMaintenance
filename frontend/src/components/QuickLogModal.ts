@@ -3,6 +3,7 @@ import { Equipment } from '@generated/api/models/Equipment'
 import { Task } from '@generated/api/models/Task'
 import { InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
+import { expiryDateField } from '@/components/ExpiryDateField'
 import { InterventionFormContext, canSave, isExpiryTask, prefill, save } from '@/lib/interventionForm'
 
 const interventionApi = new InterventionApi(apiConfig)
@@ -33,10 +34,6 @@ export function QuickLogModal(
 
   function onDateChange(e: Event) {
     state.date = (e.target as HTMLInputElement).value
-  }
-
-  function onExpiryDateChange(e: Event) {
-    state.expiryDate = (e.target as HTMLInputElement).value
   }
 
   function onHoursChange(e: Event) {
@@ -85,12 +82,7 @@ export function QuickLogModal(
             <input type="number" min="0" .value="${() => state.hours == null ? '' : String(state.hours)}" @input="${onHoursChange}" />
           </div>
         ` : null}
-        ${() => isExpiryTask(state, ctx()) ? html`
-          <div class="form-field">
-            <label class="form-field__label">Expiry date *</label>
-            <input type="date" aria-label="Expiry date" .value="${() => state.expiryDate}" @input="${onExpiryDateChange}" />
-          </div>
-        ` : null}
+        ${() => isExpiryTask(state, ctx()) ? expiryDateField(state) : null}
         <div class="form-field">
           <label class="form-field__label">Done by</label>
           <input placeholder="e.g. Self, Garage du Port" .value="${() => state.performedBy}" @input="${onPerformedByChange}" />
