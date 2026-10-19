@@ -810,12 +810,28 @@ components:
         description:
           type: string
           description: Detailed description of the task
+        kind:
+          type: string
+          description: >-
+            interval (due after months and/or hours) or expiry (due on the
+            expiry date of the part fitted). Chosen at creation, never changed.
+            See doc/data-model.md, "Task kinds".
+          enum:
+            - interval
+            - expiry
         hours_interval:
           type: integer
-          description: Interval in hours for the task
+          description: Interval in hours for the task. Interval tasks only.
         months_interval:
           type: integer
-          description: Interval in months for the task
+          description: Interval in months for the task. Interval tasks only.
+        current_expiry_date:
+          type: string
+          format: date
+          nullable: true
+          description: >-
+            Expiry tasks only: the expiry date of the part already fitted when
+            the task was created. Used only while the task has no intervention.
         due_status:
           type: string
           description: Computed due status (overdue, due_soon, ok)
@@ -826,7 +842,9 @@ components:
         next_due_date:
           type: string
           format: date
-          description: Next calendar due date based on months_interval
+          description: >-
+            Next calendar due date: based on months_interval for an interval
+            task, the current expiry date for an expiry task.
         next_due_hours:
           type: number
           description: Next hour-meter threshold based on hours_interval
@@ -837,11 +855,12 @@ components:
             worse status when both apply; on the same status, the one with the
             greater fraction of its interval elapsed, months if equal. A months
             rule with no date baseline has no fraction: an overdue hours rule
-            wins over it. Absent when no interval applies. See
-            doc/data-model.md.
+            wins over it. Always expiry for an expiry task. Absent when no
+            interval applies. See doc/data-model.md.
           enum:
             - months
             - hours
+            - expiry
         due_in_days:
           type: integer
           description: >-
@@ -850,7 +869,8 @@ components:
             ago). Present whenever months_interval applies and the task has a
             date baseline (last intervention, else equipment commissioned_at).
             Absent when it has none: the task is then overdue with no
-            next_due_date and no amount.
+            next_due_date and no amount. For an expiry task, days to its
+            current expiry date; absent when it has none.
         due_in_hours:
           type: number
           description: >-
@@ -873,7 +893,10 @@ components:
             first, none last), then name and id. Absent when no interval
             applies, and when only a months interval applies and the task has
             no date baseline (it is then overdue with nothing to measure
-            from). See doc/data-model.md, "Urgency".
+            from). Expiry task: (today - date fitted) / (expiry date - date
+            fitted); absent with only a current_expiry_date; the largest
+            double when the part was fitted already expired. See
+            doc/data-model.md, "Urgency".
         created_at:
           type: string
           format: date-time
@@ -897,12 +920,28 @@ components:
         description:
           type: string
           description: Detailed description of the task
+        kind:
+          type: string
+          description: >-
+            interval (due after months and/or hours) or expiry (due on the
+            expiry date of the part fitted). Defaults to interval on create. On update, omit it or send the task's own kind: another kind is rejected.
+            See doc/data-model.md, "Task kinds".
+          enum:
+            - interval
+            - expiry
         hours_interval:
           type: integer
-          description: Interval in hours for the task
+          description: Interval in hours. Interval tasks only; rejected on an expiry task.
         months_interval:
           type: integer
-          description: Interval in months for the task
+          description: Interval in months. Interval tasks only; rejected on an expiry task.
+        current_expiry_date:
+          type: string
+          format: date
+          nullable: true
+          description: >-
+            Expiry tasks only, rejected on an interval task: the expiry date of the part already fitted when
+            the task is created. Used only while the task has no intervention.
     Intervention:
       type: object
       properties:
@@ -936,6 +975,14 @@ components:
         hours_at:
           type: number
           description: Equipment hour-meter reading at the time of intervention. Only relevant if the equipment tracks hours
+        expiry_date:
+          type: string
+          format: date
+          nullable: true
+          description: >-
+            The expiry date of the part fitted. Required for a standard
+            intervention on an expiry task, rejected otherwise. Any date is
+            accepted, past included.
         created_at:
           type: string
           format: date-time
@@ -1111,3 +1158,11 @@ components:
         hours_at:
           type: number
           description: Equipment hour-meter reading at the time of intervention. Only relevant if the equipment tracks hours
+        expiry_date:
+          type: string
+          format: date
+          nullable: true
+          description: >-
+            The expiry date of the part fitted. Required for a standard
+            intervention on an expiry task, rejected otherwise. Any date is
+            accepted, past included.
