@@ -54,11 +54,20 @@ func scanIntervention(s interface {
 	return nil
 }
 
+// CreateIntervention saves a new intervention and, in the same transaction,
+// clears the current expiry date of the expiry task it replaces a part on
+// (see clearReplacedExpiryDate).
 func CreateIntervention(db *sql.DB, intervention *models.Intervention) error {
 	intervention.CreatedAt = time.Now()
 	intervention.UpdatedAt = time.Now()
 
-	result, err := db.Exec(
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() // no-op once committed
+
+	result, err := tx.Exec(
 		"INSERT INTO interventions (task_id, equipment_id, exceptional_label, date, location, performed_by, comments, hours_at, expiry_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 		intervention.TaskID,
 		intervention.EquipmentID,
@@ -77,6 +86,12 @@ func CreateIntervention(db *sql.DB, intervention *models.Intervention) error {
 	}
 
 	id, _ := result.LastInsertId()
+	if err := clearReplacedExpiryDate(tx, intervention); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
 	intervention.ID = int(id)
 	return nil
 }
@@ -92,7 +107,24 @@ func GetIntervention(db *sql.DB, id int) (*models.Intervention, error) {
 	return intervention, nil
 }
 
-func UpdateIntervention(db execer, intervention *models.Intervention) error {
+// UpdateIntervention saves an edited intervention and, in the same
+// transaction, clears the current expiry date of the expiry task it now
+// replaces a part on (see clearReplacedExpiryDate).
+func UpdateIntervention(db *sql.DB, intervention *models.Intervention) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() // no-op once committed
+
+	if err := updateIntervention(tx, intervention); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// updateIntervention is UpdateIntervention within a caller's transaction.
+func updateIntervention(db execer, intervention *models.Intervention) error {
 	intervention.UpdatedAt = time.Now()
 
 	_, err := db.Exec(
@@ -108,6 +140,25 @@ func UpdateIntervention(db execer, intervention *models.Intervention) error {
 		intervention.ExpiryDate,
 		intervention.UpdatedAt,
 		intervention.ID,
+	)
+	if err != nil {
+		return err
+	}
+	return clearReplacedExpiryDate(db, intervention)
+}
+
+// clearReplacedExpiryDate clears the current expiry date of the task an
+// intervention fits a part on: only interventions on an expiry task carry an
+// expiry date, and that task's current expiry date belonged to the part just
+// replaced, so it must not come back once the interventions are deleted
+// (doc/data-model.md, Task rules).
+func clearReplacedExpiryDate(db execer, intervention *models.Intervention) error {
+	if intervention.TaskID == nil || intervention.ExpiryDate == nil {
+		return nil
+	}
+	_, err := db.Exec(
+		"UPDATE tasks SET current_expiry_date = NULL WHERE id = ? AND kind = ?",
+		*intervention.TaskID, models.KindExpiry,
 	)
 	return err
 }
