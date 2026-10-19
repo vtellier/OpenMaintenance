@@ -232,9 +232,42 @@ func TestExpiryTask_EditingOrDeletingTheLatestInterventionUpdatesTheDate(t *test
 		t.Errorf("after edit next_due_date = %v, want %v", got["next_due_date"], day(200))
 	}
 
+	// The current expiry date belonged to the part since replaced: it does not come back.
 	expectJSON(t, send(t, e, http.MethodDelete, invPath, nil), http.StatusNoContent, "delete")
-	if got := expectJSON(t, send(t, e, http.MethodGet, taskPath(taskID), nil), http.StatusOK, "get"); got["next_due_date"] != day(5) {
-		t.Errorf("after delete next_due_date = %v, want the current expiry date %v", got["next_due_date"], day(5))
+	expectNoExpiryDate(t, expectJSON(t, send(t, e, http.MethodGet, taskPath(taskID), nil), http.StatusOK, "get after delete"))
+}
+
+func TestExpiryTask_MovingAnInterventionOntoItClearsTheCurrentExpiryDate(t *testing.T) {
+	e, h, _ := newTestServer(t)
+	eqID := seedEquipment(t, h)
+	task := expectJSON(t, send(t, e, http.MethodPost, "/api/tasks", map[string]any{
+		"equipment_id": eqID, "name": "Replace CO2 cartridge", "kind": "expiry", "current_expiry_date": day(5),
+	}), http.StatusCreated, "create")
+	taskID := task["id"]
+	date := time.Now().Add(-time.Hour)
+
+	inv := expectJSON(t, send(t, e, http.MethodPost, "/api/interventions", map[string]any{
+		"equipment_id": eqID, "exceptional_label": "Replaced cartridge", "date": date,
+	}), http.StatusCreated, "log exceptional")
+	invPath := "/api/interventions/" + itoa(int(inv["id"].(float64)))
+	expectJSON(t, send(t, e, http.MethodPut, invPath, map[string]any{
+		"task_id": taskID, "date": date, "expiry_date": day(300),
+	}), http.StatusOK, "move onto the expiry task")
+
+	expectJSON(t, send(t, e, http.MethodDelete, invPath, nil), http.StatusNoContent, "delete")
+	expectNoExpiryDate(t, expectJSON(t, send(t, e, http.MethodGet, taskPath(taskID), nil), http.StatusOK, "get after delete"))
+}
+
+// expectNoExpiryDate asserts an expiry task is overdue with no date at all.
+func expectNoExpiryDate(t *testing.T, task map[string]any) {
+	t.Helper()
+	if task["due_status"] != "overdue" || task["due_trigger"] != "expiry" {
+		t.Errorf("due_status = %v, due_trigger = %v, want overdue, expiry", task["due_status"], task["due_trigger"])
+	}
+	for _, k := range []string{"current_expiry_date", "next_due_date", "due_in_days", "urgency"} {
+		if _, ok := task[k]; ok {
+			t.Errorf("%s = %v, want absent", k, task[k])
+		}
 	}
 }
 
