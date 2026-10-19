@@ -13,6 +13,7 @@ Triggered by the **"Mark done"** button available on:
 Opens a small modal/sheet with a minimal form:
 - **Date** (defaults to today in the user's timezone, editable).
 - **Hours** (only if equipment tracks hours; pre-filled with current equipment hours, editable). Same reading rule as the full form: the value entered is sent, `0` included; an empty field sends no reading.
+- **Expiry date** (only for an [expiry task](../data-model.md#task-kinds); required, empty by default): the date printed on the part fitted. Same rule as the full form.
 - **Done by** (optional, single-line text, placeholder "e.g. Self, Garage du Port").
 - **Comments** (optional, single line).
 - Two buttons: **Save** / **Cancel**.
@@ -35,12 +36,13 @@ The user must first pick the equipment and the task (or these are pre-selected w
 - **Exceptional intervention label** (text field, visible and mandatory only when the checkbox is checked; placeholder: "e.g. Replaced broken impeller")
 - **Date** (required, defaults to today in the user's timezone)
 - **Hours** (if equipment tracks hours, pre-filled with current value). Whenever the selected equipment tracks hours, the value entered is sent as the intervention's reading, `0` included; an empty field, or an equipment that does not track hours, sends no reading. Editing an intervention logged without a reading shows the field empty.
+- **Expiry date** (shown and required only when the selected task is an [expiry task](../data-model.md#task-kinds)): the date printed on the part fitted; when several identical parts are replaced together, the earliest one. Any date is accepted, past included (an expired part sometimes has to be fitted). Empty on a new log; editing prefills the intervention's. Sent only for an expiry task.
 - **Location** (optional, free text)
 - **Done by** (optional, free text, placeholder "e.g. Self, Garage du Port")
 - **Comments** (optional, multi-line)
 - **Save** / **Cancel**.
 
-Save is disabled until all required fields are filled: date is always required; task is required unless the checkbox is checked; when the checkbox is checked, the exceptional label is required instead.
+Save is disabled until all required fields are filled: date is always required; task is required unless the checkbox is checked; when the checkbox is checked, the exceptional label is required instead; an expiry task also requires its expiry date.
 
 ## Validation rules
 
@@ -51,7 +53,7 @@ Save is disabled until all required fields are filled: date is always required; 
 
 - A new Intervention row is created.
 - The equipment's `hours` is updated to the new value if greater than current, and its `hours_updated_at` is set to "now". An equal or lower value leaves both unchanged.
-- For **standard** interventions: the parent task's next-due is recomputed; the dashboard refreshes (the task may disappear if no longer due).
+- For **standard** interventions: the parent task's next-due is recomputed; the dashboard refreshes (the task may disappear if no longer due). On an expiry task, the next due date becomes the expiry date entered.
 - For **exceptional** interventions: no task due-date side effect; the dashboard is not affected.
 
 ## Editing / deleting an intervention

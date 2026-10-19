@@ -71,14 +71,27 @@ A maintenance checkpoint tied to one Equipment. Defines the maintenance program.
 | `equipment_id`  | int     | yes      | FK to Equipment                                                     |
 | `name`          | string  | yes      | e.g. "Oil change"                                                   |
 | `description`   | string  | no       | Optional details                                                    |
-| `hours_interval`  | int   | no       | Trigger every N hours of usage. Only allowed if equipment tracks hours. |
-| `months_interval` | int   | no       | Trigger every N months                                              |
+| `kind`          | enum    | yes      | `interval` (default) or `expiry`. Chosen at creation, never changed. See [Task kinds](#task-kinds). |
+| `hours_interval`  | int   | no       | Trigger every N hours of usage. Only allowed if equipment tracks hours. Interval tasks only. |
+| `months_interval` | int   | no       | Trigger every N months. Interval tasks only.                        |
+| `current_expiry_date` | date | no  | Expiry tasks only: the expiry date of the part already fitted when the task is created (`YYYY-MM-DD`). Used only while the task has no intervention. |
+
+### Task kinds
+
+A task is one of two kinds (see `CONTEXT.md`):
+
+- An **interval task** is due again after a number of months and/or hours counted from when it was last done.
+- An **expiry task** stands for a part that carries a printed **expiry date** (e.g. a life jacket's CO2 cartridge). It is due when that date is reached. There is no separate Part entity.
+
+The kind is chosen when the task is created and **cannot be changed** afterwards: an update that sends another kind is rejected; one that sends none keeps the task's kind. See [ADR 0001](./adr/0001-expiry-task-kind.md).
 
 ### Rules
 
-- A Task **must** define at least one of: `hours_interval` or `months_interval`.
+- An interval task **must** define at least one of: `hours_interval` or `months_interval`.
 - If both are defined, the task is due whenever **either** condition is met first.
 - `hours_interval` requires the parent equipment to have `tracks_hours = true`.
+- An interval task has no `current_expiry_date`.
+- An expiry task has **no** `hours_interval` and **no** `months_interval`. Its `current_expiry_date` is optional. The task form shows it only while the task has no intervention; once one exists the date comes from the interventions.
 
 ## Intervention
 
@@ -98,7 +111,8 @@ Exactly one of `task_id` or `exceptional_label` must be provided (they are mutua
 | `equipment_id`      | int       | yes      | FK to Equipment. Populated automatically from the task for standard interventions; set directly for exceptional ones. |
 | `exceptional_label` | string    | no       | Short description of the exceptional operation. Required when `task_id` is absent. |
 | `date`              | date      | yes      | When the work was performed                                      |
-| `hours_at`          | number    | no       | Equipment hour-meter reading at the time. Only if equipment tracks hours. |
+| `hours_at`          | number    | no       | Equipment hour-meter reading at the time. Only if equipment tracks hours. Recorded on expiry tasks too, the same way. |
+| `expiry_date`       | date      | no       | The expiry date of the part fitted (`YYYY-MM-DD`). **Required** for a standard intervention on an expiry task, and only allowed there. Any date is accepted, past included: an expired part sometimes has to be fitted. When several identical parts are replaced together, the earliest date is entered. |
 | `location`          | string    | no       | e.g. "Marina X", "Home garage"                                   |
 | `performed_by`      | string    | no       | Person or company who did the work (e.g. "Self", "Garage du Port") |
 | `comments`          | string    | no       | Free-form notes                                                  |
@@ -110,18 +124,18 @@ Exactly one of `task_id` or `exceptional_label` must be provided (they are mutua
 - When an intervention is recorded (or edited) with `hours_at`, the equipment tracks hours, and that value is greater than the equipment's current `hours`:
   - The equipment's `hours` is updated to that value.
   - The equipment's `hours_updated_at` is set to "now".
-- For **standard** interventions: the next due date for the task is recomputed from the latest intervention.
+- For **standard** interventions: the next due date for the task is recomputed from the latest intervention. On an expiry task, it is the latest intervention's `expiry_date`: editing or deleting that intervention updates it.
 - For **exceptional** interventions: no task due-date side effect.
 
 ## Derived: "due" status
 
 For each Task we compute a status used in the UI:
 
-- **Overdue** — the time-based or hour-based interval has been exceeded since the baseline (see below).
-- **Due soon** — within a configurable window before the next trigger (default: 30 days; for hour-based, an equivalent margin).
+- **Overdue** — the time-based or hour-based interval has been exceeded since the baseline (see below), or, for an expiry task, the expiry date has passed.
+- **Due soon** — within a configurable window before the next trigger (default: 30 days; for hour-based, an equivalent margin). An expiry task is due soon from 30 days before its expiry date.
 - **OK** — not due soon.
 
-If a task defines both intervals, the **worst** of the two statuses wins.
+If a task defines both intervals, the **worst** of the two statuses wins. An expiry task has a single rule, the [expiry rule](#expiry-rule).
 
 ### Driving trigger and amount
 
@@ -129,8 +143,8 @@ Alongside the status, the API says **which trigger drives it** and **by how much
 
 | Field          | Type                 | Meaning |
 |----------------|----------------------|---------|
-| `due_trigger`  | `months` \| `hours`  | The interval that drives `due_status`. Absent when no rule applies. |
-| `due_in_days`  | integer              | Whole calendar days from today to `next_due_date`. Positive while the date is ahead (`12` = in 12 days), `0` on the due date itself, negative once it is past (`-3` = due 3 days ago). Present whenever the months rule applies **and has a date baseline**. Absent (null) when there is no baseline, see below. |
+| `due_trigger`  | `months` \| `hours` \| `expiry` | The rule that drives `due_status`. Always `expiry` for an expiry task. Absent when no rule applies. |
+| `due_in_days`  | integer              | Whole calendar days from today to `next_due_date`. Positive while the date is ahead (`12` = in 12 days), `0` on the due date itself, negative once it is past (`-3` = due 3 days ago). Present whenever the months rule applies **and has a date baseline**, and for an expiry task that has an expiry date. Absent (null) when there is no baseline, see below. |
 | `due_in_hours` | number               | `next_due_hours` minus the equipment's current hour-meter reading. Positive while the reading is below it (`8` = in 8 h), negative once it is reached or passed (`-120` = due 120 h ago). Not rounded. Present whenever the hours rule applies. |
 
 A rule **applies** when it can give a status:
@@ -148,9 +162,24 @@ One exception to rule 3: a months rule with no date baseline has no amount to sh
 
 `due_trigger` is also set when the task is OK. Both amounts are returned when both rules apply; the timing text shown to the user uses the driving one (see [gui/dashboard.md](./gui/dashboard.md#timing-text)).
 
-The sign of the driving amount always agrees with the status: an **overdue** task has a driving amount `≤ 0`, a **due soon** or **OK** task has one `≥ 0`. The only task without a driving amount is the months-driven overdue task with no date baseline.
+The sign of the driving amount always agrees with the status: an **overdue** task has a driving amount `≤ 0`, a **due soon** or **OK** task has one `≥ 0`. The only tasks without a driving amount are the months-driven overdue task with no date baseline and the expiry task with no expiry date.
 
 **Calendar days, not 24-hour periods.** `due_in_days` subtracts two calendar dates: the `next_due_date` and today's date, both read in the timezone `next_due_date` is computed in (currently UTC). A task due on the 15th is "in 5 days" all day on the 10th, and `0` all day on the 15th, whether or not it has already turned overdue that day.
+
+### Expiry rule
+
+An expiry task's `next_due_date` is its **current expiry date**, resolved in this order:
+
+1. **The latest intervention's `expiry_date`** (latest by date, then the later logged): the part fitted then.
+2. **The task's `current_expiry_date`**, while the task has no intervention.
+
+If neither exists, the task is **overdue with no date**, like an interval task with no date baseline: no `next_due_date`, no `due_in_days`, no `urgency`. `due_trigger` is still `expiry`.
+
+With a date, the rule works like the months rule, with the expiry date as the due date:
+
+- **Overdue** once the expiry date has started (the same instant comparison as the months rule's due date), **due soon** from 30 days before it, **OK** before that.
+- `due_in_days` counts whole calendar days from today to the expiry date, as for the months rule.
+- `next_due_hours` and `due_in_hours` are always absent: an expiry task has no hours rule, even on an equipment that tracks hours.
 
 ### Urgency
 
@@ -160,6 +189,12 @@ The sign of the driving amount always agrees with the status: an **overdue** tas
 |--------|------------------|
 | months | Elapsed days / interval days: (today − date baseline) / (`next_due_date` − date baseline), in whole calendar days counted like `due_in_days` (dates read in the timezone `next_due_date` is computed in). Equivalently `1 − due_in_days / interval days`. |
 | hours  | Elapsed hours / interval hours: (current reading − hours baseline) / `hours_interval`. Equivalently `1 − due_in_hours / hours_interval`. |
+| expiry | Elapsed days / shelf life left when fitted: (today − date fitted) / (expiry date − date fitted), in whole calendar days counted like `due_in_days`. The date fitted is the latest intervention's `date`. |
+
+For an expiry task:
+
+- Only the **current expiry date** (no intervention yet): there is no date fitted, so **no urgency**. The task ranks after the tasks with the same status that have one.
+- A part **fitted already expired** (expiry date on or before the date fitted) has no shelf life to divide by. Its urgency is the **largest number the API can carry** (`1.7976931348623157e308`, the largest double), so it ranks at the top of the overdue tasks. Such a task is always overdue.
 
 - Both rules apply: the **greater** of the two fractions. The task is due when either interval is reached first, so it is as far through its cycle as its furthest rule. This is usually the driving trigger's fraction, but not always: a task due soon by hours whose months rule is still OK, yet further through its interval, takes its urgency from months.
 - One rule applies: its fraction.
@@ -251,7 +286,7 @@ Fields typed `date` in the tables above are **calendar dates**. Fields typed `ti
 
 | Kind | Fields | What it is |
 |------|--------|------------|
-| Calendar date | Equipment `commissioned_at`, Intervention `date`, a task's next due date | A day on the calendar (`YYYY-MM-DD`), with no time of day and no timezone |
+| Calendar date | Equipment `commissioned_at`, Intervention `date`, Intervention `expiry_date`, Task `current_expiry_date`, a task's next due date | A day on the calendar (`YYYY-MM-DD`), with no time of day and no timezone |
 | Timestamp | `created_at`, `updated_at`, `hours_updated_at`, `uploaded_at` | A moment in time |
 
 - **The date the user picks is the date every page shows**, whatever the browser's timezone. Saving a form without touching its date keeps that date.
