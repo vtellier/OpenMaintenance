@@ -539,6 +539,7 @@ Can start now: #65, #66, #69, #75.
 - **Behaviour change**: an emptied Hours field in the quick log sends no reading (it used to send `0`). Spec: `doc/gui/interventions.md`.
 - #97 (Location in the quick log) can now add the field once, in `QuickLogModal`.
 - Verified with `pnpm test:unit`, `pnpm test` (42 Playwright specs), `pnpm run typecheck`, `pnpm run build` and `make build`.
+- **Follow-up fix**: an equipment that tracks hours but has no reading yet no longer gets an invented reading of `0` in a new log, a quick log or after picking the equipment (saving untouched used to set the meter to 0, mark it fresh and hide the Dashboard reminder). The Hours field stays empty until the user fills it. Failing Vitest cases first (`interventionForm.test.ts`), then the fix in `startingReading`. Showing such an equipment as incomplete is #103.
 
 ## 2026-10-19 — Expiry tasks (issue #99)
 

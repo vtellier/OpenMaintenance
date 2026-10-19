@@ -12,7 +12,7 @@ Triggered by the **"Mark done"** button available on:
 
 Opens a small modal/sheet with a minimal form:
 - **Date** (defaults to today in the user's timezone, editable).
-- **Hours** (only if equipment tracks hours; pre-filled with current equipment hours, editable). Same reading rule as the full form: the value entered is sent, `0` included; an empty field sends no reading.
+- **Hours** (only if equipment tracks hours; pre-filled with current equipment hours, editable; empty when the equipment has no reading yet — the app never invents one). Same reading rule as the full form: the value entered is sent, `0` included; an empty field sends no reading.
 - **Expiry date** (only for an [expiry task](../data-model.md#task-kinds); required, empty by default): the date printed on the part fitted. Same rule as the full form.
 - **Done by** (optional, single-line text, placeholder "e.g. Self, Garage du Port").
 - **Comments** (optional, single line).
@@ -35,7 +35,7 @@ The user must first pick the equipment and the task (or these are pre-selected w
 - **Task** (required when checkbox is unchecked; greyed out and disabled when checkbox is checked)
 - **Exceptional intervention label** (text field, visible and mandatory only when the checkbox is checked; placeholder: "e.g. Replaced broken impeller")
 - **Date** (required, defaults to today in the user's timezone)
-- **Hours** (if equipment tracks hours, pre-filled with current value). Whenever the selected equipment tracks hours, the value entered is sent as the intervention's reading, `0` included; an empty field, or an equipment that does not track hours, sends no reading. Editing an intervention logged without a reading shows the field empty.
+- **Hours** (if equipment tracks hours, pre-filled with current value; empty when the equipment has no reading yet, so saving it untouched sends no reading). Whenever the selected equipment tracks hours, the value entered is sent as the intervention's reading, `0` included; an empty field, or an equipment that does not track hours, sends no reading. Editing an intervention logged without a reading shows the field empty.
 - **Expiry date** (shown and required only when the selected task is an [expiry task](../data-model.md#task-kinds)): the date printed on the part fitted; when several identical parts are replaced together, the earliest one. Any date is accepted, past included (an expired part sometimes has to be fitted). Empty on a new log; editing prefills the intervention's. Sent only for an expiry task.
 - **Location** (optional, free text)
 - **Done by** (optional, free text, placeholder "e.g. Self, Garage du Port")
@@ -68,7 +68,7 @@ Save is disabled until all required fields are filled: date is always required; 
 
 1. User is on the Dashboard, sees an overdue task.
 2. Taps **"Mark done"**.
-3. Quick log sheet slides up. Date = today. Hours pre-filled if applicable.
+3. Quick log sheet slides up. Date = today. Hours pre-filled if applicable (empty when the equipment has no reading yet).
 4. User taps **Save**.
 5. Sheet closes. Task disappears from the dashboard (or is reordered).
 

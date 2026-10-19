@@ -42,10 +42,13 @@ export type InterventionFormSource =
   | { quickLog: { taskId: number } }
   | { edit: InterventionRow }
 
-/** The reading a new log starts at: the equipment's current one, or none when it does not track hours. */
+/**
+ * The reading a new log starts at: the equipment's current one, or none when it
+ * does not track hours or has no reading yet. Never invent one.
+ */
 function startingReading(equipmentId: number | null, ctx: InterventionFormContext): number | null {
   const eq = ctx.equipments.find(e => e.id === equipmentId)
-  return eq?.tracksHours ? (eq.hours ?? 0) : null
+  return eq?.tracksHours ? (eq.hours ?? null) : null
 }
 
 function equipmentOfTask(taskId: number | null | undefined, ctx: InterventionFormContext): number | null {

@@ -8,7 +8,9 @@ const oilChange = { id: 10, name: 'Oil change', equipmentId: 1 }
 const greaseHubs = { id: 11, name: 'Grease hubs', equipmentId: 2 }
 // An expiry task: each part fitted carries its own expiry date (#99).
 const co2Cartridge = { id: 12, name: 'Replace CO2 cartridge', equipmentId: 2, kind: 'expiry' as const }
-const ctx = { equipments: [engine, trailer], tasks: [oilChange, greaseHubs, co2Cartridge] }
+const newGenerator = { id: 3, name: 'Generator', tracksHours: true } // tracks hours, no reading yet
+const generatorService = { id: 13, name: 'Generator service', equipmentId: 3 }
+const ctx = { equipments: [engine, trailer, newGenerator], tasks: [oilChange, greaseHubs, co2Cartridge, generatorService] }
 
 describe('prefill', () => {
   it('editing a standard intervention keeps its equipment and values', () => {
@@ -84,6 +86,14 @@ describe('prefill', () => {
 
     it('quick log for an expiry task starts with no expiry date', () => {
       expect(prefill({ quickLog: { taskId: 12 } }, ctx)).toMatchObject({ equipmentId: 2, taskId: 12, expiryDate: '' })
+    })
+
+    it('from an equipment that tracks hours but has no reading yet leaves the reading empty', () => {
+      expect(prefill({ new: { equipmentId: 3 } }, ctx).hours).toBeNull()
+    })
+
+    it('quick log for a task on an equipment with no reading yet leaves the reading empty', () => {
+      expect(prefill({ quickLog: { taskId: 13 } }, ctx)).toMatchObject({ equipmentId: 3, taskId: 13, hours: null })
     })
   })
 })
@@ -173,6 +183,18 @@ describe('toRequest', () => {
     })
   })
 
+  it('a new log on an equipment with no reading yet, saved untouched, sends no reading', () => {
+    const form = { ...prefill({ new: { equipmentId: 3 } }, ctx), taskId: 13 }
+
+    expect(toRequest(form, ctx).interventionInput.hoursAt).toBeUndefined()
+  })
+
+  it('a quick log on an equipment with no reading yet, saved untouched, sends no reading', () => {
+    const form = prefill({ quickLog: { taskId: 13 } }, ctx)
+
+    expect(toRequest(form, ctx).interventionInput.hoursAt).toBeUndefined()
+  })
+
   it('a quick log with its reading cleared sends no reading', () => {
     const form = { ...prefill({ quickLog: { taskId: 10 } }, ctx), hours: null }
 
@@ -260,5 +282,14 @@ describe('selectEquipment', () => {
     selectEquipment(form, 2, ctx)
 
     expect(form).toMatchObject({ equipmentId: 2, hours: null })
+  })
+
+  it('leaves the reading empty for an equipment that tracks hours but has no reading yet', () => {
+    const form = prefill({ new: { equipmentId: 1 } }, ctx)
+
+    selectEquipment(form, 3, ctx)
+
+    expect(form).toMatchObject({ equipmentId: 3, hours: null })
+    expect(toRequest({ ...form, taskId: 13 }, ctx).interventionInput.hoursAt).toBeUndefined()
   })
 })
