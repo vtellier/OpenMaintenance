@@ -3,7 +3,7 @@ import { Equipment } from '@generated/api/models/Equipment'
 import { Task } from '@generated/api/models/Task'
 import { InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { InterventionFormContext, canSave, prefill, save } from '@/lib/interventionForm'
+import { InterventionFormContext, canSave, isExpiryTask, prefill, save } from '@/lib/interventionForm'
 
 const interventionApi = new InterventionApi(apiConfig)
 
@@ -16,7 +16,7 @@ export function QuickLogModal(
   task: { id: number, name: string },
   opts: {
     equipments: () => Pick<Equipment, 'id' | 'tracksHours' | 'hours'>[]
-    tasks: () => Pick<Task, 'id' | 'equipmentId'>[]
+    tasks: () => Pick<Task, 'id' | 'equipmentId' | 'kind'>[]
     onClose: () => void
     onSaved: () => void | Promise<void>
   },
@@ -35,6 +35,10 @@ export function QuickLogModal(
     state.date = (e.target as HTMLInputElement).value
   }
 
+  function onExpiryDateChange(e: Event) {
+    state.expiryDate = (e.target as HTMLInputElement).value
+  }
+
   function onHoursChange(e: Event) {
     const value = (e.target as HTMLInputElement).value
     state.hours = value === '' ? null : Number(value)
@@ -48,10 +52,10 @@ export function QuickLogModal(
     state.comments = (e.target as HTMLInputElement).value
   }
 
-  const isSaveDisabled = () => state.saving || !canSave(state)
+  const isSaveDisabled = () => state.saving || !canSave(state, ctx())
 
   async function onSave() {
-    if (!canSave(state)) return
+    if (!canSave(state, ctx())) return
     state.saving = true
     state.error = null
     const error = await save(state, ctx(), interventionApi)
@@ -79,6 +83,12 @@ export function QuickLogModal(
           <div class="form-field">
             <label class="form-field__label">Hours</label>
             <input type="number" min="0" .value="${() => state.hours == null ? '' : String(state.hours)}" @input="${onHoursChange}" />
+          </div>
+        ` : null}
+        ${() => isExpiryTask(state, ctx()) ? html`
+          <div class="form-field">
+            <label class="form-field__label">Expiry date *</label>
+            <input type="date" aria-label="Expiry date" .value="${() => state.expiryDate}" @input="${onExpiryDateChange}" />
           </div>
         ` : null}
         <div class="form-field">

@@ -17,7 +17,7 @@ import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
 
 type EquipmentRow = WithCalendarDates<Equipment, 'commissionedAt'>
 type TaskRow = WithCalendarDates<Task, 'nextDueDate'>
-type InterventionRow = WithCalendarDates<Intervention, 'date'>
+type InterventionRow = WithCalendarDates<Intervention, 'date' | 'expiryDate'>
 
 function mapEquipment(eq: any): EquipmentRow {
   return {
@@ -117,6 +117,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
         ).map((inv: any) => ({
           ...inv,
           date: fromApiDateTime(inv.date),
+          expiryDate: fromApiDate(inv.expiryDate),
           createdAt: inv.createdAt?.toISOString(),
           updatedAt: inv.updatedAt?.toISOString(),
         }))

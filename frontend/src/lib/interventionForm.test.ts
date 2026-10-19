@@ -1,12 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ResponseError } from '@generated/api/runtime'
-import { canSave, InterventionFormValues, prefill, save, selectEquipment, toRequest } from '@/lib/interventionForm'
+import { canSave, InterventionFormValues, isExpiryTask, prefill, save, selectEquipment, toRequest } from '@/lib/interventionForm'
 
 const engine = { id: 1, name: 'Engine', tracksHours: true, hours: 120 }
 const trailer = { id: 2, name: 'Trailer', tracksHours: false }
 const oilChange = { id: 10, name: 'Oil change', equipmentId: 1 }
 const greaseHubs = { id: 11, name: 'Grease hubs', equipmentId: 2 }
-const ctx = { equipments: [engine, trailer], tasks: [oilChange, greaseHubs] }
+// An expiry task: each part fitted carries its own expiry date (#99).
+const co2Cartridge = { id: 12, name: 'Replace CO2 cartridge', equipmentId: 2, kind: 'expiry' as const }
+const ctx = { equipments: [engine, trailer], tasks: [oilChange, greaseHubs, co2Cartridge] }
 
 describe('prefill', () => {
   it('editing a standard intervention keeps its equipment and values', () => {
@@ -29,6 +31,16 @@ describe('prefill', () => {
     expect(form.equipmentId).toBe(1)
   })
 
+  it("editing an intervention on an expiry task keeps the part's expiry date", () => {
+    const form = prefill({ edit: { id: 8, taskId: 12, equipmentId: 2, date: '2026-05-03', expiryDate: '2031-04-30' } }, ctx)
+
+    expect(form.expiryDate).toBe('2031-04-30')
+  })
+
+  it('editing an intervention on an interval task has no expiry date', () => {
+    expect(prefill({ edit: { id: 7, taskId: 10, equipmentId: 1, date: '2026-05-03' } }, ctx).expiryDate).toBe('')
+  })
+
   it('editing an intervention logged without a reading leaves the reading empty', () => {
     const form = prefill({ edit: { id: 7, taskId: 10, equipmentId: 1, date: '2026-05-03' } }, ctx)
 
@@ -46,7 +58,7 @@ describe('prefill', () => {
 
       expect(form).toEqual({
         editId: null, equipmentId: 1, taskId: null, isExceptional: false, exceptionalLabel: '',
-        date: '2026-06-22', hours: 120, location: '', performedBy: '', comments: '',
+        date: '2026-06-22', hours: 120, expiryDate: '', location: '', performedBy: '', comments: '',
       })
     })
 
@@ -62,19 +74,26 @@ describe('prefill', () => {
 
       expect(form).toEqual({
         editId: null, equipmentId: 1, taskId: 10, isExceptional: false, exceptionalLabel: '',
-        date: '2026-06-22', hours: 120, location: '', performedBy: '', comments: '',
+        date: '2026-06-22', hours: 120, expiryDate: '', location: '', performedBy: '', comments: '',
       })
     })
 
     it('quick log for a task on an equipment that does not track hours has no reading', () => {
       expect(prefill({ quickLog: { taskId: 11 } }, ctx)).toMatchObject({ equipmentId: 2, taskId: 11, hours: null })
     })
+
+    it('quick log for an expiry task starts with no expiry date', () => {
+      expect(prefill({ quickLog: { taskId: 12 } }, ctx)).toMatchObject({ equipmentId: 2, taskId: 12, expiryDate: '' })
+    })
   })
 })
 
 const standard: InterventionFormValues = {
   editId: null, equipmentId: 1, taskId: 10, isExceptional: false, exceptionalLabel: '',
-  date: '2026-05-03', hours: 120, location: '', performedBy: '', comments: '',
+  date: '2026-05-03', hours: 120, expiryDate: '', location: '', performedBy: '', comments: '',
+}
+const expiry: InterventionFormValues = {
+  ...standard, equipmentId: 2, taskId: 12, hours: null, expiryDate: '2031-04-30',
 }
 const exceptional: InterventionFormValues = {
   ...standard, taskId: null, isExceptional: true, exceptionalLabel: 'Replaced impeller',
@@ -88,8 +107,21 @@ describe('canSave', () => {
     ['an exceptional intervention with a label', exceptional, true],
     ['an exceptional intervention without a label', { ...exceptional, exceptionalLabel: '  ' }, false],
     ['an exceptional intervention without an equipment', { ...exceptional, equipmentId: null }, false],
+    ['an intervention on an expiry task with an expiry date', expiry, true],
+    ['an intervention on an expiry task without an expiry date', { ...expiry, expiryDate: '' }, false],
+    ['an intervention on an expiry task with an expiry date already past', { ...expiry, expiryDate: '2020-01-01' }, true],
+    ['a quick log for an expiry task before the expiry date is entered', prefill({ quickLog: { taskId: 12 } }, ctx), false],
   ])('%s', (_name, form, expected) => {
-    expect(canSave(form)).toBe(expected)
+    expect(canSave(form, ctx)).toBe(expected)
+  })
+})
+
+describe('isExpiryTask', () => {
+  it('is true for a standard intervention on an expiry task only', () => {
+    expect(isExpiryTask(expiry, ctx)).toBe(true)
+    expect(isExpiryTask(standard, ctx)).toBe(false)
+    expect(isExpiryTask({ ...expiry, taskId: null }, ctx)).toBe(false)
+    expect(isExpiryTask({ ...expiry, isExceptional: true }, ctx)).toBe(false)
   })
 })
 
@@ -145,6 +177,27 @@ describe('toRequest', () => {
     const form = { ...prefill({ quickLog: { taskId: 10 } }, ctx), hours: null }
 
     expect(toRequest(form, ctx).interventionInput.hoursAt).toBeUndefined()
+  })
+
+  it('an intervention on an expiry task sends the expiry date as a calendar date', () => {
+    expect(toRequest(expiry, ctx).interventionInput).toEqual({
+      taskId: 12, date: may3, hoursAt: undefined, expiryDate: new Date('2031-04-30T00:00:00Z'),
+      location: undefined, performedBy: undefined, comments: undefined,
+    })
+  })
+
+  it('a quick log for an expiry task sends the expiry date entered', () => {
+    const form = { ...prefill({ quickLog: { taskId: 12 } }, ctx), expiryDate: '2031-04-30' as const }
+
+    expect(toRequest(form, ctx).interventionInput).toMatchObject({ taskId: 12, expiryDate: new Date('2031-04-30T00:00:00Z') })
+  })
+
+  it('sends no expiry date for an interval task, even one left from another task', () => {
+    expect(toRequest({ ...standard, expiryDate: '2031-04-30' }, ctx).interventionInput.expiryDate).toBeUndefined()
+  })
+
+  it('sends no expiry date for an exceptional intervention', () => {
+    expect(toRequest({ ...exceptional, expiryDate: '2031-04-30' }, ctx).interventionInput.expiryDate).toBeUndefined()
   })
 
   it('an edit targets the intervention being edited', () => {

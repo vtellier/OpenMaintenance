@@ -8,6 +8,7 @@ import {
   InterventionFormContext,
   InterventionFormSource,
   canSave,
+  isExpiryTask,
   prefill,
   save,
   selectEquipment,
@@ -24,7 +25,7 @@ export function FullInterventionModal(
   source: InterventionFormSource,
   opts: {
     equipments: () => Pick<Equipment, 'id' | 'name' | 'tracksHours' | 'hours'>[]
-    allTasks: () => Pick<Task, 'id' | 'name' | 'equipmentId'>[]
+    allTasks: () => Pick<Task, 'id' | 'name' | 'equipmentId' | 'kind'>[]
     /** Hides the equipment picker: the form is opened from that equipment's page. */
     equipmentIdFixed?: number
     onClose: () => void
@@ -88,6 +89,10 @@ export function FullInterventionModal(
     state.date = (e.target as HTMLInputElement).value
   }
 
+  function onExpiryDateChange(e: Event) {
+    state.expiryDate = (e.target as HTMLInputElement).value
+  }
+
   function onHoursChange(e: Event) {
     const value = (e.target as HTMLInputElement).value
     state.hours = value === '' ? null : Number(value)
@@ -107,10 +112,10 @@ export function FullInterventionModal(
 
   const modalTitle = state.editId != null ? 'Edit intervention' : 'Log intervention'
 
-  const isSaveDisabled = () => state.saving || !canSave(state)
+  const isSaveDisabled = () => state.saving || !canSave(state, ctx())
 
   async function onSave() {
-    if (!canSave(state)) return
+    if (!canSave(state, ctx())) return
     state.saving = true
     state.error = null
     const error = await save(state, ctx(), interventionApi)
@@ -175,6 +180,13 @@ export function FullInterventionModal(
           <div class="form-field">
             <label class="form-field__label">Hours</label>
             <input type="number" min="0" .value="${() => state.hours == null ? '' : String(state.hours)}" @input="${onHoursChange}" />
+          </div>
+        ` : null}
+
+        ${() => isExpiryTask(state, ctx()) ? html`
+          <div class="form-field">
+            <label class="form-field__label">Expiry date *</label>
+            <input type="date" aria-label="Expiry date" .value="${() => state.expiryDate}" @input="${onExpiryDateChange}" />
           </div>
         ` : null}
 
