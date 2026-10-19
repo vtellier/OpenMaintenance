@@ -14,6 +14,7 @@ The backend embeds the compiled frontend and serves it as static files. The Type
 
 - Go 1.21+
 - Node.js 22.12+ (required by Vitest) + pnpm
+- A C compiler (`gcc`): the SQLite driver needs cgo. Cross-building the Windows binary also needs `x86_64-w64-mingw32-gcc` (Debian/Ubuntu: `gcc-mingw-w64-x86-64`)
 - `oapi-codegen` (`go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest`)
 
 ## Running locally
