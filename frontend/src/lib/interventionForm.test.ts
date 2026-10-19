@@ -5,7 +5,8 @@ import { canSave, InterventionFormValues, prefill, save, selectEquipment, toRequ
 const engine = { id: 1, name: 'Engine', tracksHours: true, hours: 120 }
 const trailer = { id: 2, name: 'Trailer', tracksHours: false }
 const oilChange = { id: 10, name: 'Oil change', equipmentId: 1 }
-const ctx = { equipments: [engine, trailer], tasks: [oilChange] }
+const greaseHubs = { id: 11, name: 'Grease hubs', equipmentId: 2 }
+const ctx = { equipments: [engine, trailer], tasks: [oilChange, greaseHubs] }
 
 describe('prefill', () => {
   it('editing a standard intervention keeps its equipment and values', () => {
@@ -51,6 +52,22 @@ describe('prefill', () => {
 
     it('on an equipment that does not track hours has no reading', () => {
       expect(prefill({ new: { equipmentId: 2 } }, ctx).hours).toBeNull()
+    })
+
+    it("quick log for a task defaults to today and its equipment's current reading", () => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date('2026-06-22T12:00:00')) // local noon
+
+      const form = prefill({ quickLog: { taskId: 10 } }, ctx)
+
+      expect(form).toEqual({
+        editId: null, equipmentId: 1, taskId: 10, isExceptional: false, exceptionalLabel: '',
+        date: '2026-06-22', hours: 120, location: '', performedBy: '', comments: '',
+      })
+    })
+
+    it('quick log for a task on an equipment that does not track hours has no reading', () => {
+      expect(prefill({ quickLog: { taskId: 11 } }, ctx)).toMatchObject({ equipmentId: 2, taskId: 11, hours: null })
     })
   })
 })
@@ -110,6 +127,24 @@ describe('toRequest', () => {
       equipmentId: 1, exceptionalLabel: 'Replaced impeller', date: may3, hoursAt: 120,
       location: undefined, performedBy: undefined, comments: undefined,
     })
+  })
+
+  it('a quick log sends its task, the date, the reading and the details entered', () => {
+    const form = { ...prefill({ quickLog: { taskId: 10 } }, ctx), date: '2026-05-03' as const, performedBy: ' Self ', comments: 'ok' }
+
+    expect(toRequest(form, ctx)).toEqual({
+      id: undefined,
+      interventionInput: {
+        taskId: 10, date: may3, hoursAt: 120,
+        location: undefined, performedBy: 'Self', comments: 'ok',
+      },
+    })
+  })
+
+  it('a quick log with its reading cleared sends no reading', () => {
+    const form = { ...prefill({ quickLog: { taskId: 10 } }, ctx), hours: null }
+
+    expect(toRequest(form, ctx).interventionInput.hoursAt).toBeUndefined()
   })
 
   it('an edit targets the intervention being edited', () => {

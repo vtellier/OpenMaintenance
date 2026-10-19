@@ -5,9 +5,10 @@ import { Task } from '@generated/api/models/Task'
 import { extractErrorMessage } from '@/lib/format'
 import { CalendarDate, WithCalendarDates, today, toApiDateTime } from '@/lib/calendar-date'
 
-// The full intervention form (log and edit): its values, how they are
-// prefilled, when they can be saved and the request they become. Equipment
-// detail and History only say what the form opens for (doc/gui/interventions.md).
+// The intervention forms (the full form to log and edit, and the quick log
+// that marks a task done): their values, how they are prefilled, when they can
+// be saved and the request they become. Dashboard, Equipment detail and History
+// only say what a form opens for (doc/gui/interventions.md).
 
 export interface InterventionFormValues {
   editId: number | null
@@ -30,9 +31,13 @@ export interface InterventionFormContext {
   tasks: Pick<Task, 'id' | 'equipmentId'>[]
 }
 
-/** What the form opens for: a new log on an equipment, or an existing intervention to edit. */
+/**
+ * What the form opens for: a new log on an equipment, a quick log that marks
+ * a task done, or an existing intervention to edit.
+ */
 export type InterventionFormSource =
   | { new: { equipmentId: number | null } }
+  | { quickLog: { taskId: number } }
   | { edit: InterventionRow }
 
 /** The reading a new log starts at: the equipment's current one, or none when it does not track hours. */
@@ -46,21 +51,26 @@ function equipmentOfTask(taskId: number | null | undefined, ctx: InterventionFor
   return ctx.tasks.find(t => t.id === taskId)?.equipmentId ?? null
 }
 
+function newLog(equipmentId: number | null, taskId: number | null, ctx: InterventionFormContext): InterventionFormValues {
+  return {
+    editId: null,
+    equipmentId,
+    taskId,
+    isExceptional: false,
+    exceptionalLabel: '',
+    date: today(),
+    hours: startingReading(equipmentId, ctx),
+    location: '',
+    performedBy: '',
+    comments: '',
+  }
+}
+
 export function prefill(source: InterventionFormSource, ctx: InterventionFormContext): InterventionFormValues {
-  if ('new' in source) {
-    const { equipmentId } = source.new
-    return {
-      editId: null,
-      equipmentId,
-      taskId: null,
-      isExceptional: false,
-      exceptionalLabel: '',
-      date: today(),
-      hours: startingReading(equipmentId, ctx),
-      location: '',
-      performedBy: '',
-      comments: '',
-    }
+  if ('new' in source) return newLog(source.new.equipmentId, null, ctx)
+  if ('quickLog' in source) {
+    const { taskId } = source.quickLog
+    return newLog(equipmentOfTask(taskId, ctx), taskId, ctx)
   }
   const inv = source.edit
   return {
