@@ -65,7 +65,7 @@ Save is disabled until all required fields are filled: date is always required; 
 
 ### Reading in doubt (after a delete or an edit)
 
-When the deleted intervention, or the edited one whose reading was lowered or cleared, recorded the equipment's current reading, the reading may have come from it (see [data-model.md](../data-model.md#reading-in-doubt)). Once the delete or the edit is saved, a modal asks:
+When the deleted intervention, or the edited one whose reading was lowered, cleared or moved to another equipment, recorded the equipment's current reading, the reading may have come from it (see [data-model.md](../data-model.md#reading-in-doubt)). Once the delete or the edit is saved, a modal asks:
 
 - Title: *"Keep the hour-meter reading?"*
 - Text: *"This intervention recorded 500 h, the current reading of Main Engine. The reading may have come from it."*
@@ -73,6 +73,8 @@ When the deleted intervention, or the edited one whose reading was lowered or cl
 - **Correct the reading**: opens [Correct reading](./equipments.md#flow-correct-the-reading) for that equipment, prefilled with the highest reading left on its interventions, or empty if there is none.
 
 When the current reading is higher than the intervention's, nothing is asked: the reading is kept.
+
+Nothing is asked either when another intervention left on the equipment still recorded the current reading (the reading is still backed by the history), or when the equipment's reading, reloaded once the change is saved, no longer equals the one in doubt (it changed meanwhile, e.g. in another tab).
 
 ## User flow: quick log from dashboard
 

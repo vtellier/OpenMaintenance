@@ -61,10 +61,11 @@ Deleting an intervention, or editing it to a lower `hours_at` (clearing it, or m
 - the equipment tracks hours and has a reading;
 - the intervention's `hours_at`, before the change, **equals** the equipment's current reading;
 - after the change, the intervention no longer carries that reading on that equipment (deleted, `hours_at` lowered or cleared, or moved to another equipment).
+- after the change, **no other intervention** left on that equipment has an `hours_at` equal to the current reading. When another one still has it, the reading is still backed by the history: nothing is asked.
 
 When the current reading is higher than the intervention's `hours_at`, something else set it (a later intervention, or "Update hours"): the reading is kept without asking.
 
-In the doubt case, once the delete or the edit is saved, the user is asked:
+In the doubt case, once the delete or the edit is saved, the page reloads the equipment and asks only if its **fresh reading still equals** the reading in doubt. When the reading has changed in the meantime (e.g. raised in another tab), something else set it: nothing is asked. Otherwise the user is asked:
 
 - **Keep the reading** (the default): nothing changes, freshness included.
 - **Correct the reading**: opens "Correct reading", prefilled with the **highest `hours_at` left on the equipment's interventions** after the change (the edited intervention's new reading included), or empty if there is none. The user confirms or adjusts it.
