@@ -569,3 +569,12 @@ Can start now: #65, #66, #69, #75.
 - **Test first**: `frontend/tests/non-regression/quick-log-asks-for-location.spec.ts` (Playwright, Dashboard "Done": labels in order Date, Hours, Location, Done by, Notes; the saved intervention carries the trimmed location), red on the old modal. No new Vitest case: `interventionForm.test.ts` already covers the trimmed location and a blank one omitted from a quick log.
 - **Fix**: `QuickLogModal` renders the Location field; the module already sent it.
 - Verified with `pnpm test:unit`, `pnpm run typecheck`, `pnpm run build`, `pnpm test` (44 Playwright specs) and `make build`.
+
+## 2026-10-19 — Reject a negative hour reading (issue #102)
+
+- Branch `fix/issue-102-reject-negative-hours`. Spec in `doc/data-model.md` ("A reading is never negative"), `minimum: 0` in `openapi.yaml`.
+- **Tests first**: `backend/tests/negative_hours_test.go` (`httptest`), red on `main` for every path: log (standard and exceptional) and edit an intervention, create an equipment, turn the hour-meter on, "Update hours". Each asserts a 400 whose reason says the reading cannot be negative, and that nothing was stored.
+- **Fix**: `hourmeter.CheckReading` / `ErrNegative`, used by every explicit reading and by `validateIntervention` for `hours_at`; equipment creation checks before the row is written.
+- The intervention forms already show the backend's reason (`save()` in `interventionForm.ts`). The equipment create form and "Update hours" page still show a generic error message.
+- Verified with `go test ./...`, `go build`, `pnpm test:unit`, `pnpm run build` and `make build`.
+- **Follow-ups** (after review): the reason is exactly "Hours cannot be negative" on every path (no `hours_at:` prefix); equipment create and edit also refuse a negative `hours` they would ignore (no hour-meter, or an edit that does not turn it on). The equipment create modal and "Update hours" now show the backend's reason (`extractErrorMessage`); "Update hours" rendered its error flash statically, so it showed no error at all before. The equipment edit form already showed the reason. Tests first: new `httptest` cases in `negative_hours_test.go` and `frontend/tests/non-regression/equipment-hours-error-shows-reason.spec.ts` ("Update hours" cannot send a negative value from the UI, so it is pinned with a reading raised elsewhere while the page is open). Existing negative data is left as is. Verified with `go test ./...`, `pnpm test:unit`, `pnpm run build`, `pnpm test` (46 specs) and `make build`.

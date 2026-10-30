@@ -38,12 +38,14 @@ The `icon` is chosen from an emoji picker — a button (or, on the detail header
 
 The reading (`hours`) and its freshness (`hours_updated_at`) change only through the paths below. **None of them lowers the reading**: the meter cannot go backwards.
 
+**A reading is never negative.** Every value entered on these paths (the initial reading, "Update hours" / "Same hours", an intervention's `hours_at`) must be `0` or more; a negative value is rejected with the reason "Hours cannot be negative" and nothing is stored. A negative value is refused even where it would be ignored: an equipment `hours` sent when creating an equipment without an hour-meter, or with an edit that does not turn the hour-meter on, and an intervention's `hours_at` on an equipment that does not track hours.
+
 | Path | Reading (`hours`) | Freshness (`hours_updated_at`) |
 |------|-------------------|--------------------------------|
 | Create an equipment with `tracks_hours` on | Set to the initial value entered (none entered: no reading yet) | "now" when a value is entered |
 | Turn `tracks_hours` on for an existing equipment | Set to the initial value entered. It must be **greater than or equal to** any reading kept from an earlier tracking period; a lower value is rejected | "now" when a value is entered |
 | Turn `tracks_hours` off | Unchanged: kept, hidden while tracking is off | Unchanged |
-| Edit metadata (name, description, commissioning date, icon, including the detail-header icon picker) | Unchanged: an hours value sent with the edit is ignored | Unchanged |
+| Edit metadata (name, description, commissioning date, icon, including the detail-header icon picker) | Unchanged: an hours value sent with the edit is ignored (a negative one is still rejected) | Unchanged |
 | **"Update hours"** or **"Same hours"** | Set to the value submitted, which must be **greater than or equal to** the current one; a lower value is rejected | "now", even when the value is unchanged |
 | Log or edit an intervention with `hours_at` | Raised to `hours_at` only when it is **strictly greater** than the current reading | "now" only when the reading is raised |
 
@@ -112,7 +114,7 @@ Exactly one of `task_id` or `exceptional_label` must be provided (they are mutua
 | `equipment_id`      | int       | yes      | FK to Equipment. Populated automatically from the task for standard interventions; set directly for exceptional ones. |
 | `exceptional_label` | string    | no       | Short description of the exceptional operation. Required when `task_id` is absent. |
 | `date`              | date      | yes      | When the work was performed                                      |
-| `hours_at`          | number    | no       | Equipment hour-meter reading at the time. Only if equipment tracks hours. Recorded on expiry tasks too, the same way. |
+| `hours_at`          | number    | no       | Equipment hour-meter reading at the time, `0` or more (a negative value is rejected). Only if equipment tracks hours. Recorded on expiry tasks too, the same way. |
 | `expiry_date`       | date      | no       | The expiry date of the part fitted (`YYYY-MM-DD`). **Required** for a standard intervention on an expiry task, and only allowed there. Any date is accepted, past included: an expired part sometimes has to be fitted. When several identical parts are replaced together, the earliest date is entered. |
 | `location`          | string    | no       | e.g. "Marina X", "Home garage"                                   |
 | `performed_by`      | string    | no       | Person or company who did the work (e.g. "Self", "Garage du Port") |

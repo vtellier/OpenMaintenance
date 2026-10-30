@@ -124,6 +124,11 @@ func validateIntervention(intervention *models.Intervention) error {
 	if intervention.Date.After(time.Now()) {
 		return fmt.Errorf("intervention date cannot be in the future")
 	}
+	if intervention.HoursAt != nil {
+		if err := hourmeter.CheckReading(*intervention.HoursAt); err != nil {
+			return err
+		}
+	}
 	if intervention.TaskID == nil {
 		if intervention.EquipmentID == nil {
 			return fmt.Errorf("equipment_id is required for exceptional interventions")
