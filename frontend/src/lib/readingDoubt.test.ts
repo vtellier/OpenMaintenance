@@ -58,6 +58,12 @@ describe('readingDoubt after a delete', () => {
     expect(readingDoubt({ deleted: pumpAt0 }, { ...ctx, interventions: [pumpAt0] })).toBeNull()
   })
 
+  it('does not ask when another intervention left on the equipment recorded the current reading', () => {
+    const alsoAt500 = { id: 108, equipmentId: 1, hoursAt: 500 }
+
+    expect(readingDoubt({ deleted: at500 }, { ...ctx, interventions: [...ctx.interventions, alsoAt500] })).toBeNull()
+  })
+
   it('takes the equipment from the task when the intervention has none', () => {
     const fromTask = { id: 107, taskId: 11, hoursAt: 500 }
 
@@ -86,6 +92,12 @@ describe('readingDoubt after an edit', () => {
     expect(readingDoubt({ edited: at500, to: { equipmentId: 2, hoursAt: 500 } }, ctx)).toMatchObject({
       equipmentId: 1, suggested: 420,
     })
+  })
+
+  it('does not ask when another intervention left on the equipment recorded the current reading', () => {
+    const alsoAt500 = { id: 108, taskId: 10, hoursAt: 500 } // equipment taken from its task
+
+    expect(readingDoubt({ edited: at500, to: { equipmentId: 1, hoursAt: 450 } }, { ...ctx, interventions: [...ctx.interventions, alsoAt500] })).toBeNull()
   })
 
   it('does not ask when the reading is kept', () => {
