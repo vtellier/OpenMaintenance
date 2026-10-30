@@ -19,6 +19,22 @@ A component of the maintained system (e.g. "Main Engine", "Family Car", "House H
 | `created_at`      | timestamp | yes      | Auto                                                    |
 | `updated_at`      | timestamp | yes      | Auto                                                    |
 
+### Incomplete equipment
+
+Some values can only come from the user, and they are often not at hand when an equipment or a task is created. The app **never invents them**: the field stays empty until the user fills it or confirms it. An equipment missing such a value is **incomplete** (see `CONTEXT.md`), so the user knows to come back and fill it in. Creating an incomplete equipment is a normal use case.
+
+An equipment is incomplete when at least one of these values is missing:
+
+| Missing value | When | Filled by |
+|---------------|------|-----------|
+| Hour-meter reading | `tracks_hours` is true and `hours` is empty | **"Update hours"**, or an intervention logged with `hours_at` |
+| Expiry date | One of its expiry tasks has no expiry date (see [Expiry rule](#expiry-rule)): at creation, or after every intervention on it has been deleted | The task's current expiry date, or logging a replacement |
+| Starting point of a months task | One of its tasks has a `months_interval`, has never been performed, and the equipment has no `commissioned_at` (no [date baseline](#date-baseline-precedence)) | Setting the commissioning date, or logging a first intervention on the task |
+
+The last two also make **the task** incomplete: it is a due status, see [Derived: "due" status](#derived-due-status) and [ADR 0002](./adr/0002-incomplete-is-a-due-status.md). A missing hour-meter reading marks the equipment only: its hours tasks keep today's rule (the hours rule gives no status until a reading exists).
+
+Equipment responses carry a computed, read-only **`incomplete`** (boolean): true when any value in the table is missing. Clients show the marker from it and never work it out themselves. Which value is missing is read from the equipment (`hours`) and its tasks (`due_status = incomplete`).
+
 ### Visual identity (icon)
 
 Every equipment has a mandatory **`icon`** — a single emoji (default `🔧`) used as its marker wherever the equipment is referenced: the equipments list, the dashboard, and the equipment's own detail header (left of the name). It always has a value.
@@ -42,7 +58,7 @@ The reading (`hours`) and its freshness (`hours_updated_at`) change only through
 
 | Path | Reading (`hours`) | Freshness (`hours_updated_at`) |
 |------|-------------------|--------------------------------|
-| Create an equipment with `tracks_hours` on | Set to the initial value entered (none entered: no reading yet) | "now" when a value is entered |
+| Create an equipment with `tracks_hours` on | Set to the initial value entered (none entered: no reading yet, the equipment is [incomplete](#incomplete-equipment)) | "now" when a value is entered |
 | Turn `tracks_hours` on for an existing equipment | Set to the initial value entered. It must be **greater than or equal to** any reading kept from an earlier tracking period; a lower value is rejected | "now" when a value is entered |
 | Turn `tracks_hours` off | Unchanged: kept, hidden while tracking is off | Unchanged |
 | Edit metadata (name, description, commissioning date, icon, including the detail-header icon picker) | Unchanged: an hours value sent with the edit is ignored (a negative one is still rejected) | Unchanged |
@@ -135,10 +151,11 @@ Exactly one of `task_id` or `exceptional_label` must be provided (they are mutua
 For each Task we compute a status used in the UI:
 
 - **Overdue** — the time-based or hour-based interval has been exceeded since the baseline (see below), or, for an expiry task, the expiry date has passed.
+- **Incomplete** — a value only the user can give is missing, so there is no due point: an expiry task with no expiry date, or a months rule with no [date baseline](#date-baseline-precedence) (never performed, equipment without a `commissioned_at`). The task is **not overdue**: it is not known to be late. This replaces the former "overdue with no date". See [Incomplete equipment](#incomplete-equipment).
 - **Due soon** — within a configurable window before the next trigger (default: 30 days; for hour-based, an equivalent margin). An expiry task is due soon from 30 days before its expiry date.
 - **OK** — not due soon.
 
-If a task defines both intervals, the **worst** of the two statuses wins. An expiry task has a single rule, the [expiry rule](#expiry-rule).
+From worst to best: **overdue, incomplete, due soon, OK**. If a task defines both intervals, the **worst** of the two statuses wins. An expiry task has a single rule, the [expiry rule](#expiry-rule).
 
 ### Driving trigger and amount
 
@@ -152,7 +169,7 @@ Alongside the status, the API says **which trigger drives it** and **by how much
 
 A rule **applies** when it can give a status:
 
-- the **months** rule, when the task has a `months_interval`. Without a [date baseline](#date-baseline-precedence) it is **overdue with no amount**: no `next_due_date` and no `due_in_days`, since there is nothing to count from;
+- the **months** rule, when the task has a `months_interval`. Without a [date baseline](#date-baseline-precedence) it is **incomplete, with no amount**: no `next_due_date` and no `due_in_days`, since there is nothing to count from;
 - the **hours** rule, when the task has an `hours_interval`, the equipment tracks hours, the equipment has a current reading (`hours`), and the task has an [hours baseline](#hours-baseline). Without a current reading, `next_due_hours` is still returned, but there is nothing to compare it with: no status and no `due_in_hours`. Without an hours baseline (performed, but never with a reading), there is no `next_due_hours` either.
 
 Which trigger drives:
@@ -161,11 +178,11 @@ Which trigger drives:
 2. Both apply: the one with the **worse** status, the one that sets `due_status`.
 3. Both give the same status (both overdue, both due soon, or both OK): the one with the **greater fraction of its interval elapsed** (see [Urgency](#urgency)), so the timing text shows the amount that makes the task urgent. Equal fractions: **months**, whose amount is always current, while the hours amount is only as fresh as the last hour-meter reading.
 
-One exception to rule 3: a months rule with no date baseline has no amount to show and no fraction (see [Urgency](#urgency)), so when the hours rule is **overdue** too, **hours** drives, since it has a concrete amount (`due_in_hours`). If the hours rule is only due soon or OK, the months rule is the worse status and still drives, with no `due_in_days`.
+A months rule with no date baseline is **incomplete**, a status the hours rule never gives, so rule 3 never applies to it. Rule 2 decides: an **overdue** hours rule is worse, so **hours** drives, with its concrete amount (`due_in_hours`), and the task is overdue. An hours rule that is due soon or OK is better, so the months rule drives, with no `due_in_days`, and the task is incomplete. (This replaces the former exception to rule 3, written when that months rule was overdue.)
 
 `due_trigger` is also set when the task is OK. Both amounts are returned when both rules apply; the timing text shown to the user uses the driving one (see [gui/dashboard.md](./gui/dashboard.md#timing-text)).
 
-The sign of the driving amount always agrees with the status: an **overdue** task has a driving amount `≤ 0`, a **due soon** or **OK** task has one `≥ 0`. The only tasks without a driving amount are the months-driven overdue task with no date baseline and the expiry task with no expiry date.
+The sign of the driving amount always agrees with the status: an **overdue** task has a driving amount `≤ 0`, a **due soon** or **OK** task has one `≥ 0`. An **incomplete** task never has a driving amount (the months-driven task with no date baseline, the expiry task with no expiry date).
 
 **Calendar days, not 24-hour periods.** `due_in_days` subtracts two calendar dates: the `next_due_date` and today's date, both read in the timezone `next_due_date` is computed in (currently UTC). A task due on the 15th is "in 5 days" all day on the 10th, and `0` all day on the 15th, whether or not it has already turned overdue that day.
 
@@ -176,7 +193,7 @@ An expiry task's `next_due_date` is its **current expiry date**, resolved in thi
 1. **The latest intervention's `expiry_date`** (latest by date, then the later logged): the part fitted then.
 2. **The task's `current_expiry_date`**, while the task has no intervention. It is cleared when the first replacement is logged, so it never comes back once that intervention is deleted.
 
-If neither exists, the task is **overdue with no date**, like an interval task with no date baseline: no `next_due_date`, no `due_in_days`, no `urgency`. `due_trigger` is still `expiry`.
+If neither exists, the task is **incomplete**, like an interval task with no date baseline: no `next_due_date`, no `due_in_days`, no `urgency`. `due_trigger` is still `expiry`. It is not overdue: the user must enter the current expiry date (or log a replacement).
 
 With a date, the rule works like the months rule, with the expiry date as the due date:
 
@@ -203,7 +220,7 @@ For an expiry task:
 - One rule applies: its fraction.
 - No rule applies (see [Driving trigger and amount](#driving-trigger-and-amount)): `urgency` is absent.
 - A rule whose interval is not positive (the task form does not allow it) gives no fraction.
-- A months rule with **no date baseline** (never performed, equipment without a `commissioned_at`) gives no fraction either: there is nothing to measure elapsed time from. The urgency then comes from the hours rule if it applies, and is absent otherwise. The task is still overdue, and in the ranking it comes after the overdue tasks that have an urgency, then by name.
+- A months rule with **no date baseline** (never performed, equipment without a `commissioned_at`) gives no fraction either: there is nothing to measure elapsed time from. The urgency then comes from the hours rule if it applies, and is absent otherwise. The task is incomplete (or overdue, when its hours rule is), and in the ranking it comes after the tasks of the same status that have an urgency, then by name.
 
 The fraction is not rounded or clamped: it is negative when the baseline is ahead of now, e.g. a `commissioned_at` in the future, or a current reading below the hours baseline after a meter correction. Such a task simply ranks lower.
 
@@ -213,8 +230,8 @@ It is computed once, with the rest of the Due status. Clients rank tasks with it
 
 Every place that orders tasks, or picks the most urgent one, uses this order, most urgent first:
 
-1. **`due_status`**: overdue, then due soon, then OK.
-2. **`urgency`**, highest first. A task without `urgency` comes after those with one, within the same status. This is where a task overdue only because it has no date baseline lands.
+1. **`due_status`**: overdue, then **incomplete**, then due soon, then OK.
+2. **`urgency`**, highest first. A task without `urgency` comes after those with one, within the same status. Most incomplete tasks have none: an expiry task with no expiry date never has one, and a months task with no starting point has one only from its hours rule.
 3. **`name`**, alphabetically, then **`id`**, ascending. Two tasks never tie, so the order is total and the same on every load.
 
 The status comes first so the order always agrees with it: an overdue task ranks above every due-soon task, and a due-soon task above every OK task, whatever their fractions. The fraction alone would not guarantee this, because the due-soon margins (30 days, 10 h) do not scale with the interval. A task due soon by hours on a 100 h interval can be at `0.92` while an OK task on a 10-year interval is at `0.99`. On the due date, a task due soon by months and an overdue one can both be at `1`.
@@ -225,6 +242,17 @@ Where it applies:
 - **Equipment detail**, Tasks tab: every task (see [gui/tasks.md](./gui/tasks.md)).
 - **Equipments list**: the task each card summarises is the first in this order (see [gui/equipments.md](./gui/equipments.md)).
 
+### API contract changes for "incomplete" (issue #103)
+
+Planned; `backend/api/openapi.yaml` is changed with the implementation, not with this spec. Everything is computed: no new input field, no schema migration.
+
+| Schema | Field | Change |
+|--------|-------|--------|
+| `Task` | `due_status` | Gains the value **`incomplete`**: `overdue` \| `incomplete` \| `due_soon` \| `ok`. Returned for an expiry task with no expiry date and for a task whose months rule has no date baseline (unless its hours rule is overdue). Neither is `overdue` any more. |
+| `Task` | `due_trigger` | No new value. An incomplete task has `expiry` (no expiry date) or `months` (no date baseline). |
+| `Task` | `due_in_days`, `next_due_date`, `urgency` | Same presence rules as today; their descriptions say "incomplete" where they said "overdue with no date / no amount". |
+| `Equipment` | `incomplete` | **New**, computed, read-only boolean on every Equipment response (list and detail): see [Incomplete equipment](#incomplete-equipment). Not accepted in `EquipmentInput`. |
+
 ### Date baseline precedence
 
 The date a time-based interval is counted from — and therefore the "next due" date — is resolved in this order:
@@ -232,7 +260,7 @@ The date a time-based interval is counted from — and therefore the "next due" 
 1. **The most recent intervention's `date`** on that task — the task was actually performed then.
 2. **The equipment's `commissioned_at`**, when it is set and is a valid `YYYY-MM-DD` date — the equipment has been in service (and therefore accumulating wear) since then, even though nothing has been logged yet.
 
-If neither exists, there is **no date baseline**: there is no way to know when the task is due, so it is reported **Overdue** and has no "next due" date. The app never invents one.
+If neither exists, there is **no date baseline**: there is no way to know when the task is due, so the months rule is reported **Incomplete** and has no "next due" date. The app never invents one. The user fills it in by setting the equipment's commissioning date or by logging a first intervention on the task.
 
 The equipment's `created_at` is **never** used as a baseline. It is only the moment the record was entered into this app, which says nothing about when the equipment entered service or when the task was last done.
 

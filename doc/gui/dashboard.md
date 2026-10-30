@@ -4,7 +4,8 @@ The Dashboard is the **landing screen** of the app. Its purpose is to answer: *"
 
 ## Purpose
 
-- Surface **overdue** and **upcoming** maintenance tasks across all equipments.
+- Surface **overdue**, **incomplete** and **upcoming** maintenance tasks across all equipments.
+- Show which equipments are **incomplete** (a value only the user can give is missing, see [data-model.md](../data-model.md#incomplete-equipment)), so the user comes back to fill it in.
 - Let the user quickly **log an intervention** for any due task.
 - Remind the user to **keep the hour-meters fresh** on hour-tracked equipments, so hour-based due dates remain accurate.
 
@@ -23,22 +24,24 @@ Banner content:
   - A **"Update hours"** button → opens the hours update form (see [equipments.md](../gui/equipments.md)).
   - A **"Same hours"** button → confirms, in place, that the hour-meter has not changed since the last reading. It refreshes `hours_updated_at` to "now" without changing the value, so the row drops out of the stale list. Used when the equipment simply has not run.
 - Equipments whose `hours_updated_at` is older than the **staleness threshold** (default: 7 days, configurable in Settings) are visually emphasized (e.g. amber/red highlight, bold relative time).
-- Rows are sorted by `hours_updated_at` ascending (oldest first).
+- An equipment with **no reading yet** is incomplete. Its row shows *"No reading yet"* in place of the hours value, the **Incomplete** badge, and an **"Enter hours"** button in place of "Update hours", opening the same form. It has no **"Same hours"** button: there is no reading to confirm.
+- Rows are sorted by `hours_updated_at` ascending (oldest first); equipments with no reading yet come first.
 
 The banner is collapsible. Equipments with fresh hour-meters can be folded away while stale ones remain expanded.
 
 ### Upcoming tasks
 
-Upcoming tasks are **grouped by equipment**. Within each equipment block, tasks are in [urgency order](../data-model.md#ranking-tasks-by-urgency): overdue first, then due soon, and within each the task furthest through its interval first, whether it is counted in months or in hours. The blocks are ordered by their most urgent task, compared the same way.
+Upcoming tasks are **grouped by equipment**. Within each equipment block, tasks are in [urgency order](../data-model.md#ranking-tasks-by-urgency): overdue first, then incomplete, then due soon, and within each the task furthest through its interval first, whether it is counted in months or in hours. The blocks are ordered by their most urgent task, compared the same way.
 
 For each equipment block:
 - Equipment name (clickable → equipment detail).
-- Optional hour-meter value (if the equipment tracks hours).
-- A list of its **overdue** and **due-soon** tasks. Tasks that are OK are not shown here.
+- An **Incomplete** badge next to the name when the equipment is incomplete (`incomplete` on the equipment).
+- Optional hour-meter value (if the equipment tracks hours; *"No reading yet"* when it has none).
+- A list of its **overdue**, **incomplete** and **due-soon** tasks. Tasks that are OK are not shown here.
 
 For each task row:
 - Task name.
-- Urgency indicator: **color** (red = overdue, amber = due soon) + status label + **timing text** (see below), e.g. *"Overdue — 3d ago"*, *"Due soon — in 12d"*, *"Due soon — in 80 h"*.
+- Urgency indicator: **color** (red = overdue, a neutral color distinct from red and amber = incomplete, amber = due soon) + status label + **timing text** (see below), e.g. *"Overdue — 3d ago"*, *"Incomplete — no expiry date"*, *"Due soon — in 12d"*, *"Due soon — in 80 h"*.
 - Quick action: **"Mark done"** button → opens the quick log form (see [interventions.md](./interventions.md)).
 
 #### Timing text
@@ -59,16 +62,16 @@ The relative time after the status label. It is rendered from the task's driving
 | expiry          | `due_in_days` > 0               | *"Expires in 12 days"* (*"Expires in 1 day"*) |
 | expiry          | none (no expiry date)           | *"no expiry date"* |
 
-Hours are rounded to the nearest whole hour and use the same number format as the hour-meter value (*"1,500 h ago"*). A task overdue by hours shows the hours, even when its calendar due date is still ahead. A months-driven task that is overdue only because it has no date baseline (never performed, equipment without a commissioning date) has no amount to show: it reads *"Overdue — never done"*. The status label is never left dangling. An expiry task's text names the expiry (*"Overdue — Expired 3 days ago"*, *"Due soon — Expires in 12 days"*); one with no expiry date reads *"Overdue — no expiry date"*.
+Hours are rounded to the nearest whole hour and use the same number format as the hour-meter value (*"1,500 h ago"*). A task overdue by hours shows the hours, even when its calendar due date is still ahead. A months-driven task with no date baseline (never performed, equipment without a commissioning date) is incomplete and has no amount to show: it reads *"Incomplete — never done"* (it used to read *"Overdue — never done"*). The status label is never left dangling. An expiry task's text names the expiry (*"Overdue — Expired 3 days ago"*, *"Due soon — Expires in 12 days"*); one with no expiry date is incomplete and reads *"Incomplete — no expiry date"* (it used to read *"Overdue — no expiry date"*).
 
 ## Filtering / scope
 
-- The dashboard shows only tasks with status **overdue** or **due soon**.
-- Equipments with no due tasks are hidden from the dashboard.
+- The dashboard shows only tasks with status **overdue**, **incomplete** or **due soon**.
+- Equipments with no such task are hidden from the upcoming tasks. An equipment incomplete only for its missing reading appears in the hour-meter freshness banner.
 
 ## Empty state
 
-When there is no overdue/due-soon task:
+When there is no overdue/incomplete/due-soon task:
 - Friendly message: *"You're all caught up. Nothing due right now."*
 - If the user has no equipments yet, redirect the message to the Equipments empty state with a CTA: *"Add your first equipment"*.
 
@@ -118,6 +121,9 @@ Note: the hour-meter freshness banner is independent of the tasks empty state. I
 |                                                      |
 |  ● Family Car                                        |
 |    🔴 Tire rotation      Overdue — 34d ago  [Done]   |
+|                                                      |
+|  ● Life jacket (red)  [Incomplete]                   |
+|    ⚪ CO2 cartridge  Incomplete — no expiry date [Done]|
 |                                                      |
 +------------------------------------------------------+
 ```
