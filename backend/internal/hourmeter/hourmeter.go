@@ -2,6 +2,7 @@
 // reading (hours) and its freshness (hours_updated_at). It enforces the rules
 // of doc/data-model.md, "What changes the reading":
 //
+//   - a reading is never negative;
 //   - the reading never goes backwards, except through Correct ("Correct
 //     reading"), the user's deliberate fix of a wrong reading;
 //   - an explicit reading (the initial one, "Update hours", "Same hours")
@@ -30,9 +31,19 @@ var (
 	// ErrBackwards is returned when an explicit reading is lower than the
 	// current one.
 	ErrBackwards = errors.New("hours cannot be lower than the current reading")
-	// ErrNegative is returned when a corrected reading is below 0.
-	ErrNegative = errors.New("hours cannot be negative")
+	// ErrNegative is returned for a reading below zero.
+	ErrNegative = errors.New("Hours cannot be negative")
 )
+
+// CheckReading rejects a negative reading. Every value entered as a reading
+// goes through it: the explicit ones here, and an intervention's hours_at,
+// which its handler checks before storing the intervention.
+func CheckReading(hours float64) error {
+	if hours < 0 {
+		return ErrNegative
+	}
+	return nil
+}
 
 // TurnOn records the initial reading when the hour-meter is turned on, at
 // creation or later on an existing equipment. The reading may not be lower
@@ -86,8 +97,8 @@ func Correct(db *sql.DB, eq *models.Equipment, hours float64) error {
 	if !eq.TracksHours {
 		return ErrNotTracked
 	}
-	if hours < 0 {
-		return ErrNegative
+	if err := CheckReading(hours); err != nil {
+		return err
 	}
 	now := time.Now()
 	if err := dbpackage.CorrectEquipmentHours(db, eq.ID, hours, now); err != nil {
@@ -102,6 +113,9 @@ func Correct(db *sql.DB, eq *models.Equipment, hours float64) error {
 // confirm stores an explicit reading: never lower than the current one, and
 // fresh even when unchanged.
 func confirm(db *sql.DB, eq *models.Equipment, hours float64) error {
+	if err := CheckReading(hours); err != nil {
+		return err
+	}
 	if eq.Hours != nil && hours < *eq.Hours {
 		return fmt.Errorf("%w (%s h)", ErrBackwards, strconv.FormatFloat(*eq.Hours, 'f', -1, 64))
 	}

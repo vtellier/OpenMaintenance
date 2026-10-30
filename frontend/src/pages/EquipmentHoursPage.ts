@@ -1,7 +1,7 @@
 import { component, html, reactive } from '@arrow-js/core'
 import { EquipmentApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { formatHours } from '@/lib/format'
+import { extractErrorMessage, formatHours } from '@/lib/format'
 import { formatTimestampDate } from '@/lib/timestamp'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -49,8 +49,8 @@ export function EquipmentHoursPage(idParam: string) {
           },
         })
         window.location.href = backHref
-      } catch {
-        state.error = 'Failed to update hours'
+      } catch (err) {
+        state.error = await extractErrorMessage(err, 'Failed to update hours')
         state.saving = false
       }
     }
@@ -65,7 +65,7 @@ export function EquipmentHoursPage(idParam: string) {
         return html`
           <h1>Update hours</h1>
 
-          ${state.error ? html`<div class="flash flash--error">${state.error}</div>` : null}
+          ${() => state.error ? html`<div class="flash flash--error">${state.error}</div>` : null}
 
           <div class="form-page">
             <p class="confirm-text">Updating hours for <strong>${() => state.name}</strong></p>

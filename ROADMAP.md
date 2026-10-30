@@ -20,6 +20,7 @@
 - [x] Auto-update equipment hours when an intervention records higher `hours_at`
 - [x] Validate intervention `date` is not in the future
 - [x] Validate hour-meter constraints (hours_interval only if tracks_hours)
+- [x] **No negative hour reading** (issue #102): `hours_at` and every explicit reading (creation, turning tracking on, "Update hours") must be 0 or more; a negative one is a 400 with a reason
 - [x] **Hours baseline skips interventions without a reading** (issue #81): counted from the most recent `hours_at` on the task; a task done but never with a reading has no hours rule until one is logged, instead of counting from 0 and turning overdue at once
 - [x] **Reading never lowered silently** (issue #70): deleting or editing down an intervention keeps the equipment's reading; when the reading may have come from it, the user keeps it or corrects it ("Correct reading", prefilled with the highest reading left), the only path that can lower it
 - [x] **Month-end next due date** (issue #80): adding months clamps to the target month's last day (Jan 31 + 1 month = Feb 28/29) instead of rolling over to early March
@@ -80,6 +81,7 @@ _Depends on Milestone 6 (quick-log must work, `hours_updated_at` must be set, da
 - [x] Delete intervention from history with confirmation (global + per-equipment)
 - [x] **One intervention form module** (issue #73): prefill, validation, request and error reason live in `src/lib/interventionForm.ts`; editing from the global History no longer loses the equipment (empty Task list, no Hours field, exceptional entry unsavable), and the reading is sent whenever the equipment tracks hours
 - [x] **Quick log uses the intervention form module** (issue #74): the Dashboard and Equipment detail "Mark done" logs share one modal that prefills and saves through `interventionForm.ts`; a refused Dashboard quick log now shows the backend's reason, and an empty reading sends none
+- [x] **Location in the quick log** (issue #97): the "Mark done" quick log asks for an optional Location between Hours and Done by, sent trimmed when not blank
 
 ## Milestone 9 — Settings
 

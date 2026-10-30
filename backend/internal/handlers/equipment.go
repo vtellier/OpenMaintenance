@@ -23,6 +23,12 @@ func (h *Handler) CreateEquipment(ctx echo.Context) error {
 		return ctx.JSON(400, map[string]string{"error": err.Error()})
 	}
 
+	// Checked before the equipment is stored so that a rejected reading
+	// creates nothing.
+	if err := checkInputHours(input); err != nil {
+		return ctx.JSON(hourMeterStatus(err), map[string]string{"error": err.Error()})
+	}
+
 	equipment := equipmentMetadata(input)
 	if err := dbpackage.CreateEquipment(h.DB, equipment); err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
@@ -46,7 +52,8 @@ func (h *Handler) GetEquipment(ctx echo.Context, id int) error {
 }
 
 // UpdateEquipment edits equipment metadata. It leaves the hour-meter reading
-// and its freshness alone (the request's hours is ignored), except when the
+// and its freshness alone (the request's hours is ignored, though a negative
+// one is refused), except when the
 // request turns the hour-meter on: hours is then the initial reading.
 func (h *Handler) UpdateEquipment(ctx echo.Context, id int) error {
 	input := new(models.Equipment)
@@ -57,6 +64,10 @@ func (h *Handler) UpdateEquipment(ctx echo.Context, id int) error {
 	existing, err := dbpackage.GetEquipment(h.DB, id)
 	if err != nil {
 		return ctx.JSON(404, map[string]string{"error": "Equipment not found"})
+	}
+
+	if err := checkInputHours(input); err != nil {
+		return ctx.JSON(hourMeterStatus(err), map[string]string{"error": err.Error()})
 	}
 
 	// Recorded before the metadata so that a rejected reading changes nothing.
@@ -149,10 +160,21 @@ func equipmentMetadata(in *models.Equipment) *models.Equipment {
 	}
 }
 
+// checkInputHours refuses a negative hours in a create or edit request, even
+// when the request does not turn the hour-meter on and the value would be
+// ignored.
+func checkInputHours(in *models.Equipment) error {
+	if in.Hours == nil {
+		return nil
+	}
+	return hourmeter.CheckReading(*in.Hours)
+}
+
 // hourMeterStatus maps an hourmeter error to an HTTP status: a broken
 // hour-meter rule is a bad request, anything else a server error.
 func hourMeterStatus(err error) int {
-	if errors.Is(err, hourmeter.ErrBackwards) || errors.Is(err, hourmeter.ErrNotTracked) || errors.Is(err, hourmeter.ErrNegative) {
+	if errors.Is(err, hourmeter.ErrBackwards) || errors.Is(err, hourmeter.ErrNotTracked) ||
+		errors.Is(err, hourmeter.ErrNegative) {
 		return 400
 	}
 	return 500

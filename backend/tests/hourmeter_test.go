@@ -482,7 +482,7 @@ func TestCorrectReading_Refused(t *testing.T) {
 		id := seedHourEquipment(t, h, 500, 72*time.Hour)
 		before := f.equipment(id)
 
-		f.expect(f.do(http.MethodPut, "/equipments/"+itoa(id)+"/hours/correction", map[string]any{"hours": -1}), http.StatusBadRequest, "correct to a negative reading")
+		f.expectNegativeRejected(f.do(http.MethodPut, "/equipments/"+itoa(id)+"/hours/correction", map[string]any{"hours": -1}), "correct to a negative reading")
 
 		after := f.equipment(id)
 		assertReading(t, after, 500)
