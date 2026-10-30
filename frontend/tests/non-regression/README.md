@@ -63,3 +63,4 @@ If both are already running (e.g. `make dev`), they are reused as-is.
 | `dashboard-quick-log-error-shows-reason.spec.ts` | A failed Dashboard quick log showed "Failed to save intervention" instead of the backend's reason (issue #74) | — |
 | `expiry-task-happy-path.spec.ts` | Feature, not a bug: an expiry task is created with its current expiry date, shows "Expires in N days", and is marked done with the new part's expiry date (issue #99) | — |
 | `quick-log-asks-for-location.spec.ts` | The quick log ("Done" button) had no Location field; it now sits between Hours and Done by and the location is saved trimmed (issue #97) | — |
+| `equipment-hours-error-shows-reason.spec.ts` | The equipment create modal and "Update hours" showed "Failed to add equipment" / "Failed to update hours" instead of the backend's reason, e.g. "Hours cannot be negative" (issue #102) | — |

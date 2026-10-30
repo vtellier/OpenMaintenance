@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -14,8 +13,12 @@ import (
 // Issue #102: a negative hour-meter reading was accepted on every path that
 // takes one. Each path must answer 400 with a reason and store nothing.
 
-// expectNegativeRejected fails unless rec is a 400 whose error names the
-// negative reading.
+// negativeReason is the exact reason shown to the user, with no field-name
+// prefix, on every path.
+const negativeReason = "Hours cannot be negative"
+
+// expectNegativeRejected fails unless rec is a 400 whose error is exactly
+// negativeReason.
 func (f *meterFixture) expectNegativeRejected(rec *httptest.ResponseRecorder, what string) {
 	f.t.Helper()
 	f.expect(rec, http.StatusBadRequest, what)
@@ -25,8 +28,8 @@ func (f *meterFixture) expectNegativeRejected(rec *httptest.ResponseRecorder, wh
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		f.t.Fatalf("%s: decode error body: %v (%s)", what, err, rec.Body.String())
 	}
-	if !strings.Contains(body.Error, "negative") {
-		f.t.Errorf("%s: error = %q, want a reason saying the reading cannot be negative", what, body.Error)
+	if body.Error != negativeReason {
+		f.t.Errorf("%s: error = %q, want %q", what, body.Error, negativeReason)
 	}
 }
 
@@ -143,4 +146,68 @@ func TestConfirmReading_NegativeReadingRejected(t *testing.T) {
 	f.expectNegativeRejected(f.do(http.MethodPut, "/equipments/"+itoa(id)+"/hours", map[string]any{"hours": -5}), "update hours")
 
 	assertNoReading(t, f.equipment(id))
+}
+
+func listEquipments(t *testing.T, f *meterFixture) []models.Equipment {
+	t.Helper()
+	rec := f.do(http.MethodGet, "/equipments", nil)
+	f.expect(rec, http.StatusOK, "list equipments")
+	var list []models.Equipment
+	if err := json.Unmarshal(rec.Body.Bytes(), &list); err != nil {
+		t.Fatalf("decode equipments: %v", err)
+	}
+	return list
+}
+
+// A negative hours is refused even where the server would ignore it.
+func TestCreateEquipment_IgnoredNegativeReadingRejected(t *testing.T) {
+	f, _ := newMeterFixture(t)
+
+	body := map[string]any{"name": "Dinghy", "tracks_hours": false, "hours": -5}
+	f.expectNegativeRejected(f.do(http.MethodPost, "/equipments", body), "create equipment without hour-meter")
+
+	if list := listEquipments(t, f); len(list) != 0 {
+		t.Errorf("%d equipments stored, want none", len(list))
+	}
+}
+
+func TestEditEquipment_IgnoredNegativeReadingRejected(t *testing.T) {
+	cases := []struct {
+		name        string
+		tracksHours bool // in the request; the equipment already tracks hours
+	}{
+		{"hour-meter stays on", true},
+		{"hour-meter turned off", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f, h := newMeterFixture(t)
+			id := seedHourEquipment(t, h, 100, 30*24*time.Hour)
+			before := f.equipment(id)
+
+			body := map[string]any{"name": "Renamed", "tracks_hours": tc.tracksHours, "hours": -5}
+			f.expectNegativeRejected(f.do(http.MethodPut, "/equipments/"+itoa(id), body), "edit equipment")
+
+			after := f.equipment(id)
+			if after.Name != before.Name || !after.TracksHours {
+				t.Errorf("equipment changed by a rejected request: name %q, tracks_hours %v", after.Name, after.TracksHours)
+			}
+			assertReading(t, after, 100)
+			assertFreshnessUnchanged(t, before, after)
+		})
+	}
+}
+
+func TestEditEquipment_NonTrackingIgnoredNegativeReadingRejected(t *testing.T) {
+	f, h := newMeterFixture(t)
+	id := seedEquipment(t, h) // tracks_hours = false, stays off
+
+	body := map[string]any{"name": "Renamed", "tracks_hours": false, "hours": -5}
+	f.expectNegativeRejected(f.do(http.MethodPut, "/equipments/"+itoa(id), body), "edit equipment")
+
+	eq := f.equipment(id)
+	if eq.Name == "Renamed" {
+		t.Errorf("name changed by a rejected request")
+	}
+	assertNoReading(t, eq)
 }
