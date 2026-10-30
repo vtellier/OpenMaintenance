@@ -3,7 +3,8 @@
 // of doc/data-model.md, "What changes the reading":
 //
 //   - a reading is never negative;
-//   - the reading never goes backwards;
+//   - the reading never goes backwards, except through Correct ("Correct
+//     reading"), the user's deliberate fix of a wrong reading;
 //   - an explicit reading (the initial one, "Update hours", "Same hours")
 //     always refreshes the freshness, even when the value is unchanged;
 //   - a reading captured by an intervention refreshes it only when it raises
@@ -84,6 +85,28 @@ func RecordIntervention(db *sql.DB, intervention *models.Intervention) error {
 	if err := write(db, eq, hours); err != nil && !errors.Is(err, ErrBackwards) {
 		return err
 	}
+	return nil
+}
+
+// Correct records the reading the user confirms through "Correct reading":
+// any value of 0 or more, lower than the current one included. It is the only
+// path that can lower the reading, and it refreshes the freshness. Deleting an
+// intervention, or lowering its hours_at, never calls it by itself: the user
+// decides (doc/data-model.md, "Reading in doubt").
+func Correct(db *sql.DB, eq *models.Equipment, hours float64) error {
+	if !eq.TracksHours {
+		return ErrNotTracked
+	}
+	if err := CheckReading(hours); err != nil {
+		return err
+	}
+	now := time.Now()
+	if err := dbpackage.CorrectEquipmentHours(db, eq.ID, hours, now); err != nil {
+		return err
+	}
+	eq.Hours = &hours
+	eq.HoursUpdatedAt = &now
+	eq.UpdatedAt = now
 	return nil
 }
 

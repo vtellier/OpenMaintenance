@@ -61,7 +61,20 @@ Save is disabled until all required fields are filled: date is always required; 
   - The equipment's **History** tab.
   - The global **History** screen.
 - Editing opens the full form prefilled, from every entry point, with the intervention's equipment: the task's equipment for a standard intervention, the intervention's own for an exceptional one. Saving an edit applies the same hour-meter rule as logging: a higher hours value raises the equipment's reading, an equal or lower one leaves it unchanged.
-- Deleting requires a confirmation. Side effects (next-due, equipment hours) are recomputed from the remaining history.
+- Deleting requires a confirmation: *"Are you sure you want to delete this intervention? Task due dates will be recomputed from the remaining history. The equipment's hour-meter reading is not lowered."* Next-due dates are recomputed from the remaining history; the equipment's reading is kept.
+
+### Reading in doubt (after a delete or an edit)
+
+When the deleted intervention, or the edited one whose reading was lowered, cleared or moved to another equipment, recorded the equipment's current reading, the reading may have come from it (see [data-model.md](../data-model.md#reading-in-doubt)). Once the delete or the edit is saved, a modal asks:
+
+- Title: *"Keep the hour-meter reading?"*
+- Text: *"This intervention recorded 500 h, the current reading of Main Engine. The reading may have come from it."*
+- **Keep the reading** (primary, focused: the default). Closes the modal; nothing changes, freshness included. Closing the modal any other way (overlay click) also keeps it.
+- **Correct the reading**: opens [Correct reading](./equipments.md#flow-correct-the-reading) for that equipment, prefilled with the highest reading left on its interventions, or empty if there is none.
+
+When the current reading is higher than the intervention's, nothing is asked: the reading is kept.
+
+Nothing is asked either when another intervention left on the equipment still recorded the current reading (the reading is still backed by the history), or when the equipment's reading, reloaded once the change is saved, no longer equals the one in doubt (it changed meanwhile, e.g. in another tab).
 
 ## User flow: quick log from dashboard
 

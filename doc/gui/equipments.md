@@ -29,7 +29,7 @@ Friendly message: *"No equipments yet."* + a prominent **"+ Add your first equip
 - **Equipment icon** (emoji, defaults to 🔧) shown on the left side, before the name. Clicking it opens the emoji picker; the change is saved immediately.
 - Equipment name.
 - Edit / delete actions.
-- Hour-meter value + last update relative time (e.g. *"1 245 h • updated 3 days ago"*) + **"Update hours"** action. Only if the equipment tracks hours. Stale values are emphasized.
+- Hour-meter value + last update relative time (e.g. *"1 245 h • updated 3 days ago"*) + **"Update hours"** and **"Correct reading"** actions. Only if the equipment tracks hours. Stale values are emphasized.
 
 ### Tabs
 
@@ -74,12 +74,19 @@ The same flow is reachable from three places: the equipment detail header, the d
    - `hours_updated_at` is set to "now", **even when the value is unchanged** — submitting the form is an explicit freshness confirmation, so it dismisses the Dashboard reminder. (Logging an intervention keeps the stricter "only when hours increase" rule; see [data-model.md](../data-model.md).)
    - Any hour-based task statuses are recomputed.
 
+### Flow: Correct the reading
+The deliberate way to fix a wrong reading, e.g. a mistyped one, including setting it **lower**. Reachable from the equipment detail header (**"Correct reading"**) and from the question asked after deleting or editing the intervention the reading may have come from (see [interventions.md](./interventions.md#reading-in-doubt-after-a-delete-or-an-edit)).
+
+1. A page (`/equipments/{id}/edit/hours/correct`) shows the current reading and a **Corrected reading** field: empty from the header, or prefilled with the highest reading left on the equipment's interventions when opened from the question (`?hours=` in the URL). The user confirms or adjusts it.
+2. Text: *"The reading becomes this value, even if it is lower than the current one."*
+3. **Correct reading** (disabled while the field is empty or negative) saves via `PUT /equipments/{id}/hours/correction`: the reading becomes the value and `hours_updated_at` is set to "now". The user returns to the equipment detail. **Cancel** changes nothing.
+
 ### Flow: Toggle hour-meter on an existing equipment
 1. User goes to the Info tab.
 2. Turning `tracks_hours` on: a hours field appears, user sets initial value. It is prefilled with the last known reading (kept from an earlier tracking period), or 0 if there is none, and cannot be lower than that reading. On save, it becomes the reading and `hours_updated_at` is set to "now".
 3. Turning `tracks_hours` off: the app warns that any task using `hours_interval` will be affected. Confirmation required. The last reading and its freshness are kept (hidden), so turning the hour-meter back on cannot lower it.
 
-The hours field only appears while turning the hour-meter on. When editing an equipment that already tracks hours, the form has no hours field: the reading changes only through **"Update hours"** (or the Dashboard's **"Same hours"**) and interventions.
+The hours field only appears while turning the hour-meter on. When editing an equipment that already tracks hours, the form has no hours field: the reading changes only through **"Update hours"** (or the Dashboard's **"Same hours"**), **"Correct reading"** and interventions.
 
 ### Flow: Change the icon
 There are two ways to change the icon:

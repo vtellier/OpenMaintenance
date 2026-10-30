@@ -8,6 +8,7 @@ import { EquipmentDetailPage } from '@/pages/EquipmentDetailPage'
 import { EquipmentEditPage } from '@/pages/EquipmentEditPage'
 import { EquipmentDeletePage } from '@/pages/EquipmentDeletePage'
 import { EquipmentHoursPage } from '@/pages/EquipmentHoursPage'
+import { EquipmentCorrectHoursPage } from '@/pages/EquipmentCorrectHoursPage'
 import { HistoryPage } from '@/pages/HistoryPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { EquipmentApi } from '@generated/api'
@@ -23,6 +24,7 @@ const equipmentPathRe = /^\/equipments\/(\d+)(?:\/(history|documents|info))?$/
 const equipmentEditRe = /^\/equipments\/(\d+)\/edit$/
 const equipmentDeleteRe = /^\/equipments\/(\d+)\/delete$/
 const equipmentHoursRe = /^\/equipments\/(\d+)\/edit\/hours$/
+const equipmentCorrectHoursRe = /^\/equipments\/(\d+)\/edit\/hours\/correct$/
 
 export async function routeToPage(url: string): Promise<Page> {
   const pathname = new URL(url, 'http://arrow.local').pathname
@@ -42,6 +44,17 @@ export async function routeToPage(url: string): Promise<Page> {
 
       title: 'Equipments | OpenMaintenance',
       view: App(pathname, EquipmentsPage()),
+    }
+  }
+
+  const correctHoursMatch = pathname.match(equipmentCorrectHoursRe)
+  if (correctHoursMatch) {
+    const view = EquipmentCorrectHoursPage(correctHoursMatch[1])
+    return {
+      description: 'Correct hour-meter reading',
+
+      title: 'Correct reading | OpenMaintenance',
+      view: App(pathname, view),
     }
   }
 

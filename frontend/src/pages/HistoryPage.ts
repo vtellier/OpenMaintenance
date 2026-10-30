@@ -8,6 +8,8 @@ import { buildInterventionMeta } from '@/lib/format'
 import { WithCalendarDates, formatCalendarDate, compareCalendarDates, fromApiDate, fromApiDateTime } from '@/lib/calendar-date'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { InterventionFormSource } from '@/lib/interventionForm'
+import { ReadingDoubt, readingDoubt } from '@/lib/readingDoubt'
+import { readingQuestion } from '@/components/ReadingDoubtModal'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -34,6 +36,7 @@ export function HistoryPage() {
       deleteTarget: null as InterventionRow | null,
       deleteSaving: false,
       deleteError: null as string | null,
+
     })
 
     async function load() {
@@ -95,6 +98,7 @@ export function HistoryPage() {
       form = FullInterventionModal(source, {
         equipments: () => state.equipments,
         allTasks: () => state.tasks,
+        interventions: () => state.interventions,
         onClose: onCloseForm,
         onSaved: onFormSaved,
       })
@@ -113,10 +117,15 @@ export function HistoryPage() {
       state.formOpen = false
     }
 
-    async function onFormSaved() {
+    async function onFormSaved(doubt: ReadingDoubt | null) {
       state.formOpen = false
       await load()
+      readingQ.ask(doubt, state.equipments)
     }
+
+    // The question about the reading a delete or an edit may have set
+    // (doc/gui/interventions.md).
+    const readingQ = readingQuestion()
 
     function onDeleteClick(inv: InterventionRow) {
       state.showDeleteConfirm = true
@@ -136,10 +145,15 @@ export function HistoryPage() {
       if (state.deleteTarget == null || state.deleteTarget.id == null) return
       state.deleteSaving = true
       state.deleteError = null
+      const doubt = readingDoubt(
+        { deleted: state.deleteTarget },
+        { equipments: state.equipments, tasks: state.tasks, interventions: state.interventions },
+      )
       try {
         await interventionApi.deleteIntervention({ id: state.deleteTarget.id })
         state.showDeleteConfirm = false
         await load()
+        readingQ.ask(doubt, state.equipments)
       } catch {
         state.deleteError = 'Failed to delete intervention'
       } finally {
@@ -263,13 +277,14 @@ export function HistoryPage() {
       }}
 
       ${() => state.formOpen ? form : null}
+      ${readingQ.view}
 
       ${() => state.showDeleteConfirm ? html`
         <div class="modal-overlay" @click="${onDeleteOverlayClick}">
           <div class="modal">
             <h2 class="modal__title">Delete intervention</h2>
             ${() => state.deleteError ? html`<div class="flash flash--error">${state.deleteError}</div>` : null}
-            <p class="confirm-text">Are you sure you want to delete this intervention? Equipment hours and task due dates will be recomputed from the remaining history.</p>
+            <p class="confirm-text">Are you sure you want to delete this intervention? Task due dates will be recomputed from the remaining history. The equipment's hour-meter reading is not lowered.</p>
             <div class="modal__actions">
               <button class="btn" @click="${onCancelDelete}">Cancel</button>
               <button class="btn btn--danger" @click="${onConfirmDelete}" disabled="${() => state.deleteSaving}">
