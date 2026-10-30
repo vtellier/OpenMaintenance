@@ -38,7 +38,8 @@ function equipmentOf(inv: InterventionReading, ctx: ReadingDoubtContext): number
 /**
  * The doubt a change leaves on the reading of the intervention's equipment, or
  * null when there is none: the equipment tracks hours, the intervention
- * recorded its current reading, and no longer does after the change.
+ * recorded its current reading, no longer does after the change, and no other
+ * intervention left on the equipment recorded it.
  */
 export function readingDoubt(change: ReadingChange, ctx: ReadingDoubtContext): ReadingDoubt | null {
   const before = 'deleted' in change ? change.deleted : change.edited
@@ -54,6 +55,8 @@ export function readingDoubt(change: ReadingChange, ctx: ReadingDoubtContext): R
   const left = ctx.interventions
     .filter(inv => inv.id !== before.id && equipmentOf(inv, ctx) === eq.id && inv.hoursAt != null)
     .map(inv => inv.hoursAt as number)
+  // Another intervention still recorded the current reading: it is backed.
+  if (left.includes(eq.hours)) return null
   if (after != null) left.push(after)
 
   return {
