@@ -31,7 +31,7 @@ var (
 	// current one.
 	ErrBackwards = errors.New("hours cannot be lower than the current reading")
 	// ErrNegative is returned for a reading below zero.
-	ErrNegative = errors.New("hours cannot be negative")
+	ErrNegative = errors.New("Hours cannot be negative")
 )
 
 // CheckReading rejects a negative reading. Every value entered as a reading

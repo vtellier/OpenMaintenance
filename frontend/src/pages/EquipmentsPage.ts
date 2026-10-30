@@ -4,7 +4,7 @@ import { Task } from '@generated/api/models/Task'
 import { Intervention } from '@generated/api/models/Intervention'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { formatHours } from '@/lib/format'
+import { extractErrorMessage, formatHours } from '@/lib/format'
 import { dueTimingText } from '@/lib/dueTiming'
 import { byUrgency } from '@/lib/urgency'
 import { relativeTime, isHoursVeryStale } from '@/lib/timestamp'
@@ -131,7 +131,7 @@ export const EquipmentsPage = component(() => {
       state.addHours = 0
       await load()
     } catch (err) {
-      state.addError = 'Failed to add equipment'
+      state.addError = await extractErrorMessage(err, 'Failed to add equipment')
     } finally {
       state.adding = false
     }

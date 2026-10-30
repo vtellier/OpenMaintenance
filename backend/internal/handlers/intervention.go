@@ -126,7 +126,7 @@ func validateIntervention(intervention *models.Intervention) error {
 	}
 	if intervention.HoursAt != nil {
 		if err := hourmeter.CheckReading(*intervention.HoursAt); err != nil {
-			return fmt.Errorf("hours_at: %w", err)
+			return err
 		}
 	}
 	if intervention.TaskID == nil {
