@@ -13,11 +13,11 @@ Browse, find, and create equipments. Get an at-a-glance status of each.
 
 ### Card content
 - **Equipment icon** (emoji, defaults to 🔧) shown as a small avatar in the top-left corner of the card.
-- **Equipment name** (large, primary).
+- **Equipment name** (large, primary), followed by an **Incomplete** badge when the equipment is incomplete (`incomplete` on the equipment, see [data-model.md](../data-model.md#incomplete-equipment)).
 - **Description** (optional, truncated to 1–2 lines).
-- **Hour-meter** value (only if the equipment tracks hours, e.g. *"1 245 h"*) + the **last hour-meter update** as relative time (e.g. *"updated 3 days ago"*, *"never updated"*). Stale updates (older than the configured threshold) are visually emphasized.
+- **Hour-meter** value (only if the equipment tracks hours, e.g. *"1 245 h"*) + the **last hour-meter update** as relative time (e.g. *"updated 3 days ago"*, *"never updated"*). Stale updates (older than the configured threshold) are visually emphasized. With no reading yet it reads *"No reading yet"*.
 - **Last intervention**: date + task name (e.g. *"Last: Oil change, 12 Apr 2026"*). If none, show *"No intervention yet"*.
-- **Next due**: the most urgent upcoming task, the first in [urgency order](../data-model.md#ranking-tasks-by-urgency), with its urgency indicator (color + status label), its name and its timing text, the same timing text as the dashboard (see [dashboard.md](./dashboard.md#timing-text)), e.g. *"[Overdue] Oil change — 120 h ago"*. When several tasks have that status, their count replaces the name, followed by the most urgent one's timing text, e.g. *"[Overdue] 3 tasks — most urgent 120 h ago"*. If none, show *"All tasks OK"*.
+- **Next due**: the most urgent upcoming task, the first in [urgency order](../data-model.md#ranking-tasks-by-urgency) (overdue, then incomplete, then due soon), with its urgency indicator (color + status label), its name and its timing text, the same timing text as the dashboard (see [dashboard.md](./dashboard.md#timing-text)), e.g. *"[Overdue] Oil change — 120 h ago"*, *"[Incomplete] CO2 cartridge — no expiry date"*. When several tasks have that status, their count replaces the name, followed by the most urgent one's timing text, e.g. *"[Overdue] 3 tasks — most urgent 120 h ago"*. If none, show *"All tasks OK"*.
 - Clicking a card → navigates to the equipment detail screen.
 
 ### Empty state
@@ -30,6 +30,19 @@ Friendly message: *"No equipments yet."* + a prominent **"+ Add your first equip
 - Equipment name.
 - Edit / delete actions.
 - Hour-meter value + last update relative time (e.g. *"1 245 h • updated 3 days ago"*) + **"Update hours"** action. Only if the equipment tracks hours. Stale values are emphasized.
+- With **no reading yet**, the hour-meter reads *"No reading yet"* with the **Incomplete** badge next to it, and the action reads **"Enter hours"** (the same form).
+
+### Incomplete values on the detail screen
+
+Each missing value is marked **where it is shown**, with a way to fill it (see [data-model.md](../data-model.md#incomplete-equipment)):
+
+| Missing value | Where | Way to fill it |
+|---------------|-------|----------------|
+| Hour-meter reading | Header, next to the hour-meter | **"Enter hours"** → the hours update form |
+| Expiry date | Tasks tab, on the task row (*"Incomplete — no expiry date"*) | **"Set expiry date"** → the task edit form, which asks for the current expiry date; or **"Mark done"** to log a replacement |
+| Starting point of a months task | Tasks tab, on the task row (*"Incomplete — never done"*); and Info tab, next to the empty commissioning date | **"Set commissioning date"** → the equipment edit form; or **"Mark done"** to log a first intervention |
+
+Once the value is filled, the marker goes and the task's status is recomputed.
 
 ### Tabs
 
@@ -60,15 +73,15 @@ Empty state: *"No documents attached."* + **"+ Upload your first document"** CTA
    - **Icon** (defaults to 🔧) — chosen from an **icon picker**: a button opens a searchable emoji picker (any emoji, no text field), with a Reset to 🔧. The icon is the equipment's marker in lists and the dashboard.
    - Date of commissioning (optional, date picker)
    - Toggle: *"This equipment has an hour-meter"* (`tracks_hours`)
-   - If toggled on: initial hours value (defaults to 0)
-3. User saves. With the hour-meter on, the initial value becomes the first reading and `hours_updated_at` is set to "now".
+   - If toggled on: initial hours value (optional, **empty by default**: the app never invents a reading)
+3. User saves. With the hour-meter on, the initial value becomes the first reading and `hours_updated_at` is set to "now". Left empty, the equipment has no reading yet and is shown as **incomplete** until the user enters one.
 4. New equipment appears in the list; user can be redirected to its detail screen.
 
 ### Flow: Update hour-meter
 The same flow is reachable from three places: the equipment detail header, the dashboard freshness banner, and (indirectly) when logging an intervention.
 
 1. User taps **"Update hours"**.
-2. A small form asks for the new hours value (must be ≥ current).
+2. A small form asks for the new hours value (must be ≥ current; with no reading yet, any value ≥ 0, and the field starts empty).
 3. On save (via `PUT /equipments/{id}/hours`):
    - The equipment's `hours` is updated.
    - `hours_updated_at` is set to "now", **even when the value is unchanged** — submitting the form is an explicit freshness confirmation, so it dismisses the Dashboard reminder. (Logging an intervention keeps the stricter "only when hours increase" rule; see [data-model.md](../data-model.md).)
@@ -76,7 +89,7 @@ The same flow is reachable from three places: the equipment detail header, the d
 
 ### Flow: Toggle hour-meter on an existing equipment
 1. User goes to the Info tab.
-2. Turning `tracks_hours` on: a hours field appears, user sets initial value. It is prefilled with the last known reading (kept from an earlier tracking period), or 0 if there is none, and cannot be lower than that reading. On save, it becomes the reading and `hours_updated_at` is set to "now".
+2. Turning `tracks_hours` on: a hours field appears, user sets initial value. It is prefilled with the last known reading (kept from an earlier tracking period), or left empty if there is none, and cannot be lower than that reading. On save, it becomes the reading and `hours_updated_at` is set to "now". Left empty, the equipment has no reading yet and is incomplete.
 3. Turning `tracks_hours` off: the app warns that any task using `hours_interval` will be affected. Confirmation required. The last reading and its freshness are kept (hidden), so turning the hour-meter back on cannot lower it.
 
 The hours field only appears while turning the hour-meter on. When editing an equipment that already tracks hours, the form has no hours field: the reading changes only through **"Update hours"** (or the Dashboard's **"Same hours"**) and interventions.

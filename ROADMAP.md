@@ -23,6 +23,7 @@
 - [x] **No negative hour reading** (issue #102): `hours_at` and every explicit reading (creation, turning tracking on, "Update hours") must be 0 or more; a negative one is a 400 with a reason
 - [x] **Hours baseline skips interventions without a reading** (issue #81): counted from the most recent `hours_at` on the task; a task done but never with a reading has no hours rule until one is logged, instead of counting from 0 and turning overdue at once
 - [x] **Month-end next due date** (issue #80): adding months clamps to the target month's last day (Jan 31 + 1 month = Feb 28/29) instead of rolling over to early March
+- [ ] **Incomplete equipment** (issue #103): a missing hour-meter reading, expiry date or months starting point marks the equipment, and the task, as incomplete instead of overdue; ranked after overdue, before due soon (spec awaiting approval)
 
 ## Milestone 3 — Frontend Foundation
 

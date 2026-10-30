@@ -26,6 +26,10 @@ _Avoid_: Obsolescence date, use-by date, best-before
 **Current expiry date**:
 The expiry date of the part already fitted when an expiry task is created, before any intervention records one.
 
+**Incomplete**:
+Said of an equipment, or of one of its tasks, when a value only the user can give is missing (an hour-meter reading, a part's expiry date, or when a task's count starts), so the app cannot tell when the task is due. An incomplete task is not late: it is not overdue. Creating an incomplete equipment is normal; the user fills the value in later.
+_Avoid_: Missing data, unknown, pending, overdue with no date
+
 **Intervention**:
 A recorded maintenance action on an equipment, either for a task (standard) or a one-off (exceptional).
 _Avoid_: Log entry, job
