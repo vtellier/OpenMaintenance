@@ -80,6 +80,7 @@ _Depends on Milestone 6 (quick-log must work, `hours_updated_at` must be set, da
 - [x] Delete intervention from history with confirmation (global + per-equipment)
 - [x] **One intervention form module** (issue #73): prefill, validation, request and error reason live in `src/lib/interventionForm.ts`; editing from the global History no longer loses the equipment (empty Task list, no Hours field, exceptional entry unsavable), and the reading is sent whenever the equipment tracks hours
 - [x] **Quick log uses the intervention form module** (issue #74): the Dashboard and Equipment detail "Mark done" logs share one modal that prefills and saves through `interventionForm.ts`; a refused Dashboard quick log now shows the backend's reason, and an empty reading sends none
+- [x] **Location in the quick log** (issue #97): the "Mark done" quick log asks for an optional Location between Hours and Done by, sent trimmed when not blank
 
 ## Milestone 9 — Settings
 
