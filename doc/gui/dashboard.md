@@ -39,7 +39,7 @@ For each equipment block:
 For each task row:
 - Task name.
 - Urgency indicator: **color** (red = overdue, amber = due soon) + status label + **timing text** (see below), e.g. *"Overdue — 3d ago"*, *"Due soon — in 12d"*, *"Due soon — in 80 h"*.
-- Quick action: **"Mark done"** button → opens the quick log form (see [interventions.md](./interventions.md)).
+- Quick action: **"Done"** button → opens the intervention form prefilled to mark the task done: its equipment and task selected, today's date, the equipment's current reading (see [interventions.md](./interventions.md#opened-from-done-marking-a-task-done)).
 
 #### Timing text
 
@@ -78,9 +78,9 @@ Note: the hour-meter freshness banner is independent of the tasks empty state. I
 
 ### Flow: Log an intervention from the dashboard
 1. User sees an overdue/due task.
-2. User taps **"Mark done"** on the task row.
-3. Quick log form opens (date defaults to today in the user's timezone; hours pre-filled if equipment tracks hours, empty when it has no reading yet).
-4. User confirms.
+2. User taps **"Done"** on the task row.
+3. The intervention form opens with the task's equipment and the task selected (date defaults to today in the user's timezone; hours pre-filled if equipment tracks hours, empty when it has no reading yet; an expiry task's expiry date is empty and required).
+4. User taps **Save**. A save the backend refuses keeps the form open and shows the reason.
 5. Task disappears from the dashboard (or moves down if other tasks of the same equipment remain).
 
 ### Flow: Jump to an equipment

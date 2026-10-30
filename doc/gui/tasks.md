@@ -20,7 +20,7 @@ A list of tasks for this equipment, each row showing:
 - **Urgency indicator**: color + status label + timing text, same as the dashboard (see [dashboard.md](./dashboard.md#timing-text)). An OK task shows *"OK"* only.
 - **Last intervention**: date (or *"never"*).
 - Quick actions:
-  - **"Mark done"** → opens the quick log form (see [interventions.md](./interventions.md)).
+  - **"Done"** → opens the intervention form prefilled to mark the task done: the task selected, today's date, the equipment's current reading (see [interventions.md](./interventions.md#opened-from-done-marking-a-task-done)). Once saved, the list refreshes with the task's new status and last date.
   - **Edit** / **Delete** task.
 
 Tasks are in [urgency order](../data-model.md#ranking-tasks-by-urgency) by default: overdue first, then due soon, then OK, and within each the task furthest through its interval first.
@@ -69,7 +69,11 @@ When an equipment has no tasks yet:
 3. On confirm, task and its interventions are removed.
 
 ### Flow: Mark a task as done
-See [interventions.md](./interventions.md).
+1. User taps **Done** on a task row.
+2. The intervention form opens with the task selected (the equipment picker is hidden on Equipment detail), today's date and the equipment's current reading.
+3. User taps **Save**. The form closes and the Tasks tab refreshes.
+
+See [interventions.md](./interventions.md#opened-from-done-marking-a-task-done).
 
 ## Photos (issue #26)
 
