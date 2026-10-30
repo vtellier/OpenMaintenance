@@ -403,7 +403,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
     async function onFullFormSaved(doubt: ReadingDoubt | null) {
       state.fullFormOpen = false
       await load()
-      readingQ.ask(doubt)
+      readingQ.ask(doubt, state.equipment == null ? [] : [state.equipment])
     }
 
     // The question about the reading a delete or an edit may have set
@@ -436,7 +436,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
         await interventionApi.deleteIntervention({ id: state.historyDeleteTarget.id })
         state.showHistoryDelete = false
         await load()
-        readingQ.ask(doubt)
+        readingQ.ask(doubt, state.equipment == null ? [] : [state.equipment])
       } catch {
         state.historyDeleteError = 'Failed to delete intervention'
       } finally {

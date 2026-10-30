@@ -67,6 +67,21 @@ export function readingDoubt(change: ReadingChange, ctx: ReadingDoubtContext): R
   }
 }
 
+/**
+ * The doubt, checked against the equipments reloaded once the change is
+ * saved: null unless the equipment still tracks hours and its fresh reading
+ * still equals the one in doubt. A page left open while the reading changed
+ * elsewhere would otherwise ask about a reading the equipment no longer has.
+ */
+export function stillInDoubt(
+  doubt: ReadingDoubt | null,
+  fresh: Pick<Equipment, 'id' | 'tracksHours' | 'hours'>[],
+): ReadingDoubt | null {
+  if (doubt == null) return null
+  const eq = fresh.find(e => e.id === doubt.equipmentId)
+  return eq?.tracksHours && eq.hours === doubt.reading ? doubt : null
+}
+
 /** The "Correct reading" page for the doubt, prefilled with its suggestion. */
 export function correctReadingHref(doubt: ReadingDoubt): string {
   const href = '/equipments/' + doubt.equipmentId + '/edit/hours/correct'

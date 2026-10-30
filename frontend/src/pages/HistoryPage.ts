@@ -120,7 +120,7 @@ export function HistoryPage() {
     async function onFormSaved(doubt: ReadingDoubt | null) {
       state.formOpen = false
       await load()
-      readingQ.ask(doubt)
+      readingQ.ask(doubt, state.equipments)
     }
 
     // The question about the reading a delete or an edit may have set
@@ -153,7 +153,7 @@ export function HistoryPage() {
         await interventionApi.deleteIntervention({ id: state.deleteTarget.id })
         state.showDeleteConfirm = false
         await load()
-        readingQ.ask(doubt)
+        readingQ.ask(doubt, state.equipments)
       } catch {
         state.deleteError = 'Failed to delete intervention'
       } finally {
