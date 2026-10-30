@@ -68,11 +68,11 @@ describe('prefill', () => {
       expect(prefill({ new: { equipmentId: 2 } }, ctx).hours).toBeNull()
     })
 
-    it("quick log for a task defaults to today and its equipment's current reading", () => {
+    it("Done on a task selects its equipment and the task, and defaults to today and the equipment's current reading", () => {
       vi.useFakeTimers({ toFake: ['Date'] })
       vi.setSystemTime(new Date('2026-06-22T12:00:00')) // local noon
 
-      const form = prefill({ quickLog: { taskId: 10 } }, ctx)
+      const form = prefill({ done: { taskId: 10 } }, ctx)
 
       expect(form).toEqual({
         editId: null, equipmentId: 1, taskId: 10, isExceptional: false, exceptionalLabel: '',
@@ -80,20 +80,20 @@ describe('prefill', () => {
       })
     })
 
-    it('quick log for a task on an equipment that does not track hours has no reading', () => {
-      expect(prefill({ quickLog: { taskId: 11 } }, ctx)).toMatchObject({ equipmentId: 2, taskId: 11, hours: null })
+    it('Done on a task of an equipment that does not track hours has no reading', () => {
+      expect(prefill({ done: { taskId: 11 } }, ctx)).toMatchObject({ equipmentId: 2, taskId: 11, hours: null })
     })
 
-    it('quick log for an expiry task starts with no expiry date', () => {
-      expect(prefill({ quickLog: { taskId: 12 } }, ctx)).toMatchObject({ equipmentId: 2, taskId: 12, expiryDate: '' })
+    it('Done on an expiry task starts with no expiry date', () => {
+      expect(prefill({ done: { taskId: 12 } }, ctx)).toMatchObject({ equipmentId: 2, taskId: 12, expiryDate: '' })
     })
 
     it('from an equipment that tracks hours but has no reading yet leaves the reading empty', () => {
       expect(prefill({ new: { equipmentId: 3 } }, ctx).hours).toBeNull()
     })
 
-    it('quick log for a task on an equipment with no reading yet leaves the reading empty', () => {
-      expect(prefill({ quickLog: { taskId: 13 } }, ctx)).toMatchObject({ equipmentId: 3, taskId: 13, hours: null })
+    it('Done on a task of an equipment with no reading yet leaves the reading empty, never invented', () => {
+      expect(prefill({ done: { taskId: 13 } }, ctx)).toMatchObject({ equipmentId: 3, taskId: 13, hours: null })
     })
   })
 })
@@ -120,7 +120,7 @@ describe('canSave', () => {
     ['an intervention on an expiry task with an expiry date', expiry, true],
     ['an intervention on an expiry task without an expiry date', { ...expiry, expiryDate: '' }, false],
     ['an intervention on an expiry task with an expiry date already past', { ...expiry, expiryDate: '2020-01-01' }, true],
-    ['a quick log for an expiry task before the expiry date is entered', prefill({ quickLog: { taskId: 12 } }, ctx), false],
+    ['Done on an expiry task before the expiry date is entered', prefill({ done: { taskId: 12 } }, ctx), false],
   ])('%s', (_name, form, expected) => {
     expect(canSave(form, ctx)).toBe(expected)
   })
@@ -171,8 +171,8 @@ describe('toRequest', () => {
     })
   })
 
-  it('a quick log sends its task, the date, the reading and the details entered', () => {
-    const form = { ...prefill({ quickLog: { taskId: 10 } }, ctx), date: '2026-05-03' as const, performedBy: ' Self ', comments: 'ok' }
+  it('a task marked done sends its task, the date, the reading and the details entered', () => {
+    const form = { ...prefill({ done: { taskId: 10 } }, ctx), date: '2026-05-03' as const, performedBy: ' Self ', comments: 'ok' }
 
     expect(toRequest(form, ctx)).toEqual({
       id: undefined,
@@ -189,14 +189,14 @@ describe('toRequest', () => {
     expect(toRequest(form, ctx).interventionInput.hoursAt).toBeUndefined()
   })
 
-  it('a quick log on an equipment with no reading yet, saved untouched, sends no reading', () => {
-    const form = prefill({ quickLog: { taskId: 13 } }, ctx)
+  it('a task marked done on an equipment with no reading yet, saved untouched, sends no reading', () => {
+    const form = prefill({ done: { taskId: 13 } }, ctx)
 
     expect(toRequest(form, ctx).interventionInput.hoursAt).toBeUndefined()
   })
 
-  it('a quick log with its reading cleared sends no reading', () => {
-    const form = { ...prefill({ quickLog: { taskId: 10 } }, ctx), hours: null }
+  it('a task marked done with its reading cleared sends no reading', () => {
+    const form = { ...prefill({ done: { taskId: 10 } }, ctx), hours: null }
 
     expect(toRequest(form, ctx).interventionInput.hoursAt).toBeUndefined()
   })
@@ -208,8 +208,8 @@ describe('toRequest', () => {
     })
   })
 
-  it('a quick log for an expiry task sends the expiry date entered', () => {
-    const form = { ...prefill({ quickLog: { taskId: 12 } }, ctx), expiryDate: '2031-04-30' as const }
+  it('an expiry task marked done sends the expiry date entered', () => {
+    const form = { ...prefill({ done: { taskId: 12 } }, ctx), expiryDate: '2031-04-30' as const }
 
     expect(toRequest(form, ctx).interventionInput).toMatchObject({ taskId: 12, expiryDate: new Date('2031-04-30T00:00:00Z') })
   })
