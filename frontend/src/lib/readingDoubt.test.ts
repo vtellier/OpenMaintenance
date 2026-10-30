@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { correctReadingHref, readingDoubt } from '@/lib/readingDoubt'
+import { correctReadingHref, readingDoubt, stillInDoubt } from '@/lib/readingDoubt'
 
 // Issue #70: deleting an intervention, or editing its reading down, never
 // lowers the equipment's reading by itself. When the reading may have come
@@ -110,6 +110,33 @@ describe('readingDoubt after an edit', () => {
 
   it('does not ask when the edited intervention did not record the current reading', () => {
     expect(readingDoubt({ edited: at300, to: { equipmentId: 1, hoursAt: 100 } }, ctx)).toBeNull()
+  })
+})
+
+// The doubt is computed from the page's data before the change; the page
+// reloads before asking. A page left open while the reading changed elsewhere
+// must not ask about a reading the equipment no longer has.
+describe('stillInDoubt against the reloaded equipments', () => {
+  const doubt = { equipmentId: 1, equipmentName: 'Main Engine', reading: 500, suggested: 420 }
+
+  it('keeps the doubt when the fresh reading still equals the one in doubt', () => {
+    expect(stillInDoubt(doubt, [generator, { ...engine, hours: 500 }])).toEqual(doubt)
+  })
+
+  it('drops it when the reading changed meanwhile', () => {
+    expect(stillInDoubt(doubt, [{ ...engine, hours: 620 }])).toBeNull()
+  })
+
+  it('drops it when the equipment no longer tracks hours', () => {
+    expect(stillInDoubt(doubt, [{ ...engine, tracksHours: false }])).toBeNull()
+  })
+
+  it('drops it when the equipment is gone', () => {
+    expect(stillInDoubt(doubt, [generator])).toBeNull()
+  })
+
+  it('has nothing to keep when there was no doubt', () => {
+    expect(stillInDoubt(null, [engine])).toBeNull()
   })
 })
 
