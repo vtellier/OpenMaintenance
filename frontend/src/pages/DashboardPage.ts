@@ -203,8 +203,11 @@ export function DashboardPage() {
               return html`<p class="page__empty">You're all caught up. Nothing due right now.</p>`
             }
 
+            // Every dynamic child is a function: when the slot runs again, the
+            // same-shaped templates are updated in place, and static arrays or
+            // templates keep their first render (Arrow.js Gotcha 9, #109).
             return html`<div class="dashboard-tasks">
-              ${entries.map(([eqId, tasks]) => {
+              ${() => entries.map(([eqId, tasks]) => {
                 const eq = state.equipments.find(e => e.id === eqId)
                 if (!eq) {
                   console.warn(`DashboardPage: tasks reference unknown equipment ${eqId}`)
@@ -213,11 +216,11 @@ export function DashboardPage() {
                 const eqDetailHref = '/equipments/' + eqId
                 return html`<div class="equipment-block">
                   <div class="equipment-block__header">
-                    <a href="${eqDetailHref}" class="equipment-block__name">${equipmentAvatar(eq)}<span>${eq.name}</span></a>
-                    ${eq.tracksHours ? html`<span class="equipment-block__hours">${formatHours(eq.hours)}</span>` : null}
+                    <a href="${() => eqDetailHref}" class="equipment-block__name">${() => equipmentAvatar(eq)}<span>${eq.name}</span></a>
+                    ${() => eq.tracksHours ? html`<span class="equipment-block__hours">${formatHours(eq.hours)}</span>` : null}
                   </div>
                   <div class="task-list-compact">
-                    ${tasks.map(t => {
+                    ${() => tasks.map(t => {
                       const dueClass = 'due-indicator due-indicator--' + (t.dueStatus === 'overdue' ? 'overdue' : 'due-soon')
                       const dueLabel = t.dueStatus === 'overdue' ? 'Overdue' : 'Due soon'
                       const dueRelativeStr = dueTimingText(t)
