@@ -10,7 +10,7 @@ import { byUrgency } from '@/lib/urgency'
 import { relativeTime, isHoursStale, isHoursVeryStale } from '@/lib/timestamp'
 import { WithCalendarDates, fromApiDate, fromApiDateTime } from '@/lib/calendar-date'
 import { equipmentAvatar } from '@/components/EquipmentAvatar'
-import { QuickLogModal } from '@/components/QuickLogModal'
+import { FullInterventionModal } from '@/components/FullInterventionModal'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -27,7 +27,7 @@ export function DashboardPage() {
       interventions: [] as InterventionRow[],
       loaded: false,
       loadError: null as string | null,
-      quickLogOpen: false,
+      doneFormOpen: false,
       sameHoursSavingId: null as number | null,
     })
 
@@ -85,28 +85,31 @@ export function DashboardPage() {
       }
     }
 
-    // Built when opened, outside any reactive expression: the quick log
-    // prefills from the page's data once, and a later change to that data
-    // does not rebuild it and lose what the user typed.
-    let quickLog: ReturnType<typeof QuickLogModal> | null = null
+    // Done opens the full intervention form, prefilled for the task. Built
+    // when opened, outside any reactive expression: the form prefills from the
+    // page's data once, and a later change to that data does not rebuild it
+    // and lose what the user typed.
+    let doneForm: ReturnType<typeof FullInterventionModal> | null = null
 
-    function onQuickLog(task: TaskRow) {
+    function onDone(task: TaskRow) {
       if (task.id == null) return
-      quickLog = QuickLogModal({ id: task.id, name: task.name ?? '' }, {
+      doneForm = FullInterventionModal({ done: { taskId: task.id } }, {
         equipments: () => state.equipments,
-        tasks: () => state.tasks,
-        onClose: onCloseQuickLog,
-        onSaved: onQuickLogSaved,
+        allTasks: () => state.tasks,
+        interventions: () => state.interventions,
+        onClose: onCloseDoneForm,
+        // A new log never leaves the reading in doubt: nothing to ask.
+        onSaved: onDoneFormSaved,
       })
-      state.quickLogOpen = true
+      state.doneFormOpen = true
     }
 
-    function onCloseQuickLog() {
-      state.quickLogOpen = false
+    function onCloseDoneForm() {
+      state.doneFormOpen = false
     }
 
-    async function onQuickLogSaved() {
-      state.quickLogOpen = false
+    async function onDoneFormSaved() {
+      state.doneFormOpen = false
       await load()
     }
 
@@ -224,7 +227,7 @@ export function DashboardPage() {
                           <p class="task-row__meta"><span class="${dueClass}">${dueLabel} \u2014 ${dueRelativeStr}</span></p>
                         </div>
                         <div class="task-row__actions">
-                          <button class="btn btn--small" @click="${() => onQuickLog(t)}">Done</button>
+                          <button class="btn btn--small" @click="${() => onDone(t)}">Done</button>
                         </div>
                       </div>`
                     })}
@@ -236,7 +239,7 @@ export function DashboardPage() {
         `
       }}
 
-      ${() => state.quickLogOpen ? quickLog : null}
+      ${() => state.doneFormOpen ? doneForm : null}
     </section>`
   })()
 }
