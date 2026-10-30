@@ -561,3 +561,11 @@ Can start now: #65, #66, #69, #75.
 - Verified with `go test ./...`, `go build`, `pnpm test:unit`, `pnpm test`, `pnpm run typecheck`, `pnpm run build` and `make build`.
 - **Follow-ups** (after review): merged PR #100's no-reading fix. Logging a replacement (or editing an intervention onto an expiry task) now clears the task's current expiry date in the same transaction, so deleting every intervention leaves the task overdue with no date and the task form asks for the date again (user decision; showing it as incomplete is #103). Spec in `doc/data-model.md` and `doc/gui/tasks.md`, failing `httptest` cases first in `expiry_task_test.go`, then the fix in `internal/db/intervention.go`. The quick log and full form share one `expiryDateField` (`src/components/ExpiryDateField.ts`); `DueStatus` comments now cover the expiry rule.
 - **More tests** (all passing at once): `httptest` cases for moving an intervention between task kinds and updating a missing task (404) in `expiry_task_test.go`; the repo's first migration test, `internal/db/migrations_test.go`, opens a schema v7 database and checks an existing task migrates to an interval task with no current expiry date and its intervention with no expiry date.
+
+## 2026-10-19 — Location in the quick log (issue #97)
+
+- Branch `fix/issue-97-quick-log-location`.
+- **Spec first** (approved on the issue): `doc/gui/interventions.md` Quick log gets an optional Location between Hours and Done by; the "not asked in quick mode" line goes.
+- **Test first**: `frontend/tests/non-regression/quick-log-asks-for-location.spec.ts` (Playwright, Dashboard "Done": labels in order Date, Hours, Location, Done by, Notes; the saved intervention carries the trimmed location), red on the old modal. No new Vitest case: `interventionForm.test.ts` already covers the trimmed location and a blank one omitted from a quick log.
+- **Fix**: `QuickLogModal` renders the Location field; the module already sent it.
+- Verified with `pnpm test:unit`, `pnpm run typecheck`, `pnpm run build`, `pnpm test` (44 Playwright specs) and `make build`.
