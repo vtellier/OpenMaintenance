@@ -14,7 +14,7 @@ import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { QuickLogModal } from '@/components/QuickLogModal'
 import { InterventionFormSource } from '@/lib/interventionForm'
 import { ReadingDoubt, readingDoubt } from '@/lib/readingDoubt'
-import { ReadingDoubtModal } from '@/components/ReadingDoubtModal'
+import { readingQuestion } from '@/components/ReadingDoubtModal'
 import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
 
 type EquipmentRow = WithCalendarDates<Equipment, 'commissionedAt'>
@@ -82,7 +82,6 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       historyDeleteTarget: null as InterventionRow | null,
       historyDeleteSaving: false,
       historyDeleteError: null as string | null,
-      doubtOpen: false,
 
       iconError: null as string | null,
 
@@ -404,18 +403,12 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
     async function onFullFormSaved(doubt: ReadingDoubt | null) {
       state.fullFormOpen = false
       await load()
-      askAboutReading(doubt)
+      readingQ.ask(doubt)
     }
 
-    // Built when asked, like the form: the question about the reading a
-    // delete or an edit may have set (doc/gui/interventions.md).
-    let doubtModal: ReturnType<typeof ReadingDoubtModal> | null = null
-
-    function askAboutReading(doubt: ReadingDoubt | null) {
-      if (doubt == null) return
-      doubtModal = ReadingDoubtModal(doubt, () => { state.doubtOpen = false })
-      state.doubtOpen = true
-    }
+    // The question about the reading a delete or an edit may have set
+    // (doc/gui/interventions.md).
+    const readingQ = readingQuestion()
 
     function onHistoryDeleteClick(inv: InterventionRow) {
       state.showHistoryDelete = true
@@ -443,7 +436,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
         await interventionApi.deleteIntervention({ id: state.historyDeleteTarget.id })
         state.showHistoryDelete = false
         await load()
-        askAboutReading(doubt)
+        readingQ.ask(doubt)
       } catch {
         state.historyDeleteError = 'Failed to delete intervention'
       } finally {
@@ -580,7 +573,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           ${() => state.quickLogOpen ? quickLog : null}
           ${() => state.showDeleteDoc ? deleteDocModal() : null}
           ${() => state.fullFormOpen ? fullForm : null}
-          ${() => state.doubtOpen ? doubtModal : null}
+          ${readingQ.view}
 
           ${() => state.showHistoryDelete ? html`
             <div class="modal-overlay" @click="${onHistoryDeleteOverlayClick}">

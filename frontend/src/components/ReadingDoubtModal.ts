@@ -1,4 +1,4 @@
-import { html } from '@arrow-js/core'
+import { html, reactive } from '@arrow-js/core'
 import { formatHours } from '@/lib/format'
 import { ReadingDoubt, correctReadingHref } from '@/lib/readingDoubt'
 
@@ -36,4 +36,22 @@ export function ReadingDoubtModal(doubt: ReadingDoubt, onKeep: () => void) {
       </div>
     </div>
   `
+}
+
+/**
+ * The question about the reading, as a page uses it: ask() opens it for a
+ * doubt (nothing when null), view() renders it while open. The modal is
+ * built when asked, outside any reactive expression, like the forms.
+ */
+export function readingQuestion() {
+  const state = reactive({ open: false })
+  let modal: ReturnType<typeof ReadingDoubtModal> | null = null
+
+  function ask(doubt: ReadingDoubt | null) {
+    if (doubt == null) return
+    modal = ReadingDoubtModal(doubt, () => { state.open = false })
+    state.open = true
+  }
+
+  return { ask, view: () => state.open ? modal : null }
 }

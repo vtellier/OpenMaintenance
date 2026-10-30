@@ -9,7 +9,7 @@ import { WithCalendarDates, formatCalendarDate, compareCalendarDates, fromApiDat
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { InterventionFormSource } from '@/lib/interventionForm'
 import { ReadingDoubt, readingDoubt } from '@/lib/readingDoubt'
-import { ReadingDoubtModal } from '@/components/ReadingDoubtModal'
+import { readingQuestion } from '@/components/ReadingDoubtModal'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -37,7 +37,6 @@ export function HistoryPage() {
       deleteSaving: false,
       deleteError: null as string | null,
 
-      doubtOpen: false,
     })
 
     async function load() {
@@ -121,18 +120,12 @@ export function HistoryPage() {
     async function onFormSaved(doubt: ReadingDoubt | null) {
       state.formOpen = false
       await load()
-      askAboutReading(doubt)
+      readingQ.ask(doubt)
     }
 
-    // Built when asked, like the form: the question about the reading a
-    // delete or an edit may have set (doc/gui/interventions.md).
-    let doubtModal: ReturnType<typeof ReadingDoubtModal> | null = null
-
-    function askAboutReading(doubt: ReadingDoubt | null) {
-      if (doubt == null) return
-      doubtModal = ReadingDoubtModal(doubt, () => { state.doubtOpen = false })
-      state.doubtOpen = true
-    }
+    // The question about the reading a delete or an edit may have set
+    // (doc/gui/interventions.md).
+    const readingQ = readingQuestion()
 
     function onDeleteClick(inv: InterventionRow) {
       state.showDeleteConfirm = true
@@ -160,7 +153,7 @@ export function HistoryPage() {
         await interventionApi.deleteIntervention({ id: state.deleteTarget.id })
         state.showDeleteConfirm = false
         await load()
-        askAboutReading(doubt)
+        readingQ.ask(doubt)
       } catch {
         state.deleteError = 'Failed to delete intervention'
       } finally {
@@ -284,7 +277,7 @@ export function HistoryPage() {
       }}
 
       ${() => state.formOpen ? form : null}
-      ${() => state.doubtOpen ? doubtModal : null}
+      ${readingQ.view}
 
       ${() => state.showDeleteConfirm ? html`
         <div class="modal-overlay" @click="${onDeleteOverlayClick}">
