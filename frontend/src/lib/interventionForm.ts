@@ -5,10 +5,10 @@ import { Task } from '@generated/api/models/Task'
 import { extractErrorMessage } from '@/lib/format'
 import { CalendarDate, WithCalendarDates, today, toApiDate, toApiDateTime } from '@/lib/calendar-date'
 
-// The intervention forms (the full form to log and edit, and the quick log
-// that marks a task done): their values, how they are prefilled, when they can
-// be saved and the request they become. Dashboard, Equipment detail and History
-// only say what a form opens for (doc/gui/interventions.md).
+// The intervention form (to log, to mark a task done, and to edit): its
+// values, how it is prefilled, when it can be saved and the request it
+// becomes. Dashboard, Equipment detail and History only say what the form
+// opens for (doc/gui/interventions.md).
 
 export interface InterventionFormValues {
   editId: number | null
@@ -34,12 +34,12 @@ export interface InterventionFormContext {
 }
 
 /**
- * What the form opens for: a new log on an equipment, a quick log that marks
- * a task done, or an existing intervention to edit.
+ * What the form opens for: a new log on an equipment, Done on a task row
+ * (its equipment and task selected), or an existing intervention to edit.
  */
 export type InterventionFormSource =
   | { new: { equipmentId: number | null } }
-  | { quickLog: { taskId: number } }
+  | { done: { taskId: number } }
   | { edit: InterventionRow }
 
 /**
@@ -74,8 +74,8 @@ function newLog(equipmentId: number | null, taskId: number | null, ctx: Interven
 
 export function prefill(source: InterventionFormSource, ctx: InterventionFormContext): InterventionFormValues {
   if ('new' in source) return newLog(source.new.equipmentId, null, ctx)
-  if ('quickLog' in source) {
-    const { taskId } = source.quickLog
+  if ('done' in source) {
+    const { taskId } = source.done
     return newLog(equipmentOfTask(taskId, ctx), taskId, ctx)
   }
   const inv = source.edit

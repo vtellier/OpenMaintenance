@@ -2,32 +2,30 @@
 
 An **intervention** is a record that a task was performed. Logging interventions is the most frequent user action, so it must be fast.
 
-## Two entry modes
+## The intervention form
 
-### 1. Quick log (default, one-tap path)
-
-Triggered by the **"Mark done"** button available on:
-- A task row in the **Dashboard**.
-- A task row in an **equipment's Tasks tab**.
-
-Opens a small modal/sheet with a minimal form:
-- **Date** (defaults to today in the user's timezone, editable).
-- **Hours** (only if equipment tracks hours; pre-filled with current equipment hours, editable; empty when the equipment has no reading yet — the app never invents one). Same reading rule as the full form: the value entered is sent, `0` included; an empty field sends no reading.
-- **Expiry date** (only for an [expiry task](../data-model.md#task-kinds); required, empty by default): the date printed on the part fitted. Same rule as the full form.
-- **Location** (optional, single-line text): sent trimmed when not blank, omitted otherwise. Same field as the full form.
-- **Done by** (optional, single-line text, placeholder "e.g. Self, Garage du Port").
-- **Comments** (optional, single line).
-- Two buttons: **Save** / **Cancel**.
-
-The Dashboard and Equipment detail quick logs are the same form. A save the backend refuses keeps the modal open and shows the backend's reason (e.g. *"intervention date cannot be in the future"*), as the full form does.
-
-### 2. Full intervention form
-
-Accessible from:
+One form logs and edits every intervention. It opens from:
+- **"Done"** on a task row in the **Dashboard** or in an **equipment's Tasks tab**: the form opens prefilled to mark that task done (see below).
 - An equipment's History tab → **"+ Log intervention"**.
 - The global History screen → **"+ Log intervention"**.
 
-The user must first pick the equipment and the task (or these are pre-selected when coming from a task context). Then fields:
+There is no separate quick log: **Done** opens this same form.
+
+### Opened from Done (marking a task done)
+
+The form is prefilled, so saving still takes one tap:
+- **Equipment**: the row's equipment, selected (on Equipment detail the equipment picker is hidden, as for any log there).
+- **Task**: the row's task, selected.
+- **Date**: today in the user's timezone.
+- **Hours** (if the equipment tracks hours): the equipment's current reading, or empty when it has no reading yet. The app never invents one.
+- **Expiry date** (expiry task only): empty, and required, so Save stays disabled until it is entered.
+- Every other field starts as for a new log: unchecked exceptional switch, empty Location, Done by and Comments.
+
+Saving logs the intervention, closes the form and refreshes the page's list: the task leaves the Dashboard's due list (or is reordered), and the Tasks tab shows its new status and last date. A save the backend refuses keeps the form open and shows the backend's reason (e.g. *"intervention date cannot be in the future"*).
+
+### Fields
+
+The user picks the equipment and the task, unless they are pre-selected (opened from Done, or from an equipment's page). Then fields:
 
 - **Equipment** (required, pre-selectable)
 - **Exceptional intervention** checkbox (unchecked by default) with an `ⓘ` icon next to it. Hovering the icon shows a tooltip: _"Exceptional interventions are one-off operations not part of your maintenance plan (e.g. replacing a broken part). They appear in the history but do not affect task due dates."_
@@ -76,17 +74,17 @@ When the current reading is higher than the intervention's, nothing is asked: th
 
 Nothing is asked either when another intervention left on the equipment still recorded the current reading (the reading is still backed by the history), or when the equipment's reading, reloaded once the change is saved, no longer equals the one in doubt (it changed meanwhile, e.g. in another tab).
 
-## User flow: quick log from dashboard
+## User flow: mark a task done from the dashboard
 
 1. User is on the Dashboard, sees an overdue task.
-2. Taps **"Mark done"**.
-3. Quick log sheet slides up. Date = today. Hours pre-filled if applicable (empty when the equipment has no reading yet).
-4. User taps **Save**.
-5. Sheet closes. Task disappears from the dashboard (or is reordered).
+2. Taps **"Done"**.
+3. The intervention form opens with the task's equipment and the task selected, date = today, hours = the equipment's current reading (empty when it has none yet).
+4. User taps **Save** (an expiry task first needs its expiry date).
+5. The form closes. Task disappears from the dashboard (or is reordered).
 
 ## Photos (issue #25)
 
-An intervention can have photos attached (e.g. the state of a part before/after the work). Photos are not available in the quick log — only in the full intervention form and when viewing a past intervention from the History tab.
+An intervention can have photos attached (e.g. the state of a part before/after the work). Photos are attached in the intervention form once the intervention is saved: a new log (from Done or "+ Log intervention") shows a hint to save first; editing a past intervention from the History tab shows its photos.
 
 - The history list shows a photo count badge when photos are present (e.g. *"3 photos"*).
 - The intervention detail/edit view shows a photo grid at the bottom with an **"+ Add photo"** button.
@@ -95,18 +93,23 @@ An intervention can have photos attached (e.g. the state of a part before/after 
 
 See [file-storage.md](../file-storage.md) for the storage design.
 
-## Layout sketch (quick log)
+## Layout sketch (opened from Done)
 
 ```
-+-----------------------------+
-|  Mark done: Oil change      |
-+-----------------------------+
-|  Date    [ 2026-05-13   ▾ ] |
-|  Hours   [ 1245           ] |   (only if applicable)
-|  Location [               ] |
-|  Done by [                ] |
-|  Notes   [                ] |
-|                             |
-|        [ Cancel ]  [ Save ] |
-+-----------------------------+
++-----------------------------------+
+|  Log intervention                 |
++-----------------------------------+
+|  Equipment [ Main Engine      ▾ ] |   (hidden on Equipment detail)
+|  [ ] Exceptional intervention ⓘ   |
+|  Task      [ Oil change       ▾ ] |
+|  Date      [ 2026-05-13       ▾ ] |
+|  Hours     [ 1245               ] |   (only if applicable)
+|  Location  [                    ] |
+|  Done by   [                    ] |
+|  Comments  [                    ] |
+|  Save the intervention to attach  |
+|  photos.                          |
+|                                   |
+|            [ Cancel ]  [ Save ]   |
++-----------------------------------+
 ```

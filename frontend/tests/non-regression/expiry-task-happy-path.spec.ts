@@ -32,10 +32,10 @@ test('an expiry task is created with its current expiry date, then marked done w
   await expect(row.getByText('Due soon — Expires in 12 days')).toBeVisible()
 
   await row.getByRole('button', { name: 'Done' }).click()
-  const quickLog = page.locator('.modal')
-  await expect(quickLog.getByRole('button', { name: 'Save' })).toBeDisabled()
-  await quickLog.getByLabel('Expiry date', { exact: true }).fill(daysFromToday(400))
-  await quickLog.getByRole('button', { name: 'Save' }).click()
+  const doneForm = page.locator('.modal')
+  await expect(doneForm.getByRole('button', { name: 'Save' })).toBeDisabled()
+  await doneForm.getByLabel('Expiry date', { exact: true }).fill(daysFromToday(400))
+  await doneForm.getByRole('button', { name: 'Save' }).click()
 
   await expect(row.getByText('OK', { exact: true })).toBeVisible()
   await expect(row.getByText('Last: never')).not.toBeVisible()

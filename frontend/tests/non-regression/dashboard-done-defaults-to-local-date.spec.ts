@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 const API = 'http://127.0.0.1:3001/api'
 
 /**
- * Bug: the Dashboard quick log ("Done") pre-fills the date with
+ * Bug: the Dashboard "Done" form (the quick log until #107) pre-filled the date with
  * new Date().toISOString(), which is the UTC date. Whenever the local date and
  * the UTC date differ, the form shows the wrong day (issue #71; the #51 fix
  * only reached Equipment detail and History).
@@ -11,7 +11,7 @@ const API = 'http://127.0.0.1:3001/api'
  */
 test.use({ timezoneId: 'Asia/Tokyo' })
 
-test('dashboard quick log defaults to the local date, not the UTC date', async ({ page }) => {
+test('Dashboard Done defaults to the local date, not the UTC date', async ({ page }) => {
   const equipment = 'Dashboard Local Date Equipment'
   const task = 'Dashboard Local Date Task'
   const eqRes = await page.request.post(`${API}/equipments`, {

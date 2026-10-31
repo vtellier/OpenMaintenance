@@ -35,7 +35,7 @@ Friendly message: *"No equipments yet."* + a prominent **"+ Add your first equip
 
 The detail screen has four tabs:
 
-1. **Tasks** — The maintenance program of this equipment. See [tasks.md](./tasks.md).
+1. **Tasks** — The maintenance program of this equipment; **Done** on a row opens the intervention form prefilled for that task. See [tasks.md](./tasks.md).
 2. **History** — All interventions performed on this equipment, most recent first.
 3. **Documents** — Files attached to this equipment (manuals, invoices, warranties). See below.
 4. **Info** — Editable equipment metadata: name, description, date of commissioning, **icon emoji**, `tracks_hours` toggle. The hour-meter reading is not metadata: editing the equipment never changes it or its freshness (see [data-model.md](../data-model.md#what-changes-the-reading)).

@@ -11,7 +11,6 @@ import { byUrgency } from '@/lib/urgency'
 import { relativeTime, formatTimestampDate, isHoursVeryStale } from '@/lib/timestamp'
 import { WithCalendarDates, formatCalendarDate, compareCalendarDates, fromApiDate, fromApiDateTime, toApiDate } from '@/lib/calendar-date'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
-import { QuickLogModal } from '@/components/QuickLogModal'
 import { InterventionFormSource } from '@/lib/interventionForm'
 import { ReadingDoubt, readingDoubt } from '@/lib/readingDoubt'
 import { readingQuestion } from '@/components/ReadingDoubtModal'
@@ -74,8 +73,6 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       deleteTaskName: '',
       deleteSaving: false,
       deleteError: null as string | null,
-      quickLogOpen: false,
-
       fullFormOpen: false,
 
       showHistoryDelete: false,
@@ -344,31 +341,6 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       }
     }
 
-    // ── Quick Log ──
-
-    // Built when opened, like the full form below.
-    let quickLog: ReturnType<typeof QuickLogModal> | null = null
-
-    function onQuickLog(task: TaskRow) {
-      if (task.id == null) return
-      quickLog = QuickLogModal({ id: task.id, name: task.name ?? '' }, {
-        equipments: () => [state.equipment!],
-        tasks: () => state.tasks,
-        onClose: onCloseQuickLog,
-        onSaved: onQuickLogSaved,
-      })
-      state.quickLogOpen = true
-    }
-
-    function onCloseQuickLog() {
-      state.quickLogOpen = false
-    }
-
-    async function onQuickLogSaved() {
-      state.quickLogOpen = false
-      await load()
-    }
-
     // ── Full Intervention Form ──
 
     // Built when opened, outside any reactive expression: the form prefills
@@ -386,6 +358,11 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
         onSaved: onFullFormSaved,
       })
       state.fullFormOpen = true
+    }
+
+    function onDone(task: TaskRow) {
+      if (task.id == null) return
+      openFullForm({ done: { taskId: task.id } })
     }
 
     function onAddFromHistory() {
@@ -570,7 +547,6 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           ${() => state.showAddTask ? addTaskModal() : null}
           ${() => state.showEditTask ? editTaskModal() : null}
           ${() => state.showDeleteTask ? deleteTaskModal() : null}
-          ${() => state.quickLogOpen ? quickLog : null}
           ${() => state.showDeleteDoc ? deleteDocModal() : null}
           ${() => state.fullFormOpen ? fullForm : null}
           ${readingQ.view}
@@ -630,7 +606,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
                   <p class="task-row__meta">Last: ${lastLabel}</p>
                 </div>
                 <div class="task-row__actions">
-                  <button class="btn btn--small" @click="${() => onQuickLog(t)}">Done</button>
+                  <button class="btn btn--small" @click="${() => onDone(t)}">Done</button>
                   <button class="btn btn--small" @click="${() => onEditTask(t)}">Edit</button>
                   <button class="btn btn--small btn--danger" @click="${() => onDeleteTask(t)}">Del</button>
                 </div>

@@ -82,6 +82,7 @@ _Depends on Milestone 6 (quick-log must work, `hours_updated_at` must be set, da
 - [x] **One intervention form module** (issue #73): prefill, validation, request and error reason live in `src/lib/interventionForm.ts`; editing from the global History no longer loses the equipment (empty Task list, no Hours field, exceptional entry unsavable), and the reading is sent whenever the equipment tracks hours
 - [x] **Quick log uses the intervention form module** (issue #74): the Dashboard and Equipment detail "Mark done" logs share one modal that prefills and saves through `interventionForm.ts`; a refused Dashboard quick log now shows the backend's reason, and an empty reading sends none
 - [x] **Location in the quick log** (issue #97): the "Mark done" quick log asks for an optional Location between Hours and Done by, sent trimmed when not blank
+- [x] **Done opens the full form, prefilled** (issue #107): Done on the Dashboard and Equipment detail opens the intervention form with the equipment and task selected, today's date and the current reading (empty when none); the quick-log popup is gone
 
 ## Milestone 9 — Settings
 
@@ -92,6 +93,7 @@ _Depends on Milestone 6 (quick-log must work, `hours_updated_at` must be set, da
 
 - [x] **Task list not refreshed after add**: task list stays empty after saving a new task — requires page reload to appear
 - [x] **Task card not updated after mark done**: "Last: never" stays stale after logging an intervention — requires page reload to reflect the new date
+- [x] **Dashboard kept a task marked done** (issue #109): the task stayed listed as overdue while another equipment still had a due task
 
 ## Milestone 11 — Regionalisation
 

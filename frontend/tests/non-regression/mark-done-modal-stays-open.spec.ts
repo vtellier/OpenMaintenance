@@ -5,6 +5,7 @@ const API = 'http://127.0.0.1:3001/api'
 /**
  * Bug: clicking a field inside the "Mark done" modal closed the modal
  * because click events on inputs bubbled up to the modal-overlay @click handler.
+ * Done opens the full intervention form since #107.
  * Fixed in: (open)
  */
 
@@ -36,11 +37,11 @@ test('mark-done modal stays open when clicking an input (equipment page)', async
 
   await page.goto(`/equipments/${eq.id}`)
   await page.getByRole('button', { name: 'Done' }).click()
-  await expect(page.getByText(`Mark done: ${taskName}`)).toBeVisible()
+  await expect(page.locator('.modal').getByRole('heading', { name: 'Log intervention' })).toBeVisible()
 
-  // Click the Notes input — should NOT close the modal
-  await page.getByPlaceholder('Optional').click()
-  await expect(page.getByText(`Mark done: ${taskName}`)).toBeVisible()
+  // Click the Comments field — should NOT close the modal
+  await page.getByPlaceholder('Optional notes').click()
+  await expect(page.locator('.modal').getByRole('heading', { name: 'Log intervention' })).toBeVisible()
 })
 
 test('mark-done modal stays open when clicking an input (dashboard)', async ({ page }) => {
@@ -56,9 +57,9 @@ test('mark-done modal stays open when clicking an input (dashboard)', async ({ p
   await expect(doneBtn).toBeVisible()
 
   await doneBtn.click()
-  await expect(page.getByText(`Mark done: ${taskName}`)).toBeVisible()
+  await expect(page.locator('.modal').getByRole('heading', { name: 'Log intervention' })).toBeVisible()
 
-  // Click the Notes input — should NOT close the modal
-  await page.getByPlaceholder('Optional').click()
-  await expect(page.getByText(`Mark done: ${taskName}`)).toBeVisible()
+  // Click the Comments field — should NOT close the modal
+  await page.getByPlaceholder('Optional notes').click()
+  await expect(page.locator('.modal').getByRole('heading', { name: 'Log intervention' })).toBeVisible()
 })

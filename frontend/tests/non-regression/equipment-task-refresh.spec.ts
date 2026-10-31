@@ -33,7 +33,7 @@ test('Equipment task view refreshes dynamically after marking a task as done', a
   // The task should initially appear as overdue
   await expect(page.getByText('Overdue')).toBeVisible()
 
-  // Act — open the quick-log modal and save (date is pre-filled to today)
+  // Act — open the Done form and save (date is pre-filled to today)
   await page.getByRole('button', { name: 'Done' }).click()
   await page.getByRole('button', { name: 'Save' }).click()
 

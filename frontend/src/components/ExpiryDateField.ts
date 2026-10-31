@@ -1,9 +1,9 @@
 import { html } from '@arrow-js/core'
 
 // expiryDateField renders the required Expiry date field of an intervention
-// on an expiry task, shared by the quick log and the full form. It reads and
-// writes `form.expiryDate` (a reactive form state); the caller shows it only
-// for an expiry task.
+// on an expiry task, in the intervention form. It reads and writes
+// `form.expiryDate` (a reactive form state); the caller shows it only for an
+// expiry task.
 export function expiryDateField(form: { expiryDate: string }) {
   function onExpiryDateChange(e: Event) {
     form.expiryDate = (e.target as HTMLInputElement).value
