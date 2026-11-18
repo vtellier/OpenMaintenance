@@ -89,3 +89,39 @@ func TestMigrateV7_ExistingTaskBecomesAnIntervalTask(t *testing.T) {
 		t.Errorf("expiry_date = %q, want none", *inv.ExpiryDate)
 	}
 }
+
+// Issue #112: schema v9 adds groups; every equipment already stored belongs to
+// no group, and there is no group yet.
+func TestMigrateV8_ExistingEquipmentHasNoGroup(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "maintenance.db")
+	old := openAtSchema(t, path, 8)
+	now := time.Now()
+	if _, err := old.Exec(`INSERT INTO equipments (id, name, description, created_at, updated_at) VALUES (1, 'Port winch', '', ?, ?)`, now, now); err != nil {
+		t.Fatalf("seed equipment: %v", err)
+	}
+	old.Close()
+
+	database, err := InitDB(path, "test", BackupConfig{Enabled: false})
+	if err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	defer database.Close()
+
+	if v, _, err := readSchemaVersion(database); err != nil || v != CurrentSchemaVersion {
+		t.Fatalf("schema_version = %d (%v), want %d", v, err, CurrentSchemaVersion)
+	}
+	eq, err := GetEquipment(database, 1)
+	if err != nil {
+		t.Fatalf("GetEquipment: %v", err)
+	}
+	if eq.GroupID != nil {
+		t.Errorf("group_id = %d, want none", *eq.GroupID)
+	}
+	groups, err := ListGroups(database)
+	if err != nil {
+		t.Fatalf("ListGroups: %v", err)
+	}
+	if len(groups) != 0 {
+		t.Errorf("groups = %v, want none", groups)
+	}
+}

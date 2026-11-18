@@ -8,8 +8,19 @@ Two screens: the **list** of all equipments, and the **detail** of a single equi
 Browse, find, and create equipments. Get an at-a-glance status of each.
 
 ### Layout
-- A grid/list of **cards**, one per equipment.
+- One list of **group sections** and **cards**:
+  - Each [group](../data-model.md#group) is a **collapsible section** holding the cards of its equipments.
+  - An equipment with **no group** is a card at the same level as the sections. There is no "No group" section.
+- **Order**, for now: sections and top-level cards are sorted **together, alphabetically by name**, ignoring case. When a group and an equipment have the same name, the group comes first. The cards inside a section are sorted alphabetically too. Equipments with the same name are ordered by creation (`id`). A manual order is out of scope.
 - A prominent **"+ Add equipment"** button (top-right on desktop, floating action button on mobile).
+
+### Section header
+- The group's **icon** (emoji, defaults to 🗂️), its **name** and the **number of its equipments**, e.g. *"🗂️ Winches · 4"*.
+- The **worst status** among its equipments, as a badge like the ones on the cards (see [Card content](#card-content)): **Overdue** if any of its cards shows Overdue, otherwise **Due soon** if any shows Due soon, otherwise **OK** if any shows OK. No badge when none of its equipments has a task, or when the group is empty. A collapsed group therefore never hides an overdue equipment.
+- A **⋯** menu with **Rename**, **Change icon** and **Delete** (see [Flow: Manage a group](#flow-manage-a-group)).
+- Clicking the header, outside its menu, collapses or expands the section. A chevron shows which.
+- Sections are **expanded by default**. Collapsed or expanded is remembered **per browser**, for each group; a new group starts expanded.
+- An expanded empty group shows *"No equipments in this group."*
 
 ### Card content
 - **Equipment icon** (emoji, defaults to 🔧) shown as a small avatar in the top-left corner of the card.
@@ -21,7 +32,7 @@ Browse, find, and create equipments. Get an at-a-glance status of each.
 - Clicking a card → navigates to the equipment detail screen.
 
 ### Empty state
-Friendly message: *"No equipments yet."* + a prominent **"+ Add your first equipment"** button.
+When there is no equipment and no group: friendly message *"No equipments yet."* + a prominent **"+ Add your first equipment"** button. Empty groups alone are listed as sections.
 
 ## Equipment detail
 
@@ -38,7 +49,7 @@ The detail screen has four tabs:
 1. **Tasks** — The maintenance program of this equipment; **Done** on a row opens the intervention form prefilled for that task. See [tasks.md](./tasks.md).
 2. **History** — All interventions performed on this equipment, most recent first.
 3. **Documents** — Files attached to this equipment (manuals, invoices, warranties). See below.
-4. **Info** — Editable equipment metadata: name, description, date of commissioning, **icon emoji**, `tracks_hours` toggle. The hour-meter reading is not metadata: editing the equipment never changes it or its freshness (see [data-model.md](../data-model.md#what-changes-the-reading)).
+4. **Info** — Editable equipment metadata: name, description, date of commissioning, **icon emoji**, `tracks_hours` toggle. The group is not shown here; it is set from the edit form. The hour-meter reading is not metadata: editing the equipment never changes it or its freshness (see [data-model.md](../data-model.md#what-changes-the-reading)).
 
 The Tasks tab is the default when opening an equipment.
 
@@ -58,11 +69,25 @@ Empty state: *"No documents attached."* + **"+ Upload your first document"** CTA
    - Name (required)
    - Description (optional)
    - **Icon** (defaults to 🔧) — chosen from an **icon picker**: a button opens a searchable emoji picker (any emoji, no text field), with a Reset to 🔧. The icon is the equipment's marker in lists and the dashboard.
+   - **Group** (optional, defaults to *"No group"*): see [the Group picker](#the-group-picker).
    - Date of commissioning (optional, date picker)
    - Toggle: *"This equipment has an hour-meter"* (`tracks_hours`)
    - If toggled on: initial hours value (defaults to 0)
 3. User saves. With the hour-meter on, the initial value becomes the first reading and `hours_updated_at` is set to "now".
-4. New equipment appears in the list; user can be redirected to its detail screen.
+4. New equipment appears in the list, in its group's section if it has one; user can be redirected to its detail screen.
+
+The edit form (`/equipments/{id}/edit`) has the same **Group** picker, set to the equipment's current group.
+
+### The Group picker
+A select labelled **Group**, in the create and edit forms:
+
+- **"No group"**, then the groups alphabetically (icon and name), then **"+ New group"** last.
+- Picking **"+ New group"** opens a small inline form under the picker: **Name** (required) and **Icon** (the same emoji picker, Reset to 🗂️), with **Create** and **Cancel**.
+  - **Create** saves the group at once (`POST /groups`) and selects it in the picker. A name another group already has, ignoring case, shows *"A group with this name already exists"* and creates nothing.
+  - **Cancel** closes the inline form and puts the picker back to its previous value.
+- A group created this way exists even if the equipment form is then cancelled: it shows as an empty section.
+
+Changing the icon from the detail header keeps the equipment's group.
 
 ### Flow: Update hour-meter
 The same flow is reachable from three places: the equipment detail header, the dashboard freshness banner, and (indirectly) when logging an intervention.
@@ -110,7 +135,16 @@ The new icon then appears wherever the equipment is referenced (list cards, dash
 ### Flow: Delete an equipment
 1. User taps the delete action in the equipment detail header.
 2. Confirmation modal: warns that all tasks, interventions, and attached files of this equipment will be deleted.
-3. On confirm, equipment and all its files are removed and user is returned to the list.
+3. On confirm, equipment and all its files are removed and user is returned to the list. Its group, if any, is kept, even when left empty.
+
+### Flow: Manage a group
+From the **⋯** menu of a section header on the Equipments list:
+
+- **Rename**: a modal with the **Name** field, prefilled. **Save** (disabled while the name is empty) saves via `PUT /groups/{id}`. A name another group already has, ignoring case, shows *"A group with this name already exists"* and changes nothing. **Cancel** changes nothing.
+- **Change icon**: opens the emoji picker (Reset to 🗂️); selecting an emoji saves it immediately.
+- **Delete**: a confirmation modal, *"Delete the group "Winches"? Its 4 equipments are kept and no longer belong to a group."* On confirm (`DELETE /groups/{id}`), the section disappears and its equipments become top-level cards. No equipment, task or intervention is deleted.
+
+Groups are created from [the Group picker](#the-group-picker) of the equipment form.
 
 ## Layout sketches
 
@@ -121,12 +155,19 @@ The new icon then appears wherever the equipment is referenced (list cards, dash
 +------------------------------------------------------+
 |                                                      |
 |  +----------------+  +----------------+              |
-|  |[🔧] Main Engine|  |[🔧] Family Car |              |
-|  | 1 245 h        |  |                |              |
-|  | upd. 2 mo ago  |  |                |              |
-|  | Last: Oil ch.  |  | Last: —        |              |
-|  | 🔴 Oil overdue |  | 🟢 All ok     |              |
+|  |[🔧] Family Car |  |[🔧] Main Engine|              |
+|  |                |  | 1 245 h        |              |
+|  |                |  | upd. 2 mo ago  |              |
+|  | Last: —        |  | Last: Oil ch.  |              |
+|  | 🟢 All ok      |  | 🔴 Oil overdue |              |
 |  +----------------+  +----------------+              |
+|                                                      |
+|  ▾ [🛟] Safety gear · 3           🟠 Due soon   [⋯]  |
+|  +----------------+  +----------------+  +--------+  |
+|  |[🦺] Life jacket|  |[🧯] Extinguish.|  | ...    |  |
+|  +----------------+  +----------------+  +--------+  |
+|                                                      |
+|  ▸ [⚙️] Winches · 4               🔴 Overdue    [⋯]  |
 |                                                      |
 +------------------------------------------------------+
 ```

@@ -1,6 +1,6 @@
 # Data Model
 
-The domain has three core entities and one optional concept (hour-meter) tied to Equipment.
+The domain has three core entities and one optional concept (hour-meter) tied to Equipment. A fourth entity, the [Group](#group), only organises the Equipments list.
 
 ## Equipment
 
@@ -16,6 +16,7 @@ A component of the maintained system (e.g. "Main Engine", "Family Car", "House H
 | `hours`           | number    | no       | Current hour-meter value. Only relevant if `tracks_hours` is true. |
 | `hours_updated_at`| timestamp | no       | Timestamp of the last hour-meter update. Only relevant if `tracks_hours` is true. |
 | `icon`            | string    | yes      | A single emoji used as the equipment's marker. Defaults to `🔧`; always has a value. |
+| `group_id`        | int       | no       | FK to [Group](#group). The group the equipment belongs to; absent (null) when it belongs to none. |
 | `created_at`      | timestamp | yes      | Auto                                                    |
 | `updated_at`      | timestamp | yes      | Auto                                                    |
 
@@ -24,6 +25,14 @@ A component of the maintained system (e.g. "Main Engine", "Family Car", "House H
 Every equipment has a mandatory **`icon`** — a single emoji (default `🔧`) used as its marker wherever the equipment is referenced: the equipments list, the dashboard, and the equipment's own detail header (left of the name). It always has a value.
 
 The `icon` is chosen from an emoji picker — a button (or, on the detail header, the icon itself) opens a searchable, categorized picker of all emojis (no text field), with a Reset to restore the 🔧 default. The picker's emoji data is bundled locally so it works offline. It can be set from the create/edit form, and changed directly by clicking the icon on the detail header (persisted immediately).
+
+### Group membership
+
+An equipment belongs to **at most one** [group](#group), or to none.
+
+- `group_id` is set from the equipment's create and edit requests, like the other metadata. An edit replaces it: an edit that sends no `group_id` (or `null`) leaves the equipment in **no group**, just as an edit without `description` clears the description. A client that changes one field (e.g. the detail-header icon picker) sends the current `group_id` back.
+- A `group_id` that names no existing group is rejected with the reason "Group not found", and nothing is stored.
+- Changing the group never touches the equipment's tasks, interventions, files or hour-meter.
 
 ### Hour-meter behavior
 
@@ -93,6 +102,28 @@ The deliberate way to set a lower reading, e.g. one that was mistyped. Served by
 - Entering the initial reading (at creation, or when turning `tracks_hours` on) also sets it to "now".
 - Used by the Dashboard to surface a CTA encouraging the user to keep the hour-meter fresh — without a fresh hour-meter, hour-based due dates cannot be trusted.
 - A **"staleness threshold"** (default: 7 days) is used to flag the oldest updates. Configurable in Settings (future). The Dashboard CTA always lists every hour-tracked equipment, but visually emphasizes those older than the threshold.
+
+## Group
+
+A named set of equipments (e.g. "Winches"). Its only job is to organise the Equipments list (see [gui/equipments.md](./gui/equipments.md#equipments-list)). See [ADR 0002](./adr/0002-equipment-groups.md).
+
+| Field        | Type      | Required | Notes |
+|--------------|-----------|----------|-------|
+| `id`         | int       | yes      | Auto-generated |
+| `name`       | string    | yes      | e.g. "Winches". Unique, ignoring case. |
+| `icon`       | string    | yes      | A single emoji, chosen like an equipment's. Defaults to `🗂️`; always has a value. |
+| `created_at` | timestamp | yes      | Auto |
+| `updated_at` | timestamp | yes      | Auto |
+
+### Rules
+
+- A group has **no tasks, interventions, hour-meter or status of its own**. The status its section header shows is derived from its equipments (see [gui/equipments.md](./gui/equipments.md#section-header)).
+- An equipment belongs to at most one group, or to none (see [Group membership](#group-membership)).
+- Groups are **flat**: a group never contains another group.
+- A group can exist with **no equipment**: one just created, or one whose equipments have all left it.
+- **Names are unique, ignoring case.** The name is trimmed; an empty one is rejected with "Name is required". Creating a group, or renaming one, to a name another group already has, ignoring case, is rejected with "A group with this name already exists" and nothing is stored. Renaming a group to its own name with another case ("winches" → "Winches") is allowed.
+- **Deleting a group ungroups its equipments**: their `group_id` becomes null. Nothing else is deleted or changed: the equipments keep their tasks, interventions, files and hour-meter.
+- Deleting an equipment never deletes its group, even when the group is left empty.
 
 ## Task
 

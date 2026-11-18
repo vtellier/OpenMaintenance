@@ -437,6 +437,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
             name: eq.name!,
             description: eq.description || undefined,
             icon,
+            // An edit replaces the group: send the current one back.
+            groupId: eq.groupId ?? null,
             commissionedAt: eq.commissionedAt ? toApiDate(eq.commissionedAt) : undefined,
             tracksHours: eq.tracksHours,
           },

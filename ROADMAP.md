@@ -181,6 +181,15 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] Backup section in Settings page: status, directory, retention, and list of existing `.bak` files
 - [x] Spec: `doc/gui/settings.md`
 
+## Milestone 21 — Equipment Groups (issue #112)
+
+- [x] Spec: `doc/data-model.md` (Group, `group_id`), `doc/gui/equipments.md`, `doc/gui/history.md`; ADR 0002; `CONTEXT.md` glossary entry
+- [x] `groups` table (schema v9), `GET/POST /groups`, `PUT/DELETE /groups/{id}`, `group_id` on equipments
+- [x] Equipments list: collapsible group sections (alphabetical with ungrouped cards, worst status in the header, collapse remembered per browser), Rename / Change icon / Delete
+- [x] Group picker with "+ New group" in the equipment create and edit forms
+- [x] History equipment filter offers the groups
+- Manual order of groups and equipments: out of scope for now
+
 ## Future (post-V1)
 
 - Configurable "due soon" window

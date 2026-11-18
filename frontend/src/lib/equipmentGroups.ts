@@ -1,0 +1,112 @@
+import { Equipment } from '@generated/api/models/Equipment'
+import { Group } from '@generated/api/models/Group'
+
+// Groups organise the Equipments list (doc/data-model.md, "Group";
+// doc/gui/equipments.md, "Layout"). This module holds the rules the list
+// applies to them, so pages only render.
+
+export const DEFAULT_GROUP_ICON = '🗂️'
+
+type NamedGroup = Pick<Group, 'id' | 'name'>
+type GroupedEquipment = Pick<Equipment, 'id' | 'name' | 'groupId'>
+
+export type ListEntry<G extends NamedGroup, E extends GroupedEquipment> =
+  | { kind: 'group'; group: G; equipments: E[] }
+  | { kind: 'equipment'; equipment: E }
+
+// equipmentList arranges the Equipments list: one section per group, holding
+// its equipments, and one top-level card per equipment with no group. Sections
+// and cards are sorted together alphabetically by name, ignoring case; a group
+// comes before an equipment of the same name. The equipments of a section are
+// sorted the same way. Same-named equipments keep their creation order (id).
+// An equipment whose group is unknown is shown ungrouped.
+export function equipmentList<G extends NamedGroup, E extends GroupedEquipment>(groups: G[], equipments: E[]): ListEntry<G, E>[] {
+  const sections = new Map<number, { kind: 'group'; group: G; equipments: E[] }>()
+  for (const group of groups) {
+    if (group.id != null) sections.set(group.id, { kind: 'group', group, equipments: [] })
+  }
+
+  const entries: ListEntry<G, E>[] = [...sections.values()]
+  for (const equipment of equipments) {
+    const section = equipment.groupId != null ? sections.get(equipment.groupId) : undefined
+    if (section) section.equipments.push(equipment)
+    else entries.push({ kind: 'equipment', equipment })
+  }
+
+  for (const section of sections.values()) section.equipments.sort(byName)
+  return entries.sort(byEntry)
+}
+
+function byEntry(a: ListEntry<NamedGroup, GroupedEquipment>, b: ListEntry<NamedGroup, GroupedEquipment>): number {
+  const name = compareNames(entryName(a), entryName(b))
+  if (name !== 0) return name
+  if (a.kind !== b.kind) return a.kind === 'group' ? -1 : 1
+  return entryId(a) - entryId(b)
+}
+
+// byName orders groups or equipments alphabetically, ignoring case, then by
+// id: the order of the Equipments list, also used by the pickers.
+export function byName(a: { id?: number; name?: string }, b: { id?: number; name?: string }): number {
+  return compareNames(a.name, b.name) || (a.id ?? 0) - (b.id ?? 0)
+}
+
+function entryName(e: ListEntry<NamedGroup, GroupedEquipment>): string | undefined {
+  return e.kind === 'group' ? e.group.name : e.equipment.name
+}
+
+function entryId(e: ListEntry<NamedGroup, GroupedEquipment>): number {
+  return (e.kind === 'group' ? e.group.id : e.equipment.id) ?? 0
+}
+
+// compareNames orders names alphabetically, ignoring case.
+function compareNames(a: string | undefined, b: string | undefined): number {
+  return (a ?? '').localeCompare(b ?? '', undefined, { sensitivity: 'accent' })
+}
+
+export type EquipmentStatus = 'overdue' | 'due_soon' | 'ok'
+
+type StatusTask = { dueStatus?: string | null }
+
+const WORST_FIRST: EquipmentStatus[] = ['overdue', 'due_soon', 'ok']
+
+// equipmentStatus is the badge of an equipment's card: Overdue when any of its
+// tasks is overdue, otherwise Due soon when any is due soon, otherwise OK.
+// None when the equipment has no task.
+export function equipmentStatus(tasks: StatusTask[]): EquipmentStatus | null {
+  if (tasks.length === 0) return null
+  if (tasks.some(t => t.dueStatus === 'overdue')) return 'overdue'
+  if (tasks.some(t => t.dueStatus === 'due_soon')) return 'due_soon'
+  return 'ok'
+}
+
+// groupStatus is the badge of a section header: the worst of its equipments'
+// badges, given each equipment's tasks. None when none of them has a task.
+export function groupStatus(tasksByEquipment: StatusTask[][]): EquipmentStatus | null {
+  const statuses = tasksByEquipment.map(equipmentStatus)
+  return WORST_FIRST.find(s => statuses.includes(s)) ?? null
+}
+
+// A History equipment filter: one equipment, or every equipment of a group.
+export type HistoryFilter = { equipmentId: number } | { groupId: number } | null
+
+type FilteredIntervention = { taskId?: number | null; equipmentId?: number | null }
+
+// interventionsFor keeps the interventions the History filter selects. A group
+// selects the equipments in it now: group membership is not recorded on
+// interventions. A standard intervention belongs to its task's equipment, an
+// exceptional one to its own equipment.
+export function interventionsFor<I extends FilteredIntervention>(
+  interventions: I[],
+  filter: HistoryFilter,
+  equipments: Pick<Equipment, 'id' | 'groupId'>[],
+  tasks: { id?: number; equipmentId?: number }[],
+): I[] {
+  if (filter == null) return interventions
+  const equipmentIds = new Set<number | undefined>('groupId' in filter
+    ? equipments.filter(eq => eq.groupId === filter.groupId).map(eq => eq.id)
+    : [filter.equipmentId])
+  const taskIds = new Set(tasks.filter(t => equipmentIds.has(t.equipmentId)).map(t => t.id))
+  return interventions.filter(inv => inv.taskId != null
+    ? taskIds.has(inv.taskId)
+    : equipmentIds.has(inv.equipmentId ?? undefined))
+}

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"errors"
 
 	"github.com/labstack/echo/v4"
@@ -27,6 +28,9 @@ func (h *Handler) CreateEquipment(ctx echo.Context) error {
 	// creates nothing.
 	if err := checkInputHours(input); err != nil {
 		return ctx.JSON(hourMeterStatus(err), map[string]string{"error": err.Error()})
+	}
+	if status, msg := h.checkEquipmentGroup(input.GroupID); status != 0 {
+		return ctx.JSON(status, map[string]string{"error": msg})
 	}
 
 	equipment := equipmentMetadata(input)
@@ -68,6 +72,9 @@ func (h *Handler) UpdateEquipment(ctx echo.Context, id int) error {
 
 	if err := checkInputHours(input); err != nil {
 		return ctx.JSON(hourMeterStatus(err), map[string]string{"error": err.Error()})
+	}
+	if status, msg := h.checkEquipmentGroup(input.GroupID); status != 0 {
+		return ctx.JSON(status, map[string]string{"error": msg})
 	}
 
 	// Recorded before the metadata so that a rejected reading changes nothing.
@@ -156,8 +163,25 @@ func equipmentMetadata(in *models.Equipment) *models.Equipment {
 		Description:    in.Description,
 		CommissionedAt: in.CommissionedAt,
 		Icon:           in.Icon,
+		GroupID:        in.GroupID,
 		TracksHours:    in.TracksHours,
 	}
+}
+
+// checkEquipmentGroup refuses a group_id that names no existing group. It
+// returns the HTTP status and reason of a refusal, or 0 when the group is
+// allowed (an existing one, or none).
+func (h *Handler) checkEquipmentGroup(groupID *int) (int, string) {
+	if groupID == nil {
+		return 0, ""
+	}
+	if _, err := dbpackage.GetGroup(h.DB, *groupID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 400, errGroupNotFound
+		}
+		return 500, err.Error()
+	}
+	return 0, ""
 }
 
 // checkInputHours refuses a negative hours in a create or edit request, even

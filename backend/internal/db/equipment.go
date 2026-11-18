@@ -19,12 +19,13 @@ func CreateEquipment(db *sql.DB, equipment *models.Equipment) error {
 	}
 
 	result, err := db.Exec(
-		`INSERT INTO equipments (name, description, commissioned_at, icon, tracks_hours, hours, hours_updated_at, created_at, updated_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO equipments (name, description, commissioned_at, icon, group_id, tracks_hours, hours, hours_updated_at, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		equipment.Name,
 		equipment.Description,
 		equipment.CommissionedAt,
 		equipment.Icon,
+		equipment.GroupID,
 		equipment.TracksHours,
 		equipment.Hours,
 		equipment.HoursUpdatedAt,
@@ -42,12 +43,13 @@ func CreateEquipment(db *sql.DB, equipment *models.Equipment) error {
 
 func GetEquipment(db *sql.DB, id int) (*models.Equipment, error) {
 	row := db.QueryRow(
-		`SELECT id, name, description, commissioned_at, icon, tracks_hours, hours, hours_updated_at, created_at, updated_at
+		`SELECT id, name, description, commissioned_at, icon, group_id, tracks_hours, hours, hours_updated_at, created_at, updated_at
 		 FROM equipments WHERE id = ?`, id,
 	)
 	equipment := &models.Equipment{}
 	var commissionedAt sql.NullString
 	var icon sql.NullString
+	var groupID sql.NullInt64
 	var hours sql.NullFloat64
 	var hoursUpdatedAt sql.NullTime
 	err := row.Scan(
@@ -56,6 +58,7 @@ func GetEquipment(db *sql.DB, id int) (*models.Equipment, error) {
 		&equipment.Description,
 		&commissionedAt,
 		&icon,
+		&groupID,
 		&equipment.TracksHours,
 		&hours,
 		&hoursUpdatedAt,
@@ -69,6 +72,7 @@ func GetEquipment(db *sql.DB, id int) (*models.Equipment, error) {
 		equipment.CommissionedAt = &commissionedAt.String
 	}
 	equipment.Icon = iconOrDefault(icon)
+	equipment.GroupID = groupIDOrNone(groupID)
 	if hours.Valid {
 		equipment.Hours = &hours.Float64
 	}
@@ -87,6 +91,15 @@ func iconOrDefault(icon sql.NullString) string {
 	return DefaultEquipmentIcon
 }
 
+// groupIDOrNone returns the equipment's group, or nil when it belongs to none.
+func groupIDOrNone(id sql.NullInt64) *int {
+	if !id.Valid {
+		return nil
+	}
+	v := int(id.Int64)
+	return &v
+}
+
 // UpdateEquipment updates editable equipment metadata. It never writes the
 // hour-meter reading or its freshness: see SetEquipmentHours.
 func UpdateEquipment(db *sql.DB, equipment *models.Equipment) error {
@@ -96,12 +109,13 @@ func UpdateEquipment(db *sql.DB, equipment *models.Equipment) error {
 	}
 
 	_, err := db.Exec(
-		`UPDATE equipments SET name = ?, description = ?, commissioned_at = ?, icon = ?, tracks_hours = ?, updated_at = ?
+		`UPDATE equipments SET name = ?, description = ?, commissioned_at = ?, icon = ?, group_id = ?, tracks_hours = ?, updated_at = ?
 		 WHERE id = ?`,
 		equipment.Name,
 		equipment.Description,
 		equipment.CommissionedAt,
 		equipment.Icon,
+		equipment.GroupID,
 		equipment.TracksHours,
 		equipment.UpdatedAt,
 		equipment.ID,
@@ -158,7 +172,7 @@ func DeleteEquipment(db *sql.DB, id int) error {
 
 func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 	rows, err := db.Query(
-		`SELECT id, name, description, commissioned_at, icon, tracks_hours, hours, hours_updated_at, created_at, updated_at
+		`SELECT id, name, description, commissioned_at, icon, group_id, tracks_hours, hours, hours_updated_at, created_at, updated_at
 		 FROM equipments`,
 	)
 	if err != nil {
@@ -171,6 +185,7 @@ func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 		equipment := models.Equipment{}
 		var commissionedAt sql.NullString
 		var icon sql.NullString
+		var groupID sql.NullInt64
 		var hours sql.NullFloat64
 		var hoursUpdatedAt sql.NullTime
 		err := rows.Scan(
@@ -179,6 +194,7 @@ func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 			&equipment.Description,
 			&commissionedAt,
 			&icon,
+			&groupID,
 			&equipment.TracksHours,
 			&hours,
 			&hoursUpdatedAt,
@@ -192,6 +208,7 @@ func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 			equipment.CommissionedAt = &commissionedAt.String
 		}
 		equipment.Icon = iconOrDefault(icon)
+		equipment.GroupID = groupIDOrNone(groupID)
 		if hours.Valid {
 			equipment.Hours = &hours.Float64
 		}

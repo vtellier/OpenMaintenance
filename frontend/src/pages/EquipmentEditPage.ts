@@ -1,12 +1,15 @@
 import { component, html, reactive } from '@arrow-js/core'
-import { EquipmentApi, TaskApi } from '@generated/api'
+import { EquipmentApi, TaskApi, GroupApi } from '@generated/api'
+import { Group } from '@generated/api/models/Group'
 import { apiConfig } from '@/api/config'
 import { iconPicker } from '@/components/IconPicker'
+import { groupPicker } from '@/components/GroupPicker'
 import { extractErrorMessage } from '@/lib/format'
 import { fromApiDate, toApiDate } from '@/lib/calendar-date'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
+const groupApi = new GroupApi(apiConfig)
 
 export function EquipmentEditPage(idParam: string) {
   const equipmentId = parseInt(idParam, 10)
@@ -17,6 +20,8 @@ export function EquipmentEditPage(idParam: string) {
       name: '',
       description: '',
       icon: '🔧',
+      groupId: null as number | null,
+      groups: [] as Group[],
       commissionedAt: '',
       tracksHours: false,
       originalTracksHours: false,
@@ -32,7 +37,16 @@ export function EquipmentEditPage(idParam: string) {
 
     async function load() {
       try {
-        const eq = await equipmentApi.getEquipment({ id: equipmentId })
+        const [eq, groups] = await Promise.all([
+          equipmentApi.getEquipment({ id: equipmentId }),
+          groupApi.listGroups(),
+        ])
+        state.groups = groups.map((g: any) => ({
+          ...g,
+          createdAt: g.createdAt?.toISOString(),
+          updatedAt: g.updatedAt?.toISOString(),
+        }))
+        state.groupId = eq.groupId ?? null
         state.name = eq.name ?? ''
         state.description = eq.description ?? ''
         state.icon = eq.icon || '🔧'
@@ -81,6 +95,7 @@ export function EquipmentEditPage(idParam: string) {
             name: state.name.trim(),
             description: state.description.trim() || undefined,
             icon: state.icon.trim() || undefined,
+            groupId: state.groupId,
             commissionedAt: state.commissionedAt ? toApiDate(state.commissionedAt) : undefined,
             tracksHours: state.tracksHours,
             hours: turningOn() ? state.hours : undefined,
@@ -118,6 +133,15 @@ export function EquipmentEditPage(idParam: string) {
               <label class="form-field__label">Icon</label>
               ${iconPicker(() => state.icon, (v) => { state.icon = v })}
               <p class="form-field__hint">Shown in lists and the dashboard. Defaults to 🔧.</p>
+            </div>
+            <div class="form-field">
+              <label class="form-field__label">Group</label>
+              ${groupPicker({
+                groups: () => state.groups,
+                current: () => state.groupId,
+                onSelect: (id) => { state.groupId = id },
+                onCreated: (g) => { state.groups = [...state.groups, g] },
+              })}
             </div>
             <div class="form-field">
               <label class="form-field__label">Date of commissioning</label>

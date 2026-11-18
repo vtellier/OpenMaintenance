@@ -373,6 +373,103 @@ paths:
           description: Document deleted
         '404':
           description: Document not found
+  /groups:
+    get:
+      operationId: listGroups
+      summary: List all groups
+      description: Every group, in no particular order (clients sort them by name).
+      tags:
+        - Group
+      responses:
+        '200':
+          description: A list of groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Group'
+    post:
+      operationId: createGroup
+      summary: Create a group
+      description: >
+        Create a group of equipments. The name is trimmed and must be unique,
+        ignoring case. The icon defaults to 🗂️.
+      tags:
+        - Group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupInput'
+      responses:
+        '201':
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400':
+          description: Invalid input (empty name)
+        '409':
+          description: Another group already has this name, ignoring case
+  /groups/{id}:
+    put:
+      operationId: updateGroup
+      summary: Rename a group or change its icon
+      description: >
+        Replace a group's name and icon. The name is trimmed and must be unique,
+        ignoring case; renaming a group to its own name in another case is
+        allowed. The icon defaults to 🗂️ when omitted.
+      tags:
+        - Group
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupInput'
+      responses:
+        '200':
+          description: Group updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400':
+          description: Invalid input (empty name)
+        '404':
+          description: Group not found
+        '409':
+          description: Another group already has this name, ignoring case
+    delete:
+      operationId: deleteGroup
+      summary: Delete a group
+      description: >
+        Delete a group. Its equipments are kept and no longer belong to a
+        group; nothing else is deleted.
+      tags:
+        - Group
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the group
+      responses:
+        '204':
+          description: Group deleted
+        '404':
+          description: Group not found
   /equipments/{equipment_id}/tasks:
     get:
       operationId: listTasksByEquipment
@@ -780,6 +877,10 @@ components:
         icon:
           type: string
           description: Emoji marker for the equipment, shown wherever it is referenced. Defaults to 🔧.
+        group_id:
+          type: integer
+          nullable: true
+          description: The group the equipment belongs to, or null when it belongs to none.
         tracks_hours:
           type: boolean
           description: Whether this equipment uses an hour-meter
@@ -817,6 +918,14 @@ components:
         icon:
           type: string
           description: Emoji marker for the equipment. Defaults to 🔧 when omitted.
+        group_id:
+          type: integer
+          nullable: true
+          description: >
+            The group the equipment belongs to. Omitted or null: no group. An
+            update replaces it like the other metadata, so a client that edits
+            one field sends the current group_id back. A group_id that names
+            no existing group is rejected (400, "Group not found").
         tracks_hours:
           type: boolean
           description: Whether this equipment uses an hour-meter
@@ -830,6 +939,37 @@ components:
             switches it from false to true), and ignored otherwise. Must not be
             lower than a reading kept from an earlier tracking period. A
             negative value is rejected even when it would be ignored.
+    Group:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the group
+        name:
+          type: string
+          description: Name of the group, unique ignoring case
+        icon:
+          type: string
+          description: Emoji marker for the group. Defaults to 🗂️.
+        created_at:
+          type: string
+          format: date-time
+          description: When the group was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the group was last updated
+    GroupInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Name of the group. Trimmed; must not be empty.
+        icon:
+          type: string
+          description: Emoji marker for the group. Defaults to 🗂️ when omitted.
     EquipmentHoursInput:
       type: object
       required:

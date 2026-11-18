@@ -591,6 +591,165 @@ code {
   gap: 16px;
 }
 
+/* ── Equipment groups (issue #112) ── */
+
+.equipment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* A section is a panel, so the top-level cards after an expanded section do
+   not read as part of it. */
+.equipment-group {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.equipment-group__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.equipment-group__header + .equipment-grid,
+.equipment-group__header + .equipment-group__empty {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.equipment-group__header + .equipment-grid {
+  margin-bottom: 8px;
+}
+
+.equipment-group__toggle {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.equipment-group__chevron {
+  width: 12px;
+  color: var(--muted);
+}
+
+.equipment-group__name {
+  font-size: 16px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.equipment-group__count {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.equipment-group__header + .equipment-grid,
+.equipment-group__empty {
+  margin-top: 8px;
+}
+
+.equipment-group__empty {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.equipment-group__menu {
+  position: relative;
+}
+
+.menu__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 31;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.menu .icon-picker {
+  display: block;
+}
+
+.menu .icon-picker__popover {
+  left: auto;
+  right: 0;
+}
+
+.menu__item {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu__item:hover {
+  background: var(--card-hover);
+}
+
+.menu__item--danger {
+  color: #ef4444;
+}
+
+.group-picker__new {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.group-picker__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.group-picker__row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.group-picker__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .equipment-card {
   display: block;
   padding: 20px;
