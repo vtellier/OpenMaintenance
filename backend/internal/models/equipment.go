@@ -8,6 +8,7 @@ type Equipment struct {
 	Description    string     `db:"description" json:"description"`
 	CommissionedAt *string    `db:"commissioned_at" json:"commissioned_at,omitempty"`
 	Icon           string     `db:"icon" json:"icon"`
+	GroupID        *int       `db:"group_id" json:"group_id"`
 	TracksHours    bool       `db:"tracks_hours" json:"tracks_hours"`
 	Hours          *float64   `db:"hours" json:"hours"`
 	HoursUpdatedAt *time.Time `db:"hours_updated_at" json:"hours_updated_at"`

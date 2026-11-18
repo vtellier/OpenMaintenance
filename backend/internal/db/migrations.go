@@ -7,7 +7,7 @@ import (
 
 // CurrentSchemaVersion is the schema version the running binary expects.
 // Bump this and append to `migrations` whenever a schema change is added.
-const CurrentSchemaVersion = 8
+const CurrentSchemaVersion = 9
 
 type migration struct {
 	Version int
@@ -93,6 +93,22 @@ var migrations = []migration{
 			`ALTER TABLE tasks ADD COLUMN kind TEXT NOT NULL DEFAULT 'interval'`,
 			`ALTER TABLE tasks ADD COLUMN current_expiry_date TEXT`,
 			`ALTER TABLE interventions ADD COLUMN expiry_date TEXT`,
+		},
+	},
+	{
+		Version: 9,
+		// Groups (#112): named sets of equipments that organise the
+		// Equipments list. An equipment belongs to at most one group; existing
+		// equipments belong to none.
+		SQL: []string{
+			`CREATE TABLE groups (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				name TEXT NOT NULL,
+				icon TEXT NOT NULL DEFAULT '🗂️',
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+			)`,
+			`ALTER TABLE equipments ADD COLUMN group_id INTEGER REFERENCES groups(id)`,
 		},
 	},
 }

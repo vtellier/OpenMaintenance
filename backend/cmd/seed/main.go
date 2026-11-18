@@ -130,10 +130,28 @@ func main() {
 	chimney := createTask(map[string]any{"equipment_id": boiler, "name": "Chimney / flue sweep", "months_interval": 12})
 	createIntervention(map[string]any{"task_id": chimney, "date": rfc(daysAgo(341)), "location": "Home", "performed_by": "Ramonage Express"})
 
-	fmt.Printf("\n✓ Seed complete — 3 equipments, 8 tasks, 13 interventions.\n  Open %s to see Overdue / Due-soon / OK statuses.\n", baseURL)
+	// A group (#112): two winches, one overdue, so the section header shows
+	// Overdue even when collapsed.
+	winches := createGroup(map[string]any{"name": "Winches", "icon": "⚙️"})
+	for _, w := range []struct {
+		name    string
+		doneAgo int // months since the last service
+	}{{"Port winch", 14}, {"Starboard winch", 4}} {
+		winch := createEquipment(map[string]any{"name": w.name, "icon": "🪢", "group_id": winches})
+		grease := createTask(map[string]any{"equipment_id": winch, "name": "Strip, clean and grease", "months_interval": 12})
+		createIntervention(map[string]any{"task_id": grease, "date": rfc(monthsAgo(w.doneAgo)), "location": "Home marina", "performed_by": "Owner"})
+	}
+
+	fmt.Printf("\n✓ Seed complete — 1 group, 5 equipments, 10 tasks, 15 interventions.\n  Open %s to see Overdue / Due-soon / OK statuses.\n", baseURL)
 }
 
 // ── HTTP helpers ─────────────────────────────────────────────────────────────
+
+func createGroup(body map[string]any) int {
+	id := post("/api/groups", body)
+	fmt.Printf("  group #%d  %v\n", id, body["name"])
+	return id
+}
 
 func createEquipment(body map[string]any) int {
 	id := post("/api/equipments", body)
