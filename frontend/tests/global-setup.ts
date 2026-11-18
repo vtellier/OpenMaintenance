@@ -2,8 +2,9 @@
  * Global setup: wipes the backend DB before the test run.
  *
  * Strategy: list all equipments and delete each one. The backend cascades
- * the delete to tasks and interventions, so this fully empties user data
- * without touching the SQLite file or restarting the backend.
+ * the delete to tasks and interventions. Then delete every group, which an
+ * equipment delete leaves in place. This fully empties user data without
+ * touching the SQLite file or restarting the backend.
  */
 const API = process.env.API_BASE_URL ?? 'http://localhost:3001/api'
 
@@ -18,6 +19,18 @@ async function wipeDb(): Promise<void> {
     const del = await fetch(`${API}/equipments/${eq.id}`, { method: 'DELETE' })
     if (!del.ok) {
       throw new Error(`Failed to delete equipment ${eq.id}: ${del.status}`)
+    }
+  }
+
+  const groupsRes = await fetch(`${API}/groups`)
+  if (!groupsRes.ok) {
+    throw new Error(`Failed to list groups: ${groupsRes.status} ${groupsRes.statusText}`)
+  }
+  const groups = (await groupsRes.json()) as Array<{ id: number }>
+  for (const g of groups) {
+    const del = await fetch(`${API}/groups/${g.id}`, { method: 'DELETE' })
+    if (!del.ok) {
+      throw new Error(`Failed to delete group ${g.id}: ${del.status}`)
     }
   }
 }

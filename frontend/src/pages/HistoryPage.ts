@@ -2,7 +2,8 @@ import { component, html, reactive } from '@arrow-js/core'
 import { Equipment } from '@generated/api/models/Equipment'
 import { Task } from '@generated/api/models/Task'
 import { Intervention } from '@generated/api/models/Intervention'
-import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
+import { Group } from '@generated/api/models/Group'
+import { EquipmentApi, TaskApi, InterventionApi, GroupApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { buildInterventionMeta } from '@/lib/format'
 import { WithCalendarDates, formatCalendarDate, compareCalendarDates, fromApiDate, fromApiDateTime } from '@/lib/calendar-date'
@@ -10,10 +11,26 @@ import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { InterventionFormSource } from '@/lib/interventionForm'
 import { ReadingDoubt, readingDoubt } from '@/lib/readingDoubt'
 import { readingQuestion } from '@/components/ReadingDoubtModal'
+import { DEFAULT_GROUP_ICON, HistoryFilter, byName, interventionsFor } from '@/lib/equipmentGroups'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
 const interventionApi = new InterventionApi(apiConfig)
+const groupApi = new GroupApi(apiConfig)
+
+// The equipment filter's select values: "<id>" for an equipment, "g:<id>"
+// for a group, "" for all.
+function filterValue(filter: HistoryFilter): string {
+  if (filter == null) return ''
+  return 'groupId' in filter ? 'g:' + filter.groupId : String(filter.equipmentId)
+}
+
+function parseFilterValue(value: string): HistoryFilter {
+  const isGroup = value.startsWith('g:')
+  const id = parseInt(isGroup ? value.slice(2) : value, 10)
+  if (Number.isNaN(id)) return null
+  return isGroup ? { groupId: id } : { equipmentId: id }
+}
 
 type InterventionRow = WithCalendarDates<Intervention, 'date' | 'expiryDate'>
 
@@ -21,12 +38,13 @@ export function HistoryPage() {
   return component(() => {
     const state = reactive({
       equipments: [] as Equipment[],
+      groups: [] as Group[],
       tasks: [] as Task[],
       interventions: [] as InterventionRow[],
       loaded: false,
       loadError: null as string | null,
 
-      filterEquipmentId: null as number | null,
+      filter: null as HistoryFilter,
       filterDateFrom: '',
       filterDateTo: '',
 
@@ -41,11 +59,18 @@ export function HistoryPage() {
 
     async function load() {
       try {
-        const [eqs, ts, invs] = await Promise.all([
+        const [eqs, ts, invs, groups] = await Promise.all([
           equipmentApi.listEquipments(),
           taskApi.listTasks(),
           interventionApi.listInterventions(),
+          groupApi.listGroups(),
         ])
+
+        state.groups = groups.map((g: any) => ({
+          ...g,
+          createdAt: g.createdAt?.toISOString(),
+          updatedAt: g.updatedAt?.toISOString(),
+        }))
 
         state.equipments = eqs.map((e: any) => ({
           ...e,
@@ -162,8 +187,7 @@ export function HistoryPage() {
     }
 
     function onFilterEquipmentChange(e: Event) {
-      const val = (e.target as HTMLSelectElement).value
-      state.filterEquipmentId = val ? parseInt(val, 10) : null
+      state.filter = parseFilterValue((e.target as HTMLSelectElement).value)
     }
 
     function onFilterFromChange(e: Event) {
@@ -184,7 +208,9 @@ export function HistoryPage() {
         const loaded = state.loaded
         const loadError = state.loadError
         const equipments = state.equipments
-        const filterEquipmentId = state.filterEquipmentId
+        const groups = state.groups
+        const filter = state.filter
+        const selected = filterValue(filter)
         const filterDateFrom = state.filterDateFrom
         const filterDateTo = state.filterDateTo
         const interventions = state.interventions
@@ -193,14 +219,7 @@ export function HistoryPage() {
         let listContent = null as ReturnType<typeof html> | null
 
         if (loaded && !loadError) {
-          let list = [...interventions]
-          if (filterEquipmentId != null) {
-            const taskIdsForEq = new Set(tasks.filter(t => t.equipmentId === filterEquipmentId).map(t => t.id))
-            list = list.filter(inv =>
-              (inv.taskId != null && taskIdsForEq.has(inv.taskId)) ||
-              (inv.taskId == null && inv.equipmentId === filterEquipmentId)
-            )
-          }
+          let list = interventionsFor([...interventions], filter, equipments, tasks)
           // Calendar dates ('YYYY-MM-DD') compare in calendar order.
           if (filterDateFrom) {
             list = list.filter(inv => inv.date != null && inv.date >= filterDateFrom)
@@ -254,13 +273,25 @@ export function HistoryPage() {
         return html`<div class="history-body">
           <div class="history-filters">
             <div class="form-field">
-              <select @change="${onFilterEquipmentChange}">
+              <select aria-label="Equipment" @change="${onFilterEquipmentChange}">
                 <option value="">All equipments</option>
-                ${() => equipments.map(eq => {
-                  return filterEquipmentId === eq.id
-                    ? html`<option value="${String(eq.id)}" selected="selected">${eq.name}</option>`
-                    : html`<option value="${String(eq.id)}">${eq.name}</option>`
-                })}
+                ${() => groups.length > 0 ? html`<optgroup label="Groups">
+                  ${() => [...groups].sort(byName).map(g => {
+                    const value = 'g:' + g.id
+                    const label = (g.icon || DEFAULT_GROUP_ICON) + ' ' + g.name
+                    return selected === value
+                      ? html`<option value="${value}" selected="selected">${label}</option>`
+                      : html`<option value="${value}">${label}</option>`
+                  })}
+                </optgroup>` : null}
+                <optgroup label="Equipments">
+                  ${() => [...equipments].sort(byName).map(eq => {
+                    const value = String(eq.id)
+                    return selected === value
+                      ? html`<option value="${value}" selected="selected">${eq.name}</option>`
+                      : html`<option value="${value}">${eq.name}</option>`
+                  })}
+                </optgroup>
               </select>
             </div>
             <div class="form-field">

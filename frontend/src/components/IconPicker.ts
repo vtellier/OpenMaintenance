@@ -10,7 +10,11 @@ export const DEFAULT_ICON = '🔧'
 export interface IconPickerOptions {
   // 'button' (default): a labelled "Choose icon ▾" button, for forms.
   // 'avatar': the icon shown as a clickable avatar (used in the detail header).
-  variant?: 'button' | 'avatar'
+  // 'menuitem': a plain "Change icon" item, for a menu (a group's section header).
+  variant?: 'button' | 'avatar' | 'menuitem'
+  // The icon Reset restores and the trigger shows when there is none.
+  // Defaults to the equipment default, 🔧.
+  defaultIcon?: string
 }
 
 // iconPicker renders a trigger showing the current icon; clicking it opens a
@@ -19,6 +23,7 @@ export interface IconPickerOptions {
 // closes the popover. `current()` reads the value, `onSelect(value)` stores it.
 export function iconPicker(current: () => string, onSelect: (value: string) => void, opts: IconPickerOptions = {}) {
   const ui = reactive({ open: false })
+  const defaultIcon = opts.defaultIcon ?? DEFAULT_ICON
 
   function toggle() {
     ui.open = !ui.open
@@ -35,16 +40,18 @@ export function iconPicker(current: () => string, onSelect: (value: string) => v
   }
 
   function onReset() {
-    onSelect(DEFAULT_ICON)
+    onSelect(defaultIcon)
     ui.open = false
   }
 
-  const trigger = opts.variant === 'avatar'
+  const trigger = opts.variant === 'menuitem'
+    ? html`<button type="button" class="menu__item" @click="${toggle}">Change icon</button>`
+    : opts.variant === 'avatar'
     ? html`<button type="button" class="equipment-avatar equipment-avatar--lg icon-picker__avatar" title="Change icon" @click="${toggle}">
-        <span class="equipment-avatar__emoji">${() => current() || DEFAULT_ICON}</span>
+        <span class="equipment-avatar__emoji">${() => current() || defaultIcon}</span>
       </button>`
     : html`<button type="button" class="icon-picker__button" @click="${toggle}">
-        <span class="icon-picker__current">${() => current() || DEFAULT_ICON}</span>
+        <span class="icon-picker__current">${() => current() || defaultIcon}</span>
         <span class="icon-picker__label">Choose icon</span>
         <span class="icon-picker__caret">▾</span>
       </button>`
@@ -56,7 +63,7 @@ export function iconPicker(current: () => string, onSelect: (value: string) => v
         <div class="icon-picker__backdrop" @click="${close}"></div>
         <div class="icon-picker__popover">
           <emoji-picker data-source="${emojiDataUrl}" @emoji-click="${onEmojiClick}"></emoji-picker>
-          <button type="button" class="btn btn--small icon-picker__reset" @click="${onReset}">Reset to ${DEFAULT_ICON}</button>
+          <button type="button" class="btn btn--small icon-picker__reset" @click="${onReset}">Reset to ${defaultIcon}</button>
         </div>
       ` : null}
     </div>`
