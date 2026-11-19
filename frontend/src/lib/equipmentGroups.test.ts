@@ -133,3 +133,52 @@ describe('interventionsFor', () => {
     expect(ids({ groupId: 30 })).toEqual([])
   })
 })
+
+// Issue #113: decommissioned equipments are hidden from the Equipments list
+// unless "Show decommissioned" is checked; shown, they are in their group, in
+// the usual order (doc/gui/equipments.md, "Decommissioned equipments").
+describe('equipmentList with decommissioned equipments', () => {
+  const groups: Lists[0] = [{ id: 1, name: 'Tenders' }, { id: 2, name: 'Winches' }]
+  const equipments: Lists[1] = [
+    { id: 1, name: 'Main engine' },
+    { id: 2, name: 'Old dinghy', groupId: 1, decommissionedAt: '2024-09-30' },
+    { id: 3, name: 'Old outboard', decommissionedAt: '2024-09-30' },
+    { id: 4, name: 'New dinghy', groupId: 1 },
+    { id: 5, name: 'Port winch', groupId: 2, decommissionedAt: '2025-03-01' },
+  ]
+
+  it('hides them by default, and a section counts the ones it hides', () => {
+    const list = equipmentList(groups, equipments)
+    expect(names(list)).toEqual(['Main engine', 'group Tenders [New dinghy]', 'group Winches []'])
+    expect(list.map(e => e.kind === 'group' ? e.hidden : null)).toEqual([null, 1, 1])
+  })
+
+  it('shows them in their group, in the usual order, when asked', () => {
+    const list = equipmentList(groups, equipments, { showDecommissioned: true })
+    expect(names(list)).toEqual([
+      'Main engine',
+      'Old outboard',
+      'group Tenders [New dinghy, Old dinghy]',
+      'group Winches [Port winch]',
+    ])
+    expect(list.map(e => e.kind === 'group' ? e.hidden : null)).toEqual([null, null, 0, 0])
+  })
+
+  it('treats an empty decommissioning date as in service', () => {
+    expect(names(equipmentList([], [{ id: 1, name: 'Genoa', decommissionedAt: '' }]))).toEqual(['Genoa'])
+  })
+})
+
+// Issue #113: the tasks of a decommissioned equipment have no due status, so
+// its card has no status badge and it never adds to its group's
+// (doc/gui/equipments.md, "Section header").
+describe('statuses of a decommissioned equipment', () => {
+  it('gives no card badge when no task has a due status', () => {
+    expect(equipmentStatus([{}, { dueStatus: undefined }])).toBeNull()
+  })
+
+  it('adds nothing to its group\'s badge', () => {
+    expect(groupStatus([[{}, {}], [{ dueStatus: 'due_soon' }]])).toBe('due_soon')
+    expect(groupStatus([[{}, {}]])).toBeNull()
+  })
+})

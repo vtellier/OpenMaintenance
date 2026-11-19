@@ -10,19 +10,21 @@ import { byUrgency } from '@/lib/urgency'
 import { relativeTime, isHoursStale, isHoursVeryStale } from '@/lib/timestamp'
 import { WithCalendarDates, fromApiDate, fromApiDateTime } from '@/lib/calendar-date'
 import { equipmentAvatar } from '@/components/EquipmentAvatar'
+import { freshnessBannerEquipments } from '@/lib/hourMeterFreshness'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
 const interventionApi = new InterventionApi(apiConfig)
 
+type EquipmentRow = WithCalendarDates<Equipment, 'decommissionedAt'>
 type TaskRow = WithCalendarDates<Task, 'nextDueDate'>
 type InterventionRow = WithCalendarDates<Intervention, 'date' | 'expiryDate'>
 
 export function DashboardPage() {
   return component(() => {
     const state = reactive({
-      equipments: [] as Equipment[],
+      equipments: [] as EquipmentRow[],
       tasks: [] as TaskRow[],
       interventions: [] as InterventionRow[],
       loaded: false,
@@ -41,6 +43,7 @@ export function DashboardPage() {
 
         state.equipments = eqs.map((e: any) => ({
           ...e,
+          decommissionedAt: fromApiDate(e.decommissionedAt),
           hoursUpdatedAt: e.hoursUpdatedAt?.toISOString(),
           createdAt: e.createdAt?.toISOString(),
           updatedAt: e.updatedAt?.toISOString(),
@@ -69,7 +72,7 @@ export function DashboardPage() {
 
     load()
 
-    async function onSameHours(eq: Equipment) {
+    async function onSameHours(eq: EquipmentRow) {
       if (eq.id == null || state.sameHoursSavingId != null) return
       state.sameHoursSavingId = eq.id
       try {
@@ -120,13 +123,8 @@ export function DashboardPage() {
         if (!state.loaded) return html`<p class="page__empty">Loading...</p>`
         if (state.loadError) return html`<div class="flash flash--error">${state.loadError}</div>`
 
-        const hourEquipments = state.equipments
-          .filter(eq => eq.tracksHours)
-          .sort((a, b) => {
-            const timeA = a.hoursUpdatedAt ? new Date(a.hoursUpdatedAt).getTime() : 0
-            const timeB = b.hoursUpdatedAt ? new Date(b.hoursUpdatedAt).getTime() : 0
-            return timeA - timeB
-          })
+        // Hour-tracked equipments in service, oldest update first.
+        const hourEquipments = freshnessBannerEquipments(state.equipments)
 
         const staleHourEqs = hourEquipments.filter(eq => isHoursStale(eq.hoursUpdatedAt))
         const freshHourEqs = hourEquipments.filter(eq => !isHoursStale(eq.hoursUpdatedAt))

@@ -14,6 +14,7 @@ import { equipmentAvatar } from '@/components/EquipmentAvatar'
 import { iconPicker } from '@/components/IconPicker'
 import { groupPicker } from '@/components/GroupPicker'
 import { DEFAULT_GROUP_ICON, EquipmentStatus, equipmentList, equipmentStatus, groupStatus } from '@/lib/equipmentGroups'
+import { isDecommissioned } from '@/lib/decommissioning'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -42,18 +43,37 @@ function writeCollapsed(collapsed: Record<number, boolean>) {
   } catch { /* storage unavailable: the state lasts for this page only */ }
 }
 
+// "Show decommissioned" is remembered per browser too (doc/gui/equipments.md,
+// "Decommissioned equipments"). It starts unchecked.
+const SHOW_DECOMMISSIONED_KEY = 'openmaintenance.equipments.showDecommissioned'
+
+function readShowDecommissioned(): boolean {
+  try {
+    return localStorage.getItem(SHOW_DECOMMISSIONED_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+function writeShowDecommissioned(show: boolean) {
+  try {
+    localStorage.setItem(SHOW_DECOMMISSIONED_KEY, String(show))
+  } catch { /* storage unavailable: the state lasts for this page only */ }
+}
+
 const STATUS_BADGE: Record<EquipmentStatus, { label: string; cls: string }> = {
   overdue: { label: 'Overdue', cls: 'due-indicator--overdue' },
   due_soon: { label: 'Due soon', cls: 'due-indicator--due-soon' },
   ok: { label: 'OK', cls: 'due-indicator--ok' },
 }
 
+type EquipmentRow = WithCalendarDates<Equipment, 'decommissionedAt'>
 type TaskRow = WithCalendarDates<Task, 'nextDueDate'>
 type InterventionRow = WithCalendarDates<Intervention, 'date' | 'expiryDate'>
 
 export const EquipmentsPage = component(() => {
   const state = reactive({
-    equipments: [] as Equipment[],
+    equipments: [] as EquipmentRow[],
     groups: [] as Group[],
     tasksByEquipment: {} as Record<number, TaskRow[]>,
     interventions: [] as InterventionRow[],
@@ -71,6 +91,7 @@ export const EquipmentsPage = component(() => {
     addError: null as string | null,
 
     collapsed: readCollapsed(),
+    showDecommissioned: readShowDecommissioned(),
     menuGroupId: null as number | null,
 
     renameTarget: null as Group | null,
@@ -102,6 +123,7 @@ export const EquipmentsPage = component(() => {
       }))
       state.equipments = equipments.map((eq: any) => ({
         ...eq,
+        decommissionedAt: fromApiDate(eq.decommissionedAt),
         hoursUpdatedAt: eq.hoursUpdatedAt?.toISOString(),
         createdAt: eq.createdAt?.toISOString(),
         updatedAt: eq.updatedAt?.toISOString(),
@@ -210,10 +232,13 @@ export const EquipmentsPage = component(() => {
     state.addTracksHours = !state.addTracksHours
   }
 
-  function renderCard(eq: Equipment) {
+  function renderCard(eq: EquipmentRow) {
     const lastInv = latestIntervention(eq.id!)
     const tasks = state.tasksByEquipment[eq.id!] || []
-    const hoursClass = isHoursVeryStale(eq.hoursUpdatedAt) ? 'very-stale' : ''
+    const decommissioned = isDecommissioned(eq)
+    // A decommissioned equipment's hour-meter no longer matters: never stale.
+    const hoursClass = !decommissioned && isHoursVeryStale(eq.hoursUpdatedAt) ? 'very-stale' : ''
+    const cardClass = decommissioned ? 'equipment-card equipment-card--decommissioned' : 'equipment-card'
     const link = '/equipments/' + eq.id!
     var metaHtml
 
@@ -245,7 +270,7 @@ export const EquipmentsPage = component(() => {
     }
 
     return html`
-    <a href="${link}" class="equipment-card">
+    <a href="${link}" class="${cardClass}">
       <div class="equipment-card__head">
         ${equipmentAvatar(eq)}
         <p class="equipment-card__title">${eq.name}</p>
@@ -258,6 +283,12 @@ export const EquipmentsPage = component(() => {
         </div>
       ` : null}
       <div class="equipment-card__meta">${metaHtml}</div>
+      ${decommissioned ? html`
+        <div class="equipment-card__due">
+          <span class="due-indicator due-indicator--decommissioned">Decommissioned</span>
+          ${formatCalendarDate(eq.decommissionedAt)}
+        </div>
+      ` : null}
       ${statusLabel ? html`
         <div class="equipment-card__due">
           <span class="${'due-indicator ' + statusClass}">${statusLabel}</span>
@@ -272,6 +303,15 @@ export const EquipmentsPage = component(() => {
 
   function isCollapsed(groupId: number): boolean {
     return !!state.collapsed[groupId]
+  }
+
+  function decommissionedCount(): number {
+    return state.equipments.filter(eq => isDecommissioned(eq)).length
+  }
+
+  function onToggleShowDecommissioned() {
+    state.showDecommissioned = !state.showDecommissioned
+    writeShowDecommissioned(state.showDecommissioned)
   }
 
   function onToggleGroup(groupId: number) {
@@ -362,7 +402,8 @@ export const EquipmentsPage = component(() => {
       : ' are kept and no longer belong to a group.')
   }
 
-  function renderSection(group: Group, equipments: Equipment[]) {
+  // hidden: how many of its equipments are decommissioned and not shown.
+  function renderSection(group: Group, equipments: EquipmentRow[], hidden: number) {
     const groupId = group.id!
     const status = groupStatus(equipments.map(eq => state.tasksByEquipment[eq.id!] || []))
     const badge = status ? STATUS_BADGE[status] : null
@@ -392,7 +433,7 @@ export const EquipmentsPage = component(() => {
       </div>
       ${() => isCollapsed(groupId) ? null : (equipments.length > 0
         ? html`<div class="equipment-grid">${equipments.map(eq => renderCard(eq))}</div>`
-        : html`<p class="equipment-group__empty">No equipments in this group.</p>`)}
+        : html`<p class="equipment-group__empty">${hidden > 0 ? 'All equipments in this group are decommissioned.' : 'No equipments in this group.'}</p>`)}
     </section>
     `
   }
@@ -401,7 +442,8 @@ export const EquipmentsPage = component(() => {
   let listGeneration = 0
 
   function renderList() {
-    const entries = equipmentList(state.groups, state.equipments)
+    const entries = equipmentList(state.groups, state.equipments, { showDecommissioned: state.showDecommissioned })
+    if (entries.length === 0) return html`<p class="page__empty">No equipments in service.</p>`
     // Each block is keyed by this render's generation: when the list re-renders
     // without a reload (e.g. "+ New group" adds a group), Arrow builds every
     // block afresh instead of matching them by position and keeping their
@@ -409,7 +451,7 @@ export const EquipmentsPage = component(() => {
     const generation = ++listGeneration
     // Consecutive ungrouped cards share one grid, between the sections.
     const blocks: ReturnType<typeof html>[] = []
-    let cards: Equipment[] = []
+    let cards: EquipmentRow[] = []
     const push = (block: ReturnType<typeof html>) => {
       blocks.push(block.key(generation + ':' + blocks.length))
     }
@@ -424,7 +466,7 @@ export const EquipmentsPage = component(() => {
         cards.push(entry.equipment)
       } else {
         flush()
-        push(renderSection(entry.group, entry.equipments))
+        push(renderSection(entry.group, entry.equipments, entry.hidden))
       }
     }
     flush()
@@ -518,7 +560,13 @@ export const EquipmentsPage = component(() => {
   return html`<section class="page">
     <div class="page__header">
       <h1>Equipments</h1>
-      <button class="btn btn--accent" @click="${onAddClick}">+ Add equipment</button>
+      <div class="page__header-actions">
+        ${() => decommissionedCount() > 0 ? html`<label class="form-field__checkbox-label">
+          <input type="checkbox" .checked="${() => state.showDecommissioned}" @change="${onToggleShowDecommissioned}" />
+          Show decommissioned (${() => String(decommissionedCount())})
+        </label>` : null}
+        <button class="btn btn--accent" @click="${onAddClick}">+ Add equipment</button>
+      </div>
     </div>
 
     ${() => state.loading ? html`<p class="page__empty">Loading equipments...</p>` : null}

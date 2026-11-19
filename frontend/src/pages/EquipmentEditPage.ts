@@ -5,7 +5,8 @@ import { apiConfig } from '@/api/config'
 import { iconPicker } from '@/components/IconPicker'
 import { groupPicker } from '@/components/GroupPicker'
 import { extractErrorMessage } from '@/lib/format'
-import { fromApiDate, toApiDate } from '@/lib/calendar-date'
+import { fromApiDate, toApiDate, today } from '@/lib/calendar-date'
+import { decommissioningDateAllowed } from '@/lib/decommissioning'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -23,6 +24,8 @@ export function EquipmentEditPage(idParam: string) {
       groupId: null as number | null,
       groups: [] as Group[],
       commissionedAt: '',
+      // '' while the equipment is in service.
+      decommissionedAt: '',
       tracksHours: false,
       originalTracksHours: false,
       hours: 0,
@@ -51,6 +54,7 @@ export function EquipmentEditPage(idParam: string) {
         state.description = eq.description ?? ''
         state.icon = eq.icon || '🔧'
         state.commissionedAt = fromApiDate(eq.commissionedAt) ?? ''
+        state.decommissionedAt = fromApiDate(eq.decommissionedAt) ?? ''
         state.tracksHours = eq.tracksHours ?? false
         state.originalTracksHours = state.tracksHours
         state.hours = eq.hours ?? 0
@@ -68,9 +72,11 @@ export function EquipmentEditPage(idParam: string) {
     // on, the reading changes through "Update hours", never through this form.
     const turningOn = () => state.tracksHours && !state.originalTracksHours
     const hoursTooLow = () => turningOn() && state.hours < state.minHours
+    // Not after today, nor before the date of commissioning.
+    const decommissioningInvalid = () => !decommissioningDateAllowed(state.decommissionedAt, state.commissionedAt, today())
 
     async function onSubmit(skipConfirmCheck = false) {
-      if (!state.name.trim() || hoursTooLow()) return
+      if (!state.name.trim() || hoursTooLow() || decommissioningInvalid()) return
       state.saving = true
       state.error = null
 
@@ -97,6 +103,8 @@ export function EquipmentEditPage(idParam: string) {
             icon: state.icon.trim() || undefined,
             groupId: state.groupId,
             commissionedAt: state.commissionedAt ? toApiDate(state.commissionedAt) : undefined,
+            // An edit without it puts the equipment back in service.
+            decommissionedAt: state.decommissionedAt ? toApiDate(state.decommissionedAt) : undefined,
             tracksHours: state.tracksHours,
             hours: turningOn() ? state.hours : undefined,
           },
@@ -144,8 +152,14 @@ export function EquipmentEditPage(idParam: string) {
               })}
             </div>
             <div class="form-field">
-              <label class="form-field__label">Date of commissioning</label>
-              <input type="date" .value="${() => state.commissionedAt}" @input="${(e: Event) => { state.commissionedAt = (e.target as HTMLInputElement).value }}" />
+              <label class="form-field__label" for="commissioned-at">Date of commissioning</label>
+              <input id="commissioned-at" type="date" .value="${() => state.commissionedAt}" @input="${(e: Event) => { state.commissionedAt = (e.target as HTMLInputElement).value }}" />
+            </div>
+            <div class="form-field">
+              <label class="form-field__label" for="decommissioned-at">Decommissioned on</label>
+              <input id="decommissioned-at" type="date" min="${() => state.commissionedAt}" max="${() => today()}" .value="${() => state.decommissionedAt}" @input="${(e: Event) => { state.decommissionedAt = (e.target as HTMLInputElement).value }}" />
+              <p class="form-field__hint">Set when the equipment leaves service. Its tasks are no longer due; its history is kept.</p>
+              ${() => decommissioningInvalid() ? html`<p class="form-field__error">Cannot be after today, nor before the date of commissioning.</p>` : null}
             </div>
             <div class="toggle-row">
               <span class="toggle-row__label">This equipment has an hour-meter</span>
@@ -163,7 +177,7 @@ export function EquipmentEditPage(idParam: string) {
             ` : null}
             <div class="form__actions">
               <a href="${backHref}" class="btn">Cancel</a>
-              <button class="btn btn--accent" @click="${() => onSubmit()}" disabled="${() => state.saving || !state.name.trim() || hoursTooLow()}">
+              <button class="btn btn--accent" @click="${() => onSubmit()}" disabled="${() => state.saving || !state.name.trim() || hoursTooLow() || decommissioningInvalid()}">
                 ${() => state.saving ? 'Saving...' : 'Save'}
               </button>
             </div>

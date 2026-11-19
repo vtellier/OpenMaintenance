@@ -23,10 +23,10 @@ test('confirm-tracks modal does not reopen after clicking Enable', async ({ page
   })
 
   await page.goto(`/equipments/${eq.id}/edit`)
-  await page.waitForSelector('input[type="date"]')
+  await page.getByLabel('Date of commissioning').waitFor()
 
   // Edit commissioning date without touching the hour-meter toggle
-  await page.fill('input[type="date"]', '2020-06-01')
+  await page.getByLabel('Date of commissioning').fill('2020-06-01')
   await page.getByRole('button', { name: 'Save' }).click()
 
   // Should navigate away — no modal, no loop
