@@ -27,7 +27,7 @@ Saving logs the intervention, closes the form and refreshes the page's list: the
 
 The user picks the equipment and the task, unless they are pre-selected (opened from Done, or from an equipment's page). Then fields:
 
-- **Equipment** (required, pre-selectable)
+- **Equipment** (required, pre-selectable). The equipments in service come first, then the [decommissioned](../data-model.md#decommissioning) ones, each marked *"Old dinghy (decommissioned)"*: past work on them can still be logged.
 - **Exceptional intervention** checkbox (unchecked by default) with an `ⓘ` icon next to it. Hovering the icon shows a tooltip: _"Exceptional interventions are one-off operations not part of your maintenance plan (e.g. replacing a broken part). They appear in the history but do not affect task due dates."_
 - **Task** (required when checkbox is unchecked; greyed out and disabled when checkbox is checked)
 - **Exceptional intervention label** (text field, visible and mandatory only when the checkbox is checked; placeholder: "e.g. Replaced broken impeller")
@@ -44,6 +44,7 @@ Save is disabled until all required fields are filled: date is always required; 
 ## Validation rules
 
 - Date cannot be in the future (after today in the user's timezone). (Optional warning if older than 5 years.)
+- There is no rule on the date against the equipment's decommissioning date: work logged after it is accepted.
 - If `hours` is provided, it must be ≥ the equipment's current `hours`. If the user enters a lower value, show an inline warning but allow it (the equipment hours will not be lowered).
 
 ## Side effects on save

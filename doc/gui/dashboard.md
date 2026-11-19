@@ -12,11 +12,11 @@ The Dashboard is the **landing screen** of the app. Its purpose is to answer: *"
 
 ### Hour-meter freshness banner (top of screen)
 
-Shown whenever **at least one equipment** has `tracks_hours = true`. The banner exists to nudge the user — without an up-to-date hour-meter, the app cannot reliably compute when hour-based tasks are due.
+Shown whenever **at least one equipment in service** has `tracks_hours = true`. The banner exists to nudge the user — without an up-to-date hour-meter, the app cannot reliably compute when hour-based tasks are due. A [decommissioned](../data-model.md#decommissioning) equipment is left out: its tasks are never due, so its hour-meter no longer matters.
 
 Banner content:
 - Title: *"Keep your hour-meters fresh"* (or similar).
-- For each hour-tracked equipment, a row showing:
+- For each hour-tracked equipment in service, a row showing:
   - Equipment name (clickable → equipment detail).
   - Current hours value.
   - Relative time since `hours_updated_at` (e.g. *"updated 3 days ago"*, *"updated 2 months ago"*, *"never updated"*).
@@ -65,6 +65,7 @@ Hours are rounded to the nearest whole hour and use the same number format as th
 
 - The dashboard shows only tasks with status **overdue** or **due soon**.
 - Equipments with no due tasks are hidden from the dashboard.
+- A [decommissioned](../data-model.md#decommissioning) equipment is never on the dashboard: its tasks have no due status.
 
 ## Empty state
 

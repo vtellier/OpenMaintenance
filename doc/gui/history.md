@@ -39,6 +39,7 @@ A simple filter bar above the list:
 - **Equipment** (single select, default: all). It also offers the [groups](../data-model.md#group): *"All equipments"*, then a **Groups** heading with each group (icon and name, alphabetically), then an **Equipments** heading with each equipment (alphabetically). The Groups heading is left out when there is no group.
   - Picking an **equipment** shows its interventions.
   - Picking a **group** shows the interventions of **all the equipments in that group now**. Group membership is not recorded on interventions: an equipment moved to another group takes its whole history with it. An empty group shows *"No interventions match your filters."*
+  - A [decommissioned](../data-model.md#decommissioning) equipment is still listed, in its alphabetical place, marked *"Old dinghy (decommissioned)"*. Its interventions stay in the list, unfiltered, and a group's include them: it keeps its group.
 - **Date range** (from / to).
 
 The per-equipment History tab has the equipment filter implicit (pinned).

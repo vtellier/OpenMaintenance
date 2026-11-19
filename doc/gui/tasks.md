@@ -25,6 +25,8 @@ A list of tasks for this equipment, each row showing:
 
 Tasks are in [urgency order](../data-model.md#ranking-tasks-by-urgency) by default: overdue first, then due soon, then OK, and within each the task furthest through its interval first.
 
+On a [decommissioned](../data-model.md#decommissioning) equipment, its tasks are never due: rows show **no urgency indicator**, and they are in name order. **Done**, **Edit** and **Delete** stay, so past work can still be logged.
+
 A prominent **"+ Add task"** button on the tab.
 
 ## Task form (create / edit)
