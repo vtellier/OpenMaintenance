@@ -15,8 +15,9 @@ import { InterventionFormSource } from '@/lib/interventionForm'
 import { ReadingDoubt, readingDoubt } from '@/lib/readingDoubt'
 import { readingQuestion } from '@/components/ReadingDoubtModal'
 import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
+import { isDecommissioned } from '@/lib/decommissioning'
 
-type EquipmentRow = WithCalendarDates<Equipment, 'commissionedAt'>
+type EquipmentRow = WithCalendarDates<Equipment, 'commissionedAt' | 'decommissionedAt'>
 type TaskRow = WithCalendarDates<Task, 'nextDueDate' | 'currentExpiryDate'>
 type TaskKind = 'interval' | 'expiry'
 type InterventionRow = WithCalendarDates<Intervention, 'date' | 'expiryDate'>
@@ -25,6 +26,7 @@ function mapEquipment(eq: any): EquipmentRow {
   return {
     ...eq,
     commissionedAt: fromApiDate(eq.commissionedAt),
+    decommissionedAt: fromApiDate(eq.decommissionedAt),
     hoursUpdatedAt: eq.hoursUpdatedAt?.toISOString(),
     createdAt: eq.createdAt?.toISOString(),
     updatedAt: eq.updatedAt?.toISOString(),
@@ -440,6 +442,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
             // An edit replaces the group: send the current one back.
             groupId: eq.groupId ?? null,
             commissionedAt: eq.commissionedAt ? toApiDate(eq.commissionedAt) : undefined,
+            // An edit replaces the decommissioning date too: send it back.
+            decommissionedAt: eq.decommissionedAt ? toApiDate(eq.decommissionedAt) : undefined,
             tracksHours: eq.tracksHours,
           },
         })
@@ -521,6 +525,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
               <div class="detail-header__title">
                 ${iconPicker(() => state.equipment?.icon ?? DEFAULT_ICON, onChangeIcon, { variant: 'avatar' })}
                 <h1>${eq.name}</h1>
+                ${isDecommissioned(eq) ? html`<span class="due-indicator due-indicator--decommissioned">Decommissioned</span>` : null}
               </div>
               <div class="detail-header__actions">
                 ${eq.tracksHours ? html`<a href="${updateHoursHref}" class="btn">Update hours</a>` : null}
@@ -598,11 +603,14 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
                   <p class="task-row__name">${t.name}</p>
                   ${() => {
                     const task = state.tasks.find(tt => tt.id === t.id)
-                    const ds = task?.dueStatus ?? 'ok'
+                    const ds = task?.dueStatus
                     const relStr = task ? dueTimingText(task) : ''
                     if (ds === 'overdue') return html`<p class="task-row__meta"><span class="due-indicator due-indicator--overdue">Overdue \u2014 ${relStr}</span></p>`
                     if (ds === 'due_soon') return html`<p class="task-row__meta"><span class="due-indicator due-indicator--due-soon">Due soon \u2014 ${relStr}</span></p>`
-                    return html`<p class="task-row__meta"><span class="due-indicator due-indicator--ok">OK</span></p>`
+                    if (ds === 'ok') return html`<p class="task-row__meta"><span class="due-indicator due-indicator--ok">OK</span></p>`
+                    // No due status: the equipment is decommissioned, its
+                    // tasks are never due. No indicator.
+                    return html``
                   }}
                   <p class="task-row__interval">${trigger}</p>
                   <p class="task-row__meta">Last: ${lastLabel}</p>
@@ -711,6 +719,10 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           ${eq.commissionedAt ? html`<div class="form-field">
             <label class="form-field__label">Date of commissioning</label>
             <p>${formatCalendarDate(eq.commissionedAt)}</p>
+          </div>` : null}
+          ${isDecommissioned(eq) ? html`<div class="form-field">
+            <label class="form-field__label">Date of decommissioning</label>
+            <p>${formatCalendarDate(eq.decommissionedAt)}</p>
           </div>` : null}
           <div class="toggle-row">
             <span class="toggle-row__label">Hour-meter tracking</span>

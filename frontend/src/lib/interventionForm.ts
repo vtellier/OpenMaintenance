@@ -4,6 +4,7 @@ import { InterventionInput } from '@generated/api/models/InterventionInput'
 import { Task } from '@generated/api/models/Task'
 import { extractErrorMessage } from '@/lib/format'
 import { CalendarDate, WithCalendarDates, today, toApiDate, toApiDateTime } from '@/lib/calendar-date'
+import { DecommissionableEquipment, equipmentLabel, isDecommissioned } from '@/lib/decommissioning'
 
 // The intervention form (to log, to mark a task done, and to edit): its
 // values, how it is prefilled, when it can be saved and the request it
@@ -92,6 +93,17 @@ export function prefill(source: InterventionFormSource, ctx: InterventionFormCon
     performedBy: inv.performedBy ?? '',
     comments: inv.comments ?? '',
   }
+}
+
+/**
+ * The equipment picker's options: the equipments in service first, then the
+ * decommissioned ones, marked, each part in the order given. Past work on a
+ * decommissioned equipment can still be logged.
+ */
+export function equipmentChoices(equipments: (Pick<Equipment, 'id' | 'name'> & DecommissionableEquipment)[]): { id: number | undefined, label: string }[] {
+  const inService = equipments.filter(eq => !isDecommissioned(eq))
+  const decommissioned = equipments.filter(eq => isDecommissioned(eq))
+  return [...inService, ...decommissioned].map(eq => ({ id: eq.id, label: equipmentLabel(eq) }))
 }
 
 /** Picks the equipment: its tasks replace the previous one's, and the reading starts at its current one. */

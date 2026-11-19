@@ -1,5 +1,6 @@
 import { Equipment } from '@generated/api/models/Equipment'
 import { Group } from '@generated/api/models/Group'
+import { DecommissionableEquipment, isDecommissioned } from '@/lib/decommissioning'
 
 // Groups organise the Equipments list (doc/data-model.md, "Group";
 // doc/gui/equipments.md, "Layout"). This module holds the rules the list
@@ -8,28 +9,38 @@ import { Group } from '@generated/api/models/Group'
 export const DEFAULT_GROUP_ICON = '🗂️'
 
 type NamedGroup = Pick<Group, 'id' | 'name'>
-type GroupedEquipment = Pick<Equipment, 'id' | 'name' | 'groupId'>
+type GroupedEquipment = Pick<Equipment, 'id' | 'name' | 'groupId'> & DecommissionableEquipment
 
 export type ListEntry<G extends NamedGroup, E extends GroupedEquipment> =
-  | { kind: 'group'; group: G; equipments: E[] }
+  // hidden: how many of its equipments are decommissioned and not shown.
+  | { kind: 'group'; group: G; equipments: E[]; hidden: number }
   | { kind: 'equipment'; equipment: E }
+
+export interface ListOptions {
+  /** "Show decommissioned" is checked: list them too. */
+  showDecommissioned?: boolean
+}
 
 // equipmentList arranges the Equipments list: one section per group, holding
 // its equipments, and one top-level card per equipment with no group. Sections
 // and cards are sorted together alphabetically by name, ignoring case; a group
 // comes before an equipment of the same name. The equipments of a section are
 // sorted the same way. Same-named equipments keep their creation order (id).
-// An equipment whose group is unknown is shown ungrouped.
-export function equipmentList<G extends NamedGroup, E extends GroupedEquipment>(groups: G[], equipments: E[]): ListEntry<G, E>[] {
-  const sections = new Map<number, { kind: 'group'; group: G; equipments: E[] }>()
+// An equipment whose group is unknown is shown ungrouped. Decommissioned
+// equipments are left out unless showDecommissioned; a section counts the
+// ones it leaves out.
+export function equipmentList<G extends NamedGroup, E extends GroupedEquipment>(groups: G[], equipments: E[], options: ListOptions = {}): ListEntry<G, E>[] {
+  const sections = new Map<number, { kind: 'group'; group: G; equipments: E[]; hidden: number }>()
   for (const group of groups) {
-    if (group.id != null) sections.set(group.id, { kind: 'group', group, equipments: [] })
+    if (group.id != null) sections.set(group.id, { kind: 'group', group, equipments: [], hidden: 0 })
   }
 
   const entries: ListEntry<G, E>[] = [...sections.values()]
   for (const equipment of equipments) {
     const section = equipment.groupId != null ? sections.get(equipment.groupId) : undefined
-    if (section) section.equipments.push(equipment)
+    if (isDecommissioned(equipment) && !options.showDecommissioned) {
+      if (section) section.hidden++
+    } else if (section) section.equipments.push(equipment)
     else entries.push({ kind: 'equipment', equipment })
   }
 
@@ -71,12 +82,10 @@ const WORST_FIRST: EquipmentStatus[] = ['overdue', 'due_soon', 'ok']
 
 // equipmentStatus is the badge of an equipment's card: Overdue when any of its
 // tasks is overdue, otherwise Due soon when any is due soon, otherwise OK.
-// None when the equipment has no task.
+// None when no task has a due status: the equipment has no task, or it is
+// decommissioned and its tasks are never due.
 export function equipmentStatus(tasks: StatusTask[]): EquipmentStatus | null {
-  if (tasks.length === 0) return null
-  if (tasks.some(t => t.dueStatus === 'overdue')) return 'overdue'
-  if (tasks.some(t => t.dueStatus === 'due_soon')) return 'due_soon'
-  return 'ok'
+  return WORST_FIRST.find(s => tasks.some(t => t.dueStatus === s)) ?? null
 }
 
 // groupStatus is the badge of a section header: the worst of its equipments'

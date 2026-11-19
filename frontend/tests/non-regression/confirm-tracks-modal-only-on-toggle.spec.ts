@@ -19,10 +19,10 @@ test('confirm-tracks modal does not appear when hour-meter was already enabled',
   })
 
   await page.goto(`/equipments/${eq.id}/edit`)
-  await page.waitForSelector('input[type="date"]')
+  await page.getByLabel('Date of commissioning').waitFor()
 
   // Change commissioning date only — hour-meter toggle untouched
-  await page.fill('input[type="date"]', '2021-06-01')
+  await page.getByLabel('Date of commissioning').fill('2021-06-01')
   await page.getByRole('button', { name: 'Save' }).click()
 
   // Should navigate away without showing the confirmation modal

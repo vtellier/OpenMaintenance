@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ResponseError } from '@generated/api/runtime'
-import { canSave, InterventionFormValues, isExpiryTask, prefill, save, selectEquipment, toRequest } from '@/lib/interventionForm'
+import { canSave, equipmentChoices, InterventionFormValues, isExpiryTask, prefill, save, selectEquipment, toRequest } from '@/lib/interventionForm'
 
 const engine = { id: 1, name: 'Engine', tracksHours: true, hours: 120 }
 const trailer = { id: 2, name: 'Trailer', tracksHours: false }
@@ -291,5 +291,24 @@ describe('selectEquipment', () => {
 
     expect(form).toMatchObject({ equipmentId: 3, hours: null })
     expect(toRequest({ ...form, taskId: 13 }, ctx).interventionInput.hoursAt).toBeUndefined()
+  })
+})
+
+// Issue #113: the equipment picker still offers decommissioned equipments, so
+// past work on them can be logged, marked and after the ones in service
+// (doc/gui/interventions.md, "Fields").
+describe('equipmentChoices', () => {
+  it('lists the equipments in service first, then the decommissioned ones, marked', () => {
+    expect(equipmentChoices([
+      { id: 1, name: 'Old dinghy', decommissionedAt: '2024-09-30' },
+      { id: 2, name: 'Main engine' },
+      { id: 3, name: 'Bow thruster', decommissionedAt: '2025-03-01' },
+      { id: 4, name: 'Anchor windlass', decommissionedAt: '' },
+    ])).toEqual([
+      { id: 2, label: 'Main engine' },
+      { id: 4, label: 'Anchor windlass' },
+      { id: 1, label: 'Old dinghy (decommissioned)' },
+      { id: 3, label: 'Bow thruster (decommissioned)' },
+    ])
   })
 })

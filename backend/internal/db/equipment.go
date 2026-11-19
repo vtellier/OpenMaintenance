@@ -19,11 +19,12 @@ func CreateEquipment(db *sql.DB, equipment *models.Equipment) error {
 	}
 
 	result, err := db.Exec(
-		`INSERT INTO equipments (name, description, commissioned_at, icon, group_id, tracks_hours, hours, hours_updated_at, created_at, updated_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO equipments (name, description, commissioned_at, decommissioned_at, icon, group_id, tracks_hours, hours, hours_updated_at, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		equipment.Name,
 		equipment.Description,
 		equipment.CommissionedAt,
+		equipment.DecommissionedAt,
 		equipment.Icon,
 		equipment.GroupID,
 		equipment.TracksHours,
@@ -43,11 +44,12 @@ func CreateEquipment(db *sql.DB, equipment *models.Equipment) error {
 
 func GetEquipment(db *sql.DB, id int) (*models.Equipment, error) {
 	row := db.QueryRow(
-		`SELECT id, name, description, commissioned_at, icon, group_id, tracks_hours, hours, hours_updated_at, created_at, updated_at
+		`SELECT id, name, description, commissioned_at, decommissioned_at, icon, group_id, tracks_hours, hours, hours_updated_at, created_at, updated_at
 		 FROM equipments WHERE id = ?`, id,
 	)
 	equipment := &models.Equipment{}
 	var commissionedAt sql.NullString
+	var decommissionedAt sql.NullString
 	var icon sql.NullString
 	var groupID sql.NullInt64
 	var hours sql.NullFloat64
@@ -57,6 +59,7 @@ func GetEquipment(db *sql.DB, id int) (*models.Equipment, error) {
 		&equipment.Name,
 		&equipment.Description,
 		&commissionedAt,
+		&decommissionedAt,
 		&icon,
 		&groupID,
 		&equipment.TracksHours,
@@ -70,6 +73,9 @@ func GetEquipment(db *sql.DB, id int) (*models.Equipment, error) {
 	}
 	if commissionedAt.Valid {
 		equipment.CommissionedAt = &commissionedAt.String
+	}
+	if decommissionedAt.Valid {
+		equipment.DecommissionedAt = &decommissionedAt.String
 	}
 	equipment.Icon = iconOrDefault(icon)
 	equipment.GroupID = groupIDOrNone(groupID)
@@ -109,11 +115,12 @@ func UpdateEquipment(db *sql.DB, equipment *models.Equipment) error {
 	}
 
 	_, err := db.Exec(
-		`UPDATE equipments SET name = ?, description = ?, commissioned_at = ?, icon = ?, group_id = ?, tracks_hours = ?, updated_at = ?
+		`UPDATE equipments SET name = ?, description = ?, commissioned_at = ?, decommissioned_at = ?, icon = ?, group_id = ?, tracks_hours = ?, updated_at = ?
 		 WHERE id = ?`,
 		equipment.Name,
 		equipment.Description,
 		equipment.CommissionedAt,
+		equipment.DecommissionedAt,
 		equipment.Icon,
 		equipment.GroupID,
 		equipment.TracksHours,
@@ -172,7 +179,7 @@ func DeleteEquipment(db *sql.DB, id int) error {
 
 func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 	rows, err := db.Query(
-		`SELECT id, name, description, commissioned_at, icon, group_id, tracks_hours, hours, hours_updated_at, created_at, updated_at
+		`SELECT id, name, description, commissioned_at, decommissioned_at, icon, group_id, tracks_hours, hours, hours_updated_at, created_at, updated_at
 		 FROM equipments`,
 	)
 	if err != nil {
@@ -184,6 +191,7 @@ func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 	for rows.Next() {
 		equipment := models.Equipment{}
 		var commissionedAt sql.NullString
+		var decommissionedAt sql.NullString
 		var icon sql.NullString
 		var groupID sql.NullInt64
 		var hours sql.NullFloat64
@@ -193,6 +201,7 @@ func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 			&equipment.Name,
 			&equipment.Description,
 			&commissionedAt,
+			&decommissionedAt,
 			&icon,
 			&groupID,
 			&equipment.TracksHours,
@@ -206,6 +215,9 @@ func ListEquipments(db *sql.DB) ([]models.Equipment, error) {
 		}
 		if commissionedAt.Valid {
 			equipment.CommissionedAt = &commissionedAt.String
+		}
+		if decommissionedAt.Valid {
+			equipment.DecommissionedAt = &decommissionedAt.String
 		}
 		equipment.Icon = iconOrDefault(icon)
 		equipment.GroupID = groupIDOrNone(groupID)

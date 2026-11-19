@@ -12,6 +12,7 @@ A component of the maintained system (e.g. "Main Engine", "Family Car", "House H
 | `name`            | string    | yes      | e.g. "Main Engine"                                      |
 | `description`     | string    | no       | Optional free text                                      |
 | `commissioned_at` | date      | no       | Date the equipment was put into service (`YYYY-MM-DD`). Used as the date baseline for tasks that have never been performed — see [Derived: "due" status](#derived-due-status). |
+| `decommissioned_at` | date    | no       | Date the equipment left service (`YYYY-MM-DD`), the counterpart of `commissioned_at`. Absent (null) while it is in service. See [Decommissioning](#decommissioning). |
 | `tracks_hours`    | boolean   | yes      | Whether this equipment uses an hour-meter (default: false) |
 | `hours`           | number    | no       | Current hour-meter value. Only relevant if `tracks_hours` is true. |
 | `hours_updated_at`| timestamp | no       | Timestamp of the last hour-meter update. Only relevant if `tracks_hours` is true. |
@@ -34,6 +35,26 @@ An equipment belongs to **at most one** [group](#group), or to none.
 - A `group_id` that names no existing group is rejected with the reason "Group not found", and nothing is stored.
 - Changing the group never touches the equipment's tasks, interventions, files or hour-meter.
 
+### Decommissioning
+
+An equipment leaves service (sold, removed, replaced) by being **decommissioned**: it records the date it left service, `decommissioned_at`. An equipment with no `decommissioned_at` is **in service**. See [ADR 0003](./adr/0003-decommissioned-equipment.md).
+
+- `decommissioned_at` is set from the equipment's create and edit requests, like the other metadata. An edit replaces it: an edit that sends no `decommissioned_at` (or `null`, or `""`) puts the equipment **back in service**. A client that changes one field (e.g. the detail-header icon picker) sends the current `decommissioned_at` back.
+- A decommissioned equipment **keeps everything**: its tasks, interventions, documents, photos, hour-meter reading and [group](#group-membership). Decommissioning or putting it back in service changes none of them.
+- Its tasks are **never due** (see [Derived: "due" status](#derived-due-status)). Putting it back in service brings their due status back, computed from the history as usual.
+- Interventions can still be logged and edited on it, at any date: there is **no rule on the intervention date** against `decommissioned_at`.
+
+Rules on the date, checked on create and edit; a refused request stores nothing:
+
+| The date… | Reason |
+|-----------|--------|
+| is not a `YYYY-MM-DD` date | "Decommissioning date must be a YYYY-MM-DD date" |
+| is in the future | "Decommissioning date cannot be in the future" |
+| is before `commissioned_at`, when that is a valid date | "Decommissioning date cannot be before the commissioning date" |
+
+- **The future** is after today in the **earliest timezone on Earth (UTC+14)**. The API does not know the user's timezone, so it only refuses a date that is in the future everywhere; it never refuses the user's today. The edit form also refuses a date after today in the user's timezone.
+- The **same day** as `commissioned_at` is allowed. The rule also applies when an edit changes `commissioned_at` to a date after the `decommissioned_at` it sends.
+
 ### Hour-meter behavior
 
 - The hour-meter is **manually updated by the user**. The app does not infer hours from time.
@@ -54,7 +75,7 @@ The reading (`hours`) and its freshness (`hours_updated_at`) change only through
 | Create an equipment with `tracks_hours` on | Set to the initial value entered (none entered: no reading yet) | "now" when a value is entered |
 | Turn `tracks_hours` on for an existing equipment | Set to the initial value entered. It must be **greater than or equal to** any reading kept from an earlier tracking period; a lower value is rejected | "now" when a value is entered |
 | Turn `tracks_hours` off | Unchanged: kept, hidden while tracking is off | Unchanged |
-| Edit metadata (name, description, commissioning date, icon, including the detail-header icon picker) | Unchanged: an hours value sent with the edit is ignored (a negative one is still rejected) | Unchanged |
+| Edit metadata (name, description, commissioning or decommissioning date, icon, including the detail-header icon picker) | Unchanged: an hours value sent with the edit is ignored (a negative one is still rejected) | Unchanged |
 | **"Update hours"** or **"Same hours"** | Set to the value submitted, which must be **greater than or equal to** the current one; a lower value is rejected | "now", even when the value is unchanged |
 | Log or edit an intervention with `hours_at` | Raised to `hours_at` only when it is **strictly greater** than the current reading | "now" only when the reading is raised |
 | Delete an intervention, or edit it to a lower `hours_at` (or none) | Unchanged. When the reading may have come from that intervention, the user is asked whether to keep or correct it (see [Reading in doubt](#reading-in-doubt)) | Unchanged |
@@ -101,7 +122,7 @@ The deliberate way to set a lower reading, e.g. one that was mistyped. Served by
 - For **intervention logging** (and editing), the timestamp is updated only when the supplied `hours_at` is **strictly greater than** the current `hours`. Logging an intervention with the same or a lower reading does not reset freshness.
 - Entering the initial reading (at creation, or when turning `tracks_hours` on) also sets it to "now".
 - Used by the Dashboard to surface a CTA encouraging the user to keep the hour-meter fresh — without a fresh hour-meter, hour-based due dates cannot be trusted.
-- A **"staleness threshold"** (default: 7 days) is used to flag the oldest updates. Configurable in Settings (future). The Dashboard CTA always lists every hour-tracked equipment, but visually emphasizes those older than the threshold.
+- A **"staleness threshold"** (default: 7 days) is used to flag the oldest updates. Configurable in Settings (future). The Dashboard CTA always lists every hour-tracked equipment **in service**, but visually emphasizes those older than the threshold. A [decommissioned](#decommissioning) equipment is left out: its freshness no longer matters.
 
 ## Group
 
@@ -203,6 +224,12 @@ For each Task we compute a status used in the UI:
 
 If a task defines both intervals, the **worst** of the two statuses wins. An expiry task has a single rule, the [expiry rule](#expiry-rule).
 
+### Decommissioned equipment: never due
+
+A task of a [decommissioned](#decommissioning) equipment is **never due**. It has **none** of the computed fields: no `due_status`, `next_due_date`, `next_due_hours`, `due_trigger`, `due_in_days`, `due_in_hours` or `urgency`, whatever its kind and history. Every rule below applies only to tasks of equipments in service.
+
+So such a task is never on the Dashboard, and it gives no status to its equipment's card or its group's section header.
+
 ### Driving trigger and amount
 
 Alongside the status, the API says **which trigger drives it** and **by how much**, so no client has to guess the trigger by comparing the next due date with today.
@@ -276,7 +303,7 @@ It is computed once, with the rest of the Due status. Clients rank tasks with it
 
 Every place that orders tasks, or picks the most urgent one, uses this order, most urgent first:
 
-1. **`due_status`**: overdue, then due soon, then OK.
+1. **`due_status`**: overdue, then due soon, then OK, then none (the tasks of a [decommissioned](#decommissioned-equipment-never-due) equipment, which are therefore in name order).
 2. **`urgency`**, highest first. A task without `urgency` comes after those with one, within the same status. This is where a task overdue only because it has no date baseline lands.
 3. **`name`**, alphabetically, then **`id`**, ascending. Two tasks never tie, so the order is total and the same on every load.
 
@@ -352,7 +379,7 @@ Fields typed `date` in the tables above are **calendar dates**. Fields typed `ti
 
 | Kind | Fields | What it is |
 |------|--------|------------|
-| Calendar date | Equipment `commissioned_at`, Intervention `date`, Intervention `expiry_date`, Task `current_expiry_date`, a task's next due date | A day on the calendar (`YYYY-MM-DD`), with no time of day and no timezone |
+| Calendar date | Equipment `commissioned_at`, Equipment `decommissioned_at`, Intervention `date`, Intervention `expiry_date`, Task `current_expiry_date`, a task's next due date | A day on the calendar (`YYYY-MM-DD`), with no time of day and no timezone |
 | Timestamp | `created_at`, `updated_at`, `hours_updated_at`, `uploaded_at` | A moment in time |
 
 - **The date the user picks is the date every page shows**, whatever the browser's timezone. Saving a form without touching its date keeps that date.

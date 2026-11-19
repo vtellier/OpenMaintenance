@@ -8,6 +8,10 @@ Tracking the maintenance of owned equipment (boats, cars, homes): what must be d
 A maintained thing, or a component of one, that tasks and interventions belong to (e.g. "Main Engine", "Life jacket (red)").
 _Avoid_: Asset, item
 
+**Decommissioned equipment**:
+An equipment no longer in service (sold, removed, replaced), kept for its history. It records its date of decommissioning, the counterpart of its date of commissioning. Its tasks are never due.
+_Avoid_: Retired, archived, deleted
+
 **Group**:
 A named set of equipments that organises the Equipments list (e.g. "Winches": port winch, starboard winch, port and starboard cabin-top winches). It has no tasks, interventions or status of its own. An equipment belongs to at most one group.
 _Avoid_: Category, folder, system, tag

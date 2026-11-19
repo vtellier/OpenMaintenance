@@ -12,11 +12,14 @@ import { InterventionFormSource } from '@/lib/interventionForm'
 import { ReadingDoubt, readingDoubt } from '@/lib/readingDoubt'
 import { readingQuestion } from '@/components/ReadingDoubtModal'
 import { DEFAULT_GROUP_ICON, HistoryFilter, byName, interventionsFor } from '@/lib/equipmentGroups'
+import { equipmentLabel } from '@/lib/decommissioning'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
 const interventionApi = new InterventionApi(apiConfig)
 const groupApi = new GroupApi(apiConfig)
+
+type EquipmentRow = WithCalendarDates<Equipment, 'decommissionedAt'>
 
 // The equipment filter's select values: "<id>" for an equipment, "g:<id>"
 // for a group, "" for all.
@@ -37,7 +40,7 @@ type InterventionRow = WithCalendarDates<Intervention, 'date' | 'expiryDate'>
 export function HistoryPage() {
   return component(() => {
     const state = reactive({
-      equipments: [] as Equipment[],
+      equipments: [] as EquipmentRow[],
       groups: [] as Group[],
       tasks: [] as Task[],
       interventions: [] as InterventionRow[],
@@ -74,6 +77,7 @@ export function HistoryPage() {
 
         state.equipments = eqs.map((e: any) => ({
           ...e,
+          decommissionedAt: fromApiDate(e.decommissionedAt),
           hoursUpdatedAt: e.hoursUpdatedAt?.toISOString(),
           createdAt: e.createdAt?.toISOString(),
           updatedAt: e.updatedAt?.toISOString(),
@@ -102,7 +106,7 @@ export function HistoryPage() {
 
     load()
 
-    function getEquipmentForTask(taskId: number | undefined): Equipment | undefined {
+    function getEquipmentForTask(taskId: number | undefined): EquipmentRow | undefined {
       if (taskId == null) return undefined
       const task = state.tasks.find(t => t.id === taskId)
       if (!task || task.equipmentId == null) return undefined
@@ -246,7 +250,7 @@ export function HistoryPage() {
                 const dateStr = formatCalendarDate(inv.date)
                 const parts: string[] = []
                 if (inv.taskId == null) {
-                  const eq = equipments.find((e: Equipment) => e.id === inv.equipmentId)
+                  const eq = equipments.find((e: EquipmentRow) => e.id === inv.equipmentId)
                   if (eq?.name) parts.push(eq.name)
                   if (inv.exceptionalLabel) parts.push(inv.exceptionalLabel)
                 } else {
@@ -287,9 +291,11 @@ export function HistoryPage() {
                 <optgroup label="Equipments">
                   ${() => [...equipments].sort(byName).map(eq => {
                     const value = String(eq.id)
+                    // A decommissioned equipment is still listed, marked.
+                    const label = equipmentLabel(eq)
                     return selected === value
-                      ? html`<option value="${value}" selected="selected">${eq.name}</option>`
-                      : html`<option value="${value}">${eq.name}</option>`
+                      ? html`<option value="${value}" selected="selected">${label}</option>`
+                      : html`<option value="${value}">${label}</option>`
                   })}
                 </optgroup>
               </select>

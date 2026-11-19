@@ -79,7 +79,7 @@ test.describe('in Pacific/Kiritimati (UTC+14)', () => {
 
     // Edit the equipment and save without changes.
     await page.getByRole('link', { name: 'Edit', exact: true }).click()
-    await expect(page.locator('input[type="date"]')).toHaveValue('2024-05-01')
+    await expect(page.getByLabel('Date of commissioning')).toHaveValue('2024-05-01')
     await page.getByRole('button', { name: 'Save' }).click()
     await expect(page.locator('.detail-header__meta')).toHaveText('Commissioned 2024-05-01')
   })

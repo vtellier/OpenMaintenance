@@ -9,6 +9,7 @@ import {
   InterventionFormContext,
   InterventionFormSource,
   canSave,
+  equipmentChoices,
   isExpiryTask,
   prefill,
   save,
@@ -16,6 +17,7 @@ import {
   toRequest,
 } from '@/lib/interventionForm'
 import { InterventionReading, ReadingDoubt, readingDoubt } from '@/lib/readingDoubt'
+import { DecommissionableEquipment } from '@/lib/decommissioning'
 
 const interventionApi = new InterventionApi(apiConfig)
 
@@ -27,7 +29,7 @@ const interventionApi = new InterventionApi(apiConfig)
 export function FullInterventionModal(
   source: InterventionFormSource,
   opts: {
-    equipments: () => Pick<Equipment, 'id' | 'name' | 'tracksHours' | 'hours'>[]
+    equipments: () => (Pick<Equipment, 'id' | 'name' | 'tracksHours' | 'hours'> & DecommissionableEquipment)[]
     allTasks: () => Pick<Task, 'id' | 'name' | 'equipmentId' | 'kind'>[]
     /** The interventions already loaded, to tell whether an edit leaves the reading in doubt. */
     interventions: () => InterventionReading[]
@@ -153,9 +155,9 @@ export function FullInterventionModal(
             <label class="form-field__label">Equipment *</label>
             <select .value="${() => state.equipmentId != null ? String(state.equipmentId) : ''}" @change="${onEquipmentChange}">
               <option value="">-- Select equipment --</option>
-              ${() => equipments().map(eq => state.equipmentId === eq.id
-                ? html`<option value="${String(eq.id)}" selected="selected">${eq.name}</option>`
-                : html`<option value="${String(eq.id)}">${eq.name}</option>`)}
+              ${() => equipmentChoices(equipments()).map(eq => state.equipmentId === eq.id
+                ? html`<option value="${String(eq.id)}" selected="selected">${eq.label}</option>`
+                : html`<option value="${String(eq.id)}">${eq.label}</option>`)}
             </select>
           </div>
         ` : null}

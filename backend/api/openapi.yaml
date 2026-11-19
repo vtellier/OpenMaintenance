@@ -109,7 +109,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Equipment'
         '400':
-          description: Invalid input (e.g. negative hours, even with tracks_hours false)
+          description: Invalid input (e.g. negative hours, even with tracks_hours false, or a decommissioned_at that is malformed, in the future or before commissioned_at)
   /equipments/{id}:
     get:
       operationId: getEquipment
@@ -138,7 +138,9 @@ paths:
       summary: Update an equipment
       description: >
         Update an existing equipment's metadata (name, description,
-        commissioned_at, icon, tracks_hours). This never changes the hour-meter
+        commissioned_at, decommissioned_at, icon, group_id, tracks_hours). An
+        edit replaces them: one without decommissioned_at puts the equipment
+        back in service. This never changes the hour-meter
         reading or hours_updated_at, with one exception: when the request turns
         tracks_hours on, hours (if given) becomes the reading and
         hours_updated_at is set to now. Turning tracks_hours off keeps the
@@ -166,7 +168,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Equipment'
         '400':
-          description: Invalid input (e.g. negative hours, even when not turning tracks_hours on, or turning tracks_hours on with hours below the reading kept from an earlier tracking period)
+          description: Invalid input (e.g. negative hours, even when not turning tracks_hours on, or turning tracks_hours on with hours below the reading kept from an earlier tracking period, or a decommissioned_at that is malformed, in the future or before commissioned_at)
         '404':
           description: Equipment not found
     delete:
@@ -874,6 +876,15 @@ components:
           type: string
           format: date
           description: Date the equipment was put into service (YYYY-MM-DD). Optional.
+        decommissioned_at:
+          type: string
+          format: date
+          nullable: true
+          description: >
+            Date the equipment left service (YYYY-MM-DD); null while it is in
+            service. The tasks of a decommissioned equipment are never due:
+            they have no computed due fields. See doc/data-model.md,
+            "Decommissioning".
         icon:
           type: string
           description: Emoji marker for the equipment, shown wherever it is referenced. Defaults to 🔧.
@@ -915,6 +926,19 @@ components:
           type: string
           format: date
           description: Date the equipment was put into service (YYYY-MM-DD). Optional.
+        decommissioned_at:
+          type: string
+          format: date
+          nullable: true
+          description: >
+            Date the equipment left service (YYYY-MM-DD). Omitted, null or "":
+            in service. An update replaces it like the other metadata, so a
+            client that edits one field sends the current decommissioned_at
+            back. Rejected (400) when it is not a YYYY-MM-DD date ("Decommissioning
+            date must be a YYYY-MM-DD date"), after today in UTC+14
+            ("Decommissioning date cannot be in the future") or before a valid
+            commissioned_at ("Decommissioning date cannot be before the
+            commissioning date").
         icon:
           type: string
           description: Emoji marker for the equipment. Defaults to 🔧 when omitted.
@@ -1027,7 +1051,10 @@ components:
             the task was created. Used only while the task has no intervention.
         due_status:
           type: string
-          description: Computed due status (overdue, due_soon, ok)
+          description: >-
+            Computed due status (overdue, due_soon, ok). Absent, like every
+            other computed due field, for a task of a decommissioned equipment:
+            it is never due.
           enum:
             - overdue
             - due_soon
