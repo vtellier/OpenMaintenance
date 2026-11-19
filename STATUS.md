@@ -619,3 +619,10 @@ Can start now: #65, #66, #69, #75.
 - **Specs touched**: `date-shifts-back-east-of-utc` and the two `confirm-tracks-modal-*` specs found "the" date input of the edit page, which now has two; they use the commissioning date's label.
 - Checked in the browser (Chrome DevTools MCP, built binary on a scratch DB): hidden by default, Show decommissioned (dimmed card in its group, muted badge and date), header badge, Info tab, Tasks tab without indicator, edit form, phone width.
 - Verified with `go test ./...`, `pnpm test:unit`, `pnpm run typecheck`, `pnpm run build`, `pnpm test` (59 specs: 57 pass; `dashboard-refreshes-with-other-due-tasks` and `done-opens-full-form-prefilled` still fail on dates where a month ahead is 30 days or less, also without this branch's changes) and `make build`.
+
+## 2026-11-18 — Calendar-proof Dashboard Done specs (issue #116)
+
+- Branch `fix/issue-116-calendar-proof-done-specs`. Not a product bug: by the 30-day due-soon margin, a monthly task done today is due soon at once whenever next month's date is 30 days away or less, so `dashboard-refreshes-with-other-due-tasks` and the Dashboard test of `done-opens-full-form-prefilled` failed in February, April, June, September and November.
+- **Red**: the existing specs on `main` (CI run 44442860459, and locally today: both `toHaveCount(0)` received 1).
+- **Fix (tests only)**: the task marked Done is yearly (`months_interval: 12`), through a parameter on each spec's helper: overdue before Done from its old intervention, OK right after in any month. The monthly due-soon task and the Equipment detail test are unchanged.
+- Verified with `pnpm test` (59 specs, all pass), `pnpm test:unit`, `pnpm run typecheck` and `pnpm run build`.
