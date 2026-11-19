@@ -87,7 +87,13 @@ type DueStatus struct {
 // date) is overdue but has no amount and no fraction: on the same status as an
 // overdue hours rule the hours rule drives, because it has a concrete amount
 // to show, and the urgency comes from the hours rule alone, or is absent.
+//
+// A task of a decommissioned equipment is never due: it gets the zero
+// DueStatus, with none of the fields.
 func ComputeDueStatus(task models.Task, equipment models.Equipment, interventions []models.Intervention, now time.Time) DueStatus {
+	if equipment.IsDecommissioned() {
+		return DueStatus{}
+	}
 	if task.IsExpiry() {
 		return expiryDueStatus(task, interventions, now)
 	}

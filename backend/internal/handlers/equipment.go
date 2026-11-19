@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	dbpackage "github.com/vtellier/OpenMaintenance/internal/db"
@@ -31,6 +32,9 @@ func (h *Handler) CreateEquipment(ctx echo.Context) error {
 	}
 	if status, msg := h.checkEquipmentGroup(input.GroupID); status != 0 {
 		return ctx.JSON(status, map[string]string{"error": msg})
+	}
+	if err := checkDecommissioning(input, time.Now()); err != nil {
+		return ctx.JSON(400, map[string]string{"error": err.Error()})
 	}
 
 	equipment := equipmentMetadata(input)
@@ -75,6 +79,9 @@ func (h *Handler) UpdateEquipment(ctx echo.Context, id int) error {
 	}
 	if status, msg := h.checkEquipmentGroup(input.GroupID); status != 0 {
 		return ctx.JSON(status, map[string]string{"error": msg})
+	}
+	if err := checkDecommissioning(input, time.Now()); err != nil {
+		return ctx.JSON(400, map[string]string{"error": err.Error()})
 	}
 
 	// Recorded before the metadata so that a rejected reading changes nothing.
@@ -159,12 +166,13 @@ func (h *Handler) DeleteEquipment(ctx echo.Context, id int) error {
 // hourmeter package changes them.
 func equipmentMetadata(in *models.Equipment) *models.Equipment {
 	return &models.Equipment{
-		Name:           in.Name,
-		Description:    in.Description,
-		CommissionedAt: in.CommissionedAt,
-		Icon:           in.Icon,
-		GroupID:        in.GroupID,
-		TracksHours:    in.TracksHours,
+		Name:             in.Name,
+		Description:      in.Description,
+		CommissionedAt:   in.CommissionedAt,
+		DecommissionedAt: in.DecommissionedAt,
+		Icon:             in.Icon,
+		GroupID:          in.GroupID,
+		TracksHours:      in.TracksHours,
 	}
 }
 
@@ -182,6 +190,39 @@ func (h *Handler) checkEquipmentGroup(groupID *int) (int, string) {
 		return 500, err.Error()
 	}
 	return 0, ""
+}
+
+// earliestZone is the earliest timezone on Earth. The API does not know the
+// user's timezone, so a date is in the future only once it is after today
+// there: the user's today is never refused.
+var earliestZone = time.FixedZone("UTC+14", 14*60*60)
+
+// checkDecommissioning checks a create or edit request's decommissioning
+// date (doc/data-model.md, "Decommissioning"). An empty one is none: it is
+// cleared, so the equipment is in service. Otherwise it must be a YYYY-MM-DD
+// date, not in the future, and not before the commissioning date when that
+// is a valid date (a malformed commissioning date is unset).
+func checkDecommissioning(in *models.Equipment, now time.Time) error {
+	if in.DecommissionedAt != nil && *in.DecommissionedAt == "" {
+		in.DecommissionedAt = nil
+	}
+	if in.DecommissionedAt == nil {
+		return nil
+	}
+	decommissioned, err := time.Parse("2006-01-02", *in.DecommissionedAt)
+	if err != nil {
+		return errors.New("Decommissioning date must be a YYYY-MM-DD date")
+	}
+	n := now.In(earliestZone)
+	if today := time.Date(n.Year(), n.Month(), n.Day(), 0, 0, 0, 0, time.UTC); decommissioned.After(today) {
+		return errors.New("Decommissioning date cannot be in the future")
+	}
+	if in.CommissionedAt != nil {
+		if commissioned, err := time.Parse("2006-01-02", *in.CommissionedAt); err == nil && decommissioned.Before(commissioned) {
+			return errors.New("Decommissioning date cannot be before the commissioning date")
+		}
+	}
+	return nil
 }
 
 // checkInputHours refuses a negative hours in a create or edit request, even

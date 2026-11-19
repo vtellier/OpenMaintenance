@@ -7,7 +7,7 @@ import (
 
 // CurrentSchemaVersion is the schema version the running binary expects.
 // Bump this and append to `migrations` whenever a schema change is added.
-const CurrentSchemaVersion = 9
+const CurrentSchemaVersion = 10
 
 type migration struct {
 	Version int
@@ -109,6 +109,14 @@ var migrations = []migration{
 				updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 			)`,
 			`ALTER TABLE equipments ADD COLUMN group_id INTEGER REFERENCES groups(id)`,
+		},
+	},
+	{
+		Version: 10,
+		// Decommissioned equipment (#113): the YYYY-MM-DD date an equipment
+		// left service. Existing equipments are in service (NULL).
+		SQL: []string{
+			`ALTER TABLE equipments ADD COLUMN decommissioned_at TEXT`,
 		},
 	},
 }
