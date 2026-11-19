@@ -142,7 +142,23 @@ func main() {
 		createIntervention(map[string]any{"task_id": grease, "date": rfc(monthsAgo(w.doneAgo)), "location": "Home marina", "performed_by": "Owner"})
 	}
 
-	fmt.Printf("\n✓ Seed complete — 1 group, 5 equipments, 10 tasks, 15 interventions.\n  Open %s to see Overdue / Due-soon / OK statuses.\n", baseURL)
+	// A decommissioned equipment (#113): sold two months ago, kept for its
+	// history. Its gearbox oil would be overdue, but its tasks are never due:
+	// it is not on the Dashboard nor in the hour-meter banner, and the
+	// Equipments list shows it only with "Show decommissioned".
+	outboard := createEquipment(map[string]any{
+		"name":              "Tohatsu 3.5 — Old outboard",
+		"description":       "Tender outboard, sold.",
+		"icon":              "🛶",
+		"tracks_hours":      true,
+		"hours":             230,
+		"commissioned_at":   monthsAgo(60).Format("2006-01-02"),
+		"decommissioned_at": monthsAgo(2).Format("2006-01-02"),
+	})
+	gearbox := createTask(map[string]any{"equipment_id": outboard, "name": "Gearbox oil change", "hours_interval": 50, "months_interval": 12})
+	createIntervention(map[string]any{"task_id": gearbox, "date": rfc(monthsAgo(20)), "hours_at": 150, "location": "Home marina", "performed_by": "Owner"})
+
+	fmt.Printf("\n✓ Seed complete — 1 group, 6 equipments (1 decommissioned), 11 tasks, 16 interventions.\n  Open %s to see Overdue / Due-soon / OK statuses.\n", baseURL)
 }
 
 // ── HTTP helpers ─────────────────────────────────────────────────────────────
