@@ -11,19 +11,22 @@ const API = 'http://127.0.0.1:3001/api'
  * Fixed in: open
  */
 
-async function equipmentWithDueTask(page: Page, name: string, equipment: Record<string, unknown>, lastDone: string) {
+async function equipmentWithDueTask(page: Page, name: string, equipment: Record<string, unknown>, lastDone: string, monthsInterval = 1) {
   const eq = await (await page.request.post(`${API}/equipments`, { data: { name, ...equipment } })).json()
   const task = await (await page.request.post(`${API}/tasks`, {
-    data: { equipment_id: eq.id, name: `${name} Task`, months_interval: 1 },
+    data: { equipment_id: eq.id, name: `${name} Task`, months_interval: monthsInterval },
   })).json()
   await page.request.post(`${API}/interventions`, { data: { task_id: task.id, date: lastDone } })
   return { eq, task, taskName: `${name} Task` }
 }
 
 test('Done on the Dashboard removes the task while another equipment keeps its due task', async ({ page }) => {
-  // Overdue, so its block comes first; the other block, only due soon (done
-  // 20 days ago on a monthly task), then moves up into its place.
-  const done = await equipmentWithDueTask(page, 'Refresh First Boat', { tracks_hours: true, hours: 100 }, '2024-01-01T00:00:00Z')
+  // Overdue, so its block ranks above the other one, only due soon (done 20
+  // days ago on a monthly task), which then moves up into its place. Not
+  // necessarily first: earlier specs leave more urgent overdue tasks behind.
+  // A yearly task: done today, it is OK in any month. A monthly one would be
+  // due soon at once whenever next month's date is 30 days away or less (#116).
+  const done = await equipmentWithDueTask(page, 'Refresh First Boat', { tracks_hours: true, hours: 100 }, '2024-01-01T00:00:00Z', 12)
   const twentyDaysAgo = new Date(Date.now() - 20 * 24 * 3600 * 1000).toISOString()
   const other = await equipmentWithDueTask(page, 'Refresh Second Car', { tracks_hours: false }, twentyDaysAgo)
 
