@@ -10,11 +10,11 @@ const API = 'http://127.0.0.1:3001/api'
  * Fixed in: open
  */
 
-async function equipmentWithOverdueTask(page: Page, name: string, equipment: Record<string, unknown>) {
+async function equipmentWithOverdueTask(page: Page, name: string, equipment: Record<string, unknown>, monthsInterval = 1) {
   const eq = await (await page.request.post(`${API}/equipments`, { data: { name, ...equipment } })).json()
   const taskName = `${name} Task`
   const task = await (await page.request.post(`${API}/tasks`, {
-    data: { equipment_id: eq.id, name: taskName, months_interval: 1 },
+    data: { equipment_id: eq.id, name: taskName, months_interval: monthsInterval },
   })).json()
   // An old intervention makes the task overdue, so the Dashboard lists it.
   await page.request.post(`${API}/interventions`, { data: { task_id: task.id, date: '2025-01-01T00:00:00Z' } })
@@ -30,7 +30,9 @@ function localToday(page: Page): Promise<string> {
 }
 
 test('Done on the Dashboard opens the full form prefilled and saves it', async ({ page }) => {
-  const { eq, task, taskName } = await equipmentWithOverdueTask(page, 'Done Full Form Boat', { tracks_hours: true, hours: 100 })
+  // A yearly task: done today, it is OK in any month. A monthly one would be
+  // due soon at once whenever next month's date is 30 days away or less (#116).
+  const { eq, task, taskName } = await equipmentWithOverdueTask(page, 'Done Full Form Boat', { tracks_hours: true, hours: 100 }, 12)
 
   await page.goto('/')
   const row = page.locator('.task-row', { hasText: taskName })
@@ -49,7 +51,7 @@ test('Done on the Dashboard opens the full form prefilled and saves it', async (
   await modal.locator('.form-field', { hasText: 'Location' }).locator('input').fill('  Marina Done  ')
   await modal.getByRole('button', { name: 'Save' }).click()
   await expect(modal).toBeHidden()
-  // The task is no longer due: it leaves the Dashboard.
+  // The task is OK now: it leaves the Dashboard.
   await expect(row).toHaveCount(0)
 
   const interventions: { location?: string | null }[] = await (await page.request.get(`${API}/tasks/${task.id}/interventions`)).json()
