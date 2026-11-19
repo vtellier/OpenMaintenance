@@ -190,6 +190,14 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] History equipment filter offers the groups
 - Manual order of groups and equipments: out of scope for now
 
+## Milestone 22 — Decommissioned Equipment (issue #113)
+
+- [x] Spec: `doc/data-model.md` (`decommissioned_at`, "Decommissioning", never due), `doc/gui/equipments.md`, `dashboard.md`, `history.md`, `interventions.md`, `tasks.md`; ADR 0003; `CONTEXT.md` glossary entry
+- [x] `decommissioned_at` on equipments (schema v10), with its date rules; the tasks of a decommissioned equipment have no due fields
+- [x] Edit form "Decommissioned on", detail header badge, date on the Info tab
+- [x] Equipments list hides decommissioned equipments; "Show decommissioned" shows them dimmed, in their group
+- [x] Left out of the Dashboard and its hour-meter freshness banner; still in History and the intervention forms, marked
+
 ## Future (post-V1)
 
 - Configurable "due soon" window

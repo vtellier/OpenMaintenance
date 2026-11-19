@@ -9,6 +9,7 @@ Define your own maintenance program, log interventions, and see at a glance what
 - **Dashboard** — see all upcoming and overdue tasks at a glance
 - **Multiple equipments** — manage any number of devices in one place, each with a custom emoji icon
 - **Equipment groups** — gather equipments into collapsible groups (e.g. "Winches") to keep a long list readable; a collapsed group still shows its worst status, and History can filter by group
+- **Decommissioned equipment** — mark gear that left service (sold, removed, replaced) with its date: its tasks are never due and it leaves the Dashboard, while its history stays and past work can still be logged
 - **Custom maintenance program** — define tasks by time interval, hour-meter interval, or both
 - **Expiry tasks** — track parts that carry a printed expiry date (e.g. a life jacket's CO2 cartridge), due on the date of the part fitted
 - **Intervention history** — log what you did, when, where, and who performed it, per equipment; "Done" on a due task opens the intervention form already filled in
