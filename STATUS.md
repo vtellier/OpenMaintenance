@@ -626,3 +626,19 @@ Can start now: #65, #66, #69, #75.
 - **Red**: the existing specs on `main` (CI run 44442860459, and locally today: both `toHaveCount(0)` received 1).
 - **Fix (tests only)**: the task marked Done is yearly (`months_interval: 12`), through a parameter on each spec's helper: overdue before Done from its old intervention, OK right after in any month. The monthly due-soon task and the Equipment detail test are unchanged.
 - Verified with `pnpm test` (59 specs, all pass), `pnpm test:unit`, `pnpm run typecheck` and `pnpm run build`.
+
+## 2026-11-19 — Release v0.8.0
+
+Tagged `v0.8.0` on `main` (4125b2d) and pushed the tag. The release pipeline (run 44451097736) passed every job, built the Linux and Windows binaries, and published the [GitHub release](https://github.com/vtellier/OpenMaintenance/releases/tag/v0.8.0) with auto-generated notes.
+
+Changes bundled in this release (since v0.7.0):
+- **Expiry tasks** (issue #99): a part is due on the expiry date printed on it.
+- **Never lower the hour-meter reading silently** (issue #70): after a delete or an edit, the app asks whether to keep the reading; **Correct reading** added. Negative readings are refused (issue #102).
+- **Done opens the full intervention form, prefilled** (issue #107), replacing the quick log; the Dashboard drops a task marked done while other due tasks remain (issue #109).
+- **Equipment groups** (issue #112): sections on the Equipments list, a Group picker, and a History group filter.
+- **Decommissioned equipment** (issue #113): it keeps its history, its tasks are never due, and it is hidden from the Equipments list unless "Show decommissioned" is checked.
+- Intervention form refactors (issues #73, #74), an optional Location on Done (issue #97), the Windows build with cgo (issue #86), and calendar-proof Dashboard Done specs (issue #116).
+
+The database schema goes from version 7 to 10 (migrations are forward-only): once v0.8.0 has opened a database, older binaries refuse it.
+
+CI note: `build-frontend` downloads the OpenAPI generator JAR from Maven Central on every run, and the PR #117 run was refused twice ("Your ip has exceeded rate limits", HTTP 429) before a re-run passed.
