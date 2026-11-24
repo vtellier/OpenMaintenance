@@ -194,7 +194,7 @@ On every startup, once the database file exists and **before the startup backup*
 | Referenced files found | Outcome |
 |------------------------|---------|
 | All of them, or nothing is referenced | Startup continues as normal. |
-| Some missing | Startup continues and logs a warning with the number missing and the first few missing paths. Those files cannot be downloaded until they are put back. |
+| Some missing | Startup continues and logs a warning with the number missing and the first few missing paths. In the app, those files show as missing on the server (`missing: true`: the Documents tab and the intervention photos say so); they cannot be downloaded until they are put back, and their entries can be deleted. |
 | **None of them** | Startup is refused. No backup is written and no backup is rotated away, so a service manager restarting the app in a loop can never push good backups out. |
 
 The refusal names the database path, the expected `files/` directory and the number of missing files, and says to move the `files/` directory next to the database. The usual cause is a `database.path` changed to a copy of the database taken without its `files/` directory.
