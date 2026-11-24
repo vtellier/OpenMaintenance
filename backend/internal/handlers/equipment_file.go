@@ -17,6 +17,10 @@ import (
 	"github.com/vtellier/OpenMaintenance/internal/models"
 )
 
+// documentTooLarge is the reason given when a document exceeds the cap. It is
+// built from the cap, so the number in the message cannot drift from it.
+var documentTooLarge = fmt.Sprintf("file exceeds the %d MB limit", filestore.MaxDocumentSize>>20)
+
 // fileResponse builds the API File object for a stored document, reading size
 // and MIME type from disk.
 func (h *Handler) fileResponse(equipmentID int, f models.EquipmentFile) generated.FileInfo {
@@ -80,7 +84,7 @@ func (h *Handler) UploadEquipmentFile(ctx echo.Context, equipmentId int) error {
 		return ctx.JSON(400, map[string]string{"error": "missing file"})
 	}
 	if fileHeader.Size > filestore.MaxDocumentSize {
-		return ctx.JSON(413, map[string]string{"error": "file exceeds the 25 MB limit"})
+		return ctx.JSON(413, map[string]string{"error": documentTooLarge})
 	}
 
 	src, err := fileHeader.Open()
@@ -115,7 +119,7 @@ func (h *Handler) UploadEquipmentFile(ctx echo.Context, equipmentId int) error {
 	}
 	if written > filestore.MaxDocumentSize {
 		os.Remove(absPath)
-		return ctx.JSON(413, map[string]string{"error": "file exceeds the 25 MB limit"})
+		return ctx.JSON(413, map[string]string{"error": documentTooLarge})
 	}
 
 	row := &models.EquipmentFile{

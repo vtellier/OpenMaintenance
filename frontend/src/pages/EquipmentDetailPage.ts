@@ -5,7 +5,7 @@ import { Intervention } from '@generated/api/models/Intervention'
 import { FileInfo } from '@generated/api/models/FileInfo'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { formatHours, formatFileSize, buildInterventionMeta } from '@/lib/format'
+import { formatHours, formatFileSize, buildInterventionMeta, extractErrorMessage } from '@/lib/format'
 import { dueTimingText } from '@/lib/dueTiming'
 import { byUrgency } from '@/lib/urgency'
 import { relativeTime, formatTimestampDate, isHoursVeryStale } from '@/lib/timestamp'
@@ -464,8 +464,8 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       try {
         await equipmentApi.uploadEquipmentFile({ equipmentId, file })
         await loadDocuments()
-      } catch {
-        state.uploadError = 'Failed to upload document'
+      } catch (err) {
+        state.uploadError = await extractErrorMessage(err, 'Failed to upload document')
       } finally {
         state.uploading = false
         input.value = ''
