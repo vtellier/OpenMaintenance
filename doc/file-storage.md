@@ -132,14 +132,15 @@ Every list and upload response returns one or more `File` objects:
 |-------|------|-------|
 | `name` | string | Stored UUID filename, used as the `{filename}` URL segment (e.g. `abc123.pdf`). |
 | `original_name` | string | Filename as uploaded (e.g. `manual.pdf`). |
-| `size` | integer | Size in bytes. |
+| `size` | integer | Size in bytes, read from disk; `0` when `missing`. |
 | `mime_type` | string | Detected MIME type. |
 | `uploaded_at` | string (date-time) | ISO 8601 timestamp. |
 | `url` | string | Relative serve URL for the file. |
+| `missing` | boolean | `true` when the file is absent from disk (its row exists, the file does not), `false` otherwise. The entry can still be deleted; serving it returns `404 Not Found`. |
 
 ### List endpoints
 
-`GET …/files` returns a JSON array of `File` objects (empty array when none). `POST …/files` returns the single created `File` object with `201 Created`. Serving a missing file returns `404 Not Found`.
+`GET …/files` returns a JSON array of `File` objects (empty array when none). `POST …/files` returns the single created `File` object with `201 Created`. Serving a missing file returns `404 Not Found`. A list keeps an entry whose file is gone from disk and flags it with `missing: true`, so the app can say so and the entry can be deleted (issue #122).
 
 ## File lifecycle
 
