@@ -204,6 +204,7 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 
 - [x] **Refuse to start when no attached file is found** (issue #121): a database moved without its `files/` folder stops startup before any backup is written; some missing files only log a warning; the `files/` location is derived in one place
 - [x] **A missing attached file says so** (issue #122): the `File` object reports `missing`; a missing document shows "File missing on server" with no Download link, a missing photo shows a placeholder instead of a broken image, and both can still be deleted
+- [x] **An incomplete backup never rotates a complete one away** (issue #123): when the database references attached files that are not on disk, the startup backup logs how many and skips rotation for that run, reusing `db.CheckFiles`
 
 ## Future (post-V1)
 

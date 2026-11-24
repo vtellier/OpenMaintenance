@@ -106,11 +106,41 @@ func BackupDB(dbPath string, cfg BackupConfig) error {
 	// The new backup is in place: failing to delete an old one must not keep
 	// the app from starting.
 	if cfg.Keep > 0 {
+		// An incomplete backup must never cost a complete one: an older backup
+		// may be the last that still holds the missing files.
+		if reason := incompleteBackup(snapshot, baseDir); reason != "" {
+			log.Printf("backup: %s: this backup is incomplete, so rotation skipped and no older backup deleted", reason)
+			return nil
+		}
 		if err := rotate(backupDir, stem, cfg.Keep); err != nil {
 			log.Printf("backup: rotation failed: %v", err)
 		}
 	}
 	return nil
+}
+
+// incompleteBackup says why the backup of the database snapshot lacks
+// attached files it references, using the same check as startup (CheckFiles),
+// or returns "" when it is complete. When the check itself fails, the backup
+// cannot be shown complete and is treated as incomplete.
+func incompleteBackup(snapshot, baseDir string) string {
+	conn, err := sql.Open("sqlite3", snapshot)
+	if err != nil {
+		return fmt.Sprintf("cannot check attached files: %v", err)
+	}
+	defer conn.Close()
+	check, err := CheckFiles(conn, baseDir)
+	if err != nil {
+		return fmt.Sprintf("cannot check attached files: %v", err)
+	}
+	switch n := len(check.Missing); n {
+	case 0:
+		return ""
+	case 1:
+		return fmt.Sprintf("1 attached file referenced by the database is missing from %s", filestore.FilesDir(baseDir))
+	default:
+		return fmt.Sprintf("%d attached files referenced by the database are missing from %s", n, filestore.FilesDir(baseDir))
+	}
 }
 
 // snapshotDB writes a consistent copy of the database at src to dst with
