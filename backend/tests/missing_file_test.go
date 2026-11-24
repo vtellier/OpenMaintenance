@@ -100,3 +100,33 @@ func TestInterventionFile_ListReportsAMissingPhoto(t *testing.T) {
 		t.Errorf("serve absent photo: got %d, want 404", rec.Code)
 	}
 }
+
+func TestMissingFile_CanStillBeDeleted(t *testing.T) {
+	t.Run("document", func(t *testing.T) {
+		e, h, baseDir := newTestServer(t)
+		id := seedEquipment(t, h)
+		gone := decodeFile(t, uploadDoc(t, e, id, "invoice.pdf", []byte("invoice")))
+		removeFromDisk(t, filepath.Join(baseDir, "files", "equipments", itoa(id), "files", gone.Name))
+
+		if rec := request(e, http.MethodDelete, "/api/equipments/"+itoa(id)+"/files/"+gone.Name); rec.Code != http.StatusNoContent {
+			t.Fatalf("delete missing document: got %d (%s), want 204", rec.Code, rec.Body.String())
+		}
+		if docs := listDocs(t, e, id); len(docs) != 0 {
+			t.Errorf("after delete: %d documents listed, want 0", len(docs))
+		}
+	})
+	t.Run("photo", func(t *testing.T) {
+		e, h, baseDir := newTestServer(t)
+		eqID := seedEquipment(t, h)
+		invID := seedIntervention(t, h, eqID, seedTask(t, h, eqID))
+		gone := decodeFile(t, uploadPhoto(t, e, invID, "after.png", pngBytes))
+		removeFromDisk(t, filepath.Join(interventionPhotoDir(baseDir, eqID, invID), gone.Name))
+
+		if rec := request(e, http.MethodDelete, "/api/interventions/"+itoa(invID)+"/files/"+gone.Name); rec.Code != http.StatusNoContent {
+			t.Fatalf("delete missing photo: got %d (%s), want 204", rec.Code, rec.Body.String())
+		}
+		if photos := listPhotoFiles(t, e, invID); len(photos) != 0 {
+			t.Errorf("after delete: %d photos listed, want 0", len(photos))
+		}
+	})
+}
