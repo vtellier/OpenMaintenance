@@ -11,8 +11,9 @@ import (
 	"strconv"
 )
 
-// MaxDocumentSize is the largest equipment document accepted, in bytes (25 MB).
-const MaxDocumentSize = 25 << 20
+// MaxDocumentSize is the largest equipment document accepted, in bytes
+// (50 MB): enough for real equipment manuals, which run to tens of MB.
+const MaxDocumentSize = 50 << 20
 
 // MaxImageSize is the largest photo accepted for tasks and interventions, in
 // bytes (10 MB).

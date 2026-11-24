@@ -642,3 +642,13 @@ Changes bundled in this release (since v0.7.0):
 The database schema goes from version 7 to 10 (migrations are forward-only): once v0.8.0 has opened a database, older binaries refuse it.
 
 CI note: `build-frontend` downloads the OpenAPI generator JAR from Maven Central on every run, and the PR #117 run was refused twice ("Your ip has exceeded rate limits", HTTP 429) before a re-run passed.
+
+## 2026-11-24 — Larger equipment documents, and the upload error says why (issue #119)
+
+- Branch `fix/issue-119-large-document-upload`. A 28.7 MiB Victron manual was refused with a generic "Failed to upload document": documents were capped at 25 MB, and the Documents tab dropped the server's 413 reason.
+- **Reproduced** with `curl` against a backend built into the scratchpad (its own DB): `413 {"error":"file exceeds the 25 MB limit"}`, nothing stored.
+- **Spec first** (approved): `doc/file-storage.md` (documents 50 MB; the `error` text states the limit broken, built from the cap) and `doc/gui/equipments.md` (Documents tab: 50 MB, a refused upload shows the server's reason).
+- **Tests first** (TDD, agreed seams), each slice red first: `httptest` `TestEquipmentFile_UploadsALargeManual` (40 MB → 201, listed) and `TestEquipmentFile_RefusesADocumentOver50MB` (51 MB → 413 "file exceeds the 50 MB limit", nothing listed); Playwright `equipment-upload-error-shows-reason.spec.ts`, with the upload POST stubbed to a 413 so no tens of MB go through the browser.
+- **Fix**: `filestore.MaxDocumentSize` 50 MB; both 413s in `equipment_file.go` use a message built from it; the OpenAPI description says 50 MB (generated code unchanged); `onUploadChange` uses `extractErrorMessage`. Photos stay at 10 MB, and their 413 text is still a literal.
+- Playwright ran against the scratchpad backend (reused by `webServer`), so the global setup's wipe never touched `backend/maintenance.db`.
+- Verified with `go test ./...`, `pnpm test:unit`, `pnpm test` (60 specs, all pass), `make build`, and `curl` on the fixed backend (the 30,067,499-byte manual → 201; 51 MB → 413 with the new message).
