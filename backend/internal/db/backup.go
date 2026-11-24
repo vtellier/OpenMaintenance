@@ -14,6 +14,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/vtellier/OpenMaintenance/internal/filestore"
 )
 
 type BackupConfig struct {
@@ -87,7 +89,11 @@ func BackupDB(dbPath string, cfg BackupConfig) error {
 	}
 
 	tmpArchive := filepath.Join(tmpDir, "backup"+BackupArchiveExt)
-	filesDir := filepath.Join(filepath.Dir(dbPath), "files") // see doc/file-storage.md
+	baseDir, err := filestore.BaseDir(dbPath)
+	if err != nil {
+		return fmt.Errorf("backup: %w", err)
+	}
+	filesDir := filestore.FilesDir(baseDir)
 	if err := writeArchive(tmpArchive, snapshot, base, filesDir, backupDir); err != nil {
 		return fmt.Errorf("backup: archive failed: %w", err)
 	}

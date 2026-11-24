@@ -19,23 +19,37 @@ const MaxDocumentSize = 50 << 20
 // bytes (10 MB).
 const MaxImageSize = 10 << 20
 
-// BaseDir returns the directory that contains the files/ tree, derived from
-// the database path. Relative database paths are resolved against the
-// executable's directory, matching db.InitDB.
-func BaseDir(dbPath string) (string, error) {
-	if !filepath.IsAbs(dbPath) {
-		exe, err := os.Executable()
-		if err != nil {
-			return "", err
-		}
-		dbPath = filepath.Join(filepath.Dir(exe), dbPath)
+// ResolveDBPath returns the absolute database path. Relative paths are
+// resolved against the executable's directory.
+func ResolveDBPath(dbPath string) (string, error) {
+	if filepath.IsAbs(dbPath) {
+		return dbPath, nil
 	}
-	return filepath.Dir(dbPath), nil
+	exe, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(filepath.Dir(exe), dbPath), nil
+}
+
+// BaseDir returns the directory that contains the files/ tree: the directory
+// of the database. Every stored relative path (files/...) is relative to it.
+func BaseDir(dbPath string) (string, error) {
+	abs, err := ResolveDBPath(dbPath)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Dir(abs), nil
+}
+
+// FilesDir returns the files/ directory under baseDir.
+func FilesDir(baseDir string) string {
+	return filepath.Join(baseDir, "files")
 }
 
 // EnsureFilesDir creates the files/ directory under baseDir if it is missing.
 func EnsureFilesDir(baseDir string) error {
-	return os.MkdirAll(filepath.Join(baseDir, "files"), 0755)
+	return os.MkdirAll(FilesDir(baseDir), 0755)
 }
 
 // EquipmentFilesRelDir is the relative directory holding an equipment's
