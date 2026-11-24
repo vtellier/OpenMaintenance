@@ -135,6 +135,7 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] Documents tab on the equipment detail screen (upload, list, download, delete)
 - [x] Files removed from disk on document delete and on equipment delete (cascade)
 - [x] Spec: `doc/file-storage.md`
+- [x] Documents up to 50 MB, enough for real manuals; a refused upload shows the server's reason, e.g. "file exceeds the 50 MB limit" (issue #119)
 
 ## Milestone 15 — Intervention Photos (issue #25)
 
