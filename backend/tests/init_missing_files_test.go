@@ -92,6 +92,21 @@ func TestInitDB_RefusesWhenNoAttachedFileIsFound(t *testing.T) {
 	}
 }
 
+func TestInitDB_RefusalNamesASingleMissingFileInTheSingular(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "maintenance.db")
+	seedAttachedFiles(t, dbPath, []attachedFile{{"files/equipments/1/files/a.pdf", false}}, nil)
+
+	conn, err := db.InitDB(dbPath, "test", db.BackupConfig{})
+	if err == nil {
+		conn.Close()
+		t.Fatal("InitDB succeeded, want a refusal: the only attached file is missing")
+	}
+	if want := "references 1 attached file, but it is not in " + filepath.Join(dir, "files"); !strings.Contains(err.Error(), want) {
+		t.Errorf("error %q does not contain %q", err.Error(), want)
+	}
+}
+
 // captureLog redirects the standard logger for the rest of the test.
 func captureLog(t *testing.T) *strings.Builder {
 	t.Helper()
