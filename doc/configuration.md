@@ -40,6 +40,18 @@ backup:
 - If a field is missing from an existing file: the default value is used for that field.
 - Invalid values (e.g. non-integer port): startup fails with a clear error message.
 
+## Moving your data
+
+The database file and the `files/` directory next to it (attached documents and photos, see [file-storage.md](./file-storage.md)) form one unit. When you change `database.path`, move both together: the new location must hold `<db-dir>/maintenance.db` **and** `<db-dir>/files/`.
+
+If the database references attached files and none of them are found in the `files/` directory next to it, the app refuses to start, before it writes anything (no backup, no migration), with an error like:
+
+```
+the database /data/maintenance.db references 42 attached files, but none of them are in /data/files: move the files/ folder that belongs with this database to /data/files, then start again
+```
+
+Move the `files/` directory next to the database (or point `database.path` back at the old location) and start again. If only some files are missing, the app starts and logs a warning listing the first few; those files cannot be downloaded until they are put back.
+
 ## Backups
 
 When `backup.enabled` is true, the backend takes one backup on every startup, before it opens the database and before any migration runs. Each backup therefore holds the state left by the previous run, and an upgrade can always be rolled back to the pre-migration data.
