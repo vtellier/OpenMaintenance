@@ -92,10 +92,14 @@ func checkFilesAtStartup(dbPath string) error {
 	}
 	filesDir := filestore.FilesDir(baseDir)
 	if check.AllMissing() {
-		return fmt.Errorf("the database %s references %d attached files, but none of them are in %s: "+
+		what := fmt.Sprintf("%d attached files, but none of them are", check.Referenced)
+		if check.Referenced == 1 {
+			what = "1 attached file, but it is not"
+		}
+		return fmt.Errorf("the database %s references %s in %s: "+
 			"move the files/ folder that belongs with this database to %s, then start again "+
 			"(see doc/configuration.md, \"Moving your data\")",
-			dbPath, check.Referenced, filesDir, filesDir)
+			dbPath, what, filesDir, filesDir)
 	}
 	if len(check.Missing) > 0 {
 		logMissingFiles(check, filesDir)
