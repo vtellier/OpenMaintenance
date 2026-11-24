@@ -66,3 +66,37 @@ func TestEquipmentFile_ListReportsAMissingDocument(t *testing.T) {
 		t.Errorf("serve absent document: got %d, want 404", rec.Code)
 	}
 }
+
+func listPhotoFiles(t *testing.T, e *echo.Echo, interventionID int) []generated.FileInfo {
+	t.Helper()
+	rec := request(e, http.MethodGet, "/api/interventions/"+itoa(interventionID)+"/files")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("list photos: expected 200, got %d (%s)", rec.Code, rec.Body.String())
+	}
+	var files []generated.FileInfo
+	if err := json.Unmarshal(rec.Body.Bytes(), &files); err != nil {
+		t.Fatalf("decode photos list: %v", err)
+	}
+	return files
+}
+
+func TestInterventionFile_ListReportsAMissingPhoto(t *testing.T) {
+	e, h, baseDir := newTestServer(t)
+	eqID := seedEquipment(t, h)
+	invID := seedIntervention(t, h, eqID, seedTask(t, h, eqID))
+	decodeFile(t, uploadPhoto(t, e, invID, "before.png", pngBytes))
+	gone := decodeFile(t, uploadPhoto(t, e, invID, "after.png", pngBytes))
+	removeFromDisk(t, filepath.Join(interventionPhotoDir(baseDir, eqID, invID), gone.Name))
+
+	photos := byOriginalName(listPhotoFiles(t, e, invID))
+
+	if p := photos["before.png"]; p.Missing || p.Size != int64(len(pngBytes)) {
+		t.Errorf("present photo: missing=%v size=%d, want missing=false size=%d", p.Missing, p.Size, len(pngBytes))
+	}
+	if p := photos["after.png"]; !p.Missing || p.Size != 0 {
+		t.Errorf("absent photo: missing=%v size=%d, want missing=true size=0", p.Missing, p.Size)
+	}
+	if rec := request(e, http.MethodGet, "/api/interventions/"+itoa(invID)+"/files/"+gone.Name); rec.Code != http.StatusNotFound {
+		t.Errorf("serve absent photo: got %d, want 404", rec.Code)
+	}
+}
