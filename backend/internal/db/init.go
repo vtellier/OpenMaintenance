@@ -13,6 +13,11 @@ func InitDB(dbPath, appVersion string, backupCfg BackupConfig) (*sql.DB, error) 
 		return nil, err
 	}
 
+	// Before the backup: a database cut off from its files/ directory must not
+	// write an archive, nor rotate a good one away.
+	if err := checkFilesAtStartup(dbPath); err != nil {
+		return nil, err
+	}
 	if err := BackupDB(dbPath, backupCfg); err != nil {
 		return nil, err
 	}
