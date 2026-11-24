@@ -652,3 +652,13 @@ CI note: `build-frontend` downloads the OpenAPI generator JAR from Maven Central
 - **Fix**: `filestore.MaxDocumentSize` 50 MB; both 413s in `equipment_file.go` use a message built from it; the OpenAPI description says 50 MB (generated code unchanged); `onUploadChange` uses `extractErrorMessage`. Photos stay at 10 MB, and their 413 text is still a literal.
 - Playwright ran against the scratchpad backend (reused by `webServer`), so the global setup's wipe never touched `backend/maintenance.db`.
 - Verified with `go test ./...`, `pnpm test:unit`, `pnpm test` (60 specs, all pass), `make build`, and `curl` on the fixed backend (the 30,067,499-byte manual → 201; 51 MB → 413 with the new message).
+
+## 2026-11-24 — A missing attached file says so in the app (issue #122)
+
+- Branch `feat/issue-122-missing-file-in-app`. A document whose file was gone from disk showed **0 B** with a Download link that failed; a missing photo rendered as a broken image.
+- **Spec first** (approved): the `File` table in `doc/file-storage.md` (`missing`, size 0 when missing), `doc/gui/equipments.md` (Documents tab) and `doc/gui/interventions.md` (photo placeholder).
+- **API first**: `FileInfo.missing` (required boolean) in `openapi.yaml`, Go stubs and TS client regenerated (both gitignored).
+- **Tests first** at the agreed seams, each red first where it could be: `httptest` `TestEquipmentFile_ListReportsAMissingDocument` and `TestInterventionFile_ListReportsAMissingPhoto` (missing true/false, real size, serve still 404); `TestMissingFile_CanStillBeDeleted` passed at once (deleting a missing file already worked; now pinned); Playwright `missing-file-says-so.spec.ts`, file lists stubbed with `page.route`, red on "0 B • …" and the broken `<img>`.
+- **Fix**: `statFile` in the handlers sets `size` and `missing` (absent = `fs.ErrNotExist`, as the startup check of #121); the Documents tab shows "File missing on server" and drops Download; `InterventionPhotos` shows a placeholder tile and a placeholder in the delete confirmation, and does not open the viewer.
+- Playwright ran against a scratchpad backend on :3001 (reused by `webServer`), so the global setup's wipe never touched `backend/maintenance.db`.
+- Verified with `go test ./...`, `pnpm test:unit`, `pnpm run typecheck`, `pnpm test` (62 specs, all pass), `make build`, `curl` on a real missing document (`missing: true`, `size: 0`, serve 404) and a screenshot of the Documents tab.

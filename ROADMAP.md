@@ -200,6 +200,10 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] Equipments list hides decommissioned equipments; "Show decommissioned" shows them dimmed, in their group
 - [x] Left out of the Dashboard and its hour-meter freshness banner; still in History and the intervention forms, marked
 
+## Milestone 23 — Attached Files Stay With Their Database (issues #121, #122, #123)
+
+- [x] **A missing attached file says so** (issue #122): the `File` object reports `missing`; a missing document shows "File missing on server" with no Download link, a missing photo shows a placeholder instead of a broken image, and both can still be deleted
+
 ## Future (post-V1)
 
 - Configurable "due soon" window
