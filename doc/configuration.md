@@ -50,7 +50,7 @@ If the database references attached files and none of them are found in the `fil
 the database /data/maintenance.db references 42 attached files, but none of them are in /data/files: move the files/ folder that belongs with this database to /data/files, then start again
 ```
 
-Move the `files/` directory next to the database (or point `database.path` back at the old location) and start again. If only some files are missing, the app starts and logs a warning listing the first few; those files show as missing in the app.
+Move the `files/` directory next to the database (or point `database.path` back at the old location) and start again. If only some files are missing, the app starts and logs a warning listing the first few; those files cannot be downloaded until they are put back.
 
 ## Backups
 

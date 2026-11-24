@@ -193,12 +193,12 @@ On every startup, once the database file exists and **before the startup backup*
 | Referenced files found | Outcome |
 |------------------------|---------|
 | All of them, or nothing is referenced | Startup continues as normal. |
-| Some missing | Startup continues and logs a warning with the number missing and the first few missing paths. Those files show as missing in the app (#122). |
+| Some missing | Startup continues and logs a warning with the number missing and the first few missing paths. Those files cannot be downloaded until they are put back. |
 | **None of them** | Startup is refused. No backup is written and no backup is rotated away, so a service manager restarting the app in a loop can never push good backups out. |
 
 The refusal names the database path, the expected `files/` directory and the number of missing files, and says to move the `files/` directory next to the database. The usual cause is a `database.path` changed to a copy of the database taken without its `files/` directory.
 
-The same check tells the startup backup whether the archive it wrote is complete (see [configuration.md — Backups](./configuration.md#backups)).
+The check lives in one place (`db.CheckFiles`), so later features that need to know which referenced files are missing (backup rotation, #123) reuse it.
 
 ### Startup orphan cleanup
 
