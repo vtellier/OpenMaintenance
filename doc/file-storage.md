@@ -198,7 +198,7 @@ On every startup, once the database file exists and **before the startup backup*
 
 The refusal names the database path, the expected `files/` directory and the number of missing files, and says to move the `files/` directory next to the database. The usual cause is a `database.path` changed to a copy of the database taken without its `files/` directory.
 
-The check lives in one place (`db.CheckFiles`), so later features that need to know which referenced files are missing (backup rotation, #123) reuse it.
+The check lives in one place (`db.CheckFiles`). The startup backup reuses it to tell whether the archive it just wrote is complete, and skips rotation when it is not (see [configuration.md — Backups](./configuration.md#backups)).
 
 ### Startup orphan cleanup
 
