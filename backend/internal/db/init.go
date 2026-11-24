@@ -2,19 +2,15 @@ package db
 
 import (
 	"database/sql"
-	"os"
-	"path/filepath"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/vtellier/OpenMaintenance/internal/filestore"
 )
 
 func InitDB(dbPath, appVersion string, backupCfg BackupConfig) (*sql.DB, error) {
-	if !filepath.IsAbs(dbPath) {
-		exe, err := os.Executable()
-		if err != nil {
-			return nil, err
-		}
-		dbPath = filepath.Join(filepath.Dir(exe), dbPath)
+	dbPath, err := filestore.ResolveDBPath(dbPath)
+	if err != nil {
+		return nil, err
 	}
 
 	if err := BackupDB(dbPath, backupCfg); err != nil {
