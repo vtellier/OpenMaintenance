@@ -662,3 +662,11 @@ CI note: `build-frontend` downloads the OpenAPI generator JAR from Maven Central
 - **Fix**: `db.CheckFiles` (reads `equipment_files` and `intervention_files`, tolerates a DB from before attachments) runs in `InitDB` before the backup.
 - Verified with `go test ./...`, `make build`, and the built binary on a scratchpad fixture DB: 2 referenced, 0 on disk → refused with exit 1 and no backup; 1 of 2 on disk → warning, backup, server up.
 - **Review** (before merge): the startup check now takes the `files/` location from `filestore.BaseDir` like the backup and handlers; a single missing file reads "references 1 attached file, but it is not in …" (test first); the docs no longer describe #122 ("show as missing") and #123 (backup completeness) as if they were built; an unrelated research brief that had been swept into the docs commit was dropped (it stays in that commit's history, 9e7bd47).
+
+## 2026-11-24 — An incomplete backup never rotates a complete one away (issue #123)
+
+- Branch `feat/issue-123-skip-rotation-incomplete-backup`, on `main` after #121 merged. A backup of a database whose attached files are partly missing lacked them, yet rotation still counted it and deleted the oldest backup, possibly the last one holding those files.
+- **Spec first** (approved): the Backups section of `doc/configuration.md` (incomplete → log, rotation skipped, nothing deleted; the incomplete archive still counts toward `keep` later) and the startup-check section of `doc/file-storage.md`.
+- **Tests first** at the agreed `db.BackupDB` seam with `keep: 2` and two older archives: incomplete (2 of 3 referenced files missing) → three archives, both older ones kept, log says "2 attached files" and "rotation skipped" (red first); complete → rotated to 2 (passed at once, current behaviour). Databases with no attached files are covered by the existing rotation tests.
+- **Fix**: after writing the archive, `BackupDB` runs `CheckFiles` (the #121 check, no second implementation) on the snapshot it archived; any missing file, or a failed check, skips rotation with a log line.
+- Verified with `go test ./...`, `make build`, and the built binary on a scratchpad fixture (`keep: 2`, two older archives): 1 of 2 files missing → three archives and the log line; file restored → next run rotated back to two.

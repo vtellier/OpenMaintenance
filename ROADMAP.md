@@ -203,6 +203,7 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 ## Milestone 23 — Attached Files Stay With Their Database (issues #121, #122, #123)
 
 - [x] **Refuse to start when no attached file is found** (issue #121): a database moved without its `files/` folder stops startup before any backup is written; some missing files only log a warning; the `files/` location is derived in one place
+- [x] **An incomplete backup never rotates a complete one away** (issue #123): when the database references attached files that are not on disk, the startup backup logs how many and skips rotation for that run, reusing `db.CheckFiles`
 
 ## Future (post-V1)
 
