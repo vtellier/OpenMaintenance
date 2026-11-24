@@ -114,13 +114,13 @@ Uploads are validated server-side before anything is written to disk. Limits are
 | Kind | Allowed types | Max size |
 |------|---------------|----------|
 | Task / intervention photos (#25, #26) | `image/jpeg`, `image/png`, `image/webp`, `image/gif` | 10 MB |
-| Equipment documents (#3) | any type | 25 MB |
+| Equipment documents (#3, #119) | any type | 50 MB |
 
 Rules:
 
 - **Content sniffing, not extension trust.** The MIME type used for the allowlist check is detected from the file's leading bytes (Go's `http.DetectContentType`), not from the supplied filename. The stored extension is derived from the detected type for images, and from the original filename for documents.
 - **Size** is enforced from the request `Content-Length` and again while streaming, so a lying header cannot exceed the cap.
-- **Rejections** return a problem response: `413 Payload Too Large` when over the size cap, `415 Unsupported Media Type` when the detected type is not allowed. No file or DB row is created on rejection.
+- **Rejections** return `413 Payload Too Large` when over the size cap, `415 Unsupported Media Type` when the detected type is not allowed. The body is `{"error": "<reason>"}`, and the reason states the limit that was broken: `file exceeds the 50 MB limit` for a document, `file exceeds the 10 MB limit` for a photo. The number comes from the cap itself, so the message cannot drift from it. No file or DB row is created on rejection.
 
 ## Response shapes
 

@@ -68,7 +68,9 @@ The Tasks tab is the default when opening an equipment.
 
 Lists all documents attached to this equipment. Each row shows: filename, size, upload date, a **Download** link, and a **Delete** action.
 
-A **"+ Upload document"** button opens a file picker. Any file type is accepted.
+A **"+ Upload document"** button opens a file picker. Any file type is accepted, up to 50 MB.
+
+A refused upload shows the server's reason in a red banner above the list, e.g. *"file exceeds the 50 MB limit"*. The generic *"Failed to upload document"* shows only when the response gives no reason (e.g. the server is unreachable).
 
 Empty state: *"No documents attached."* + **"+ Upload your first document"** CTA.
 
