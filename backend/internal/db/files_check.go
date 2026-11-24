@@ -7,7 +7,6 @@ import (
 	"io/fs"
 	"log"
 	"os"
-	"path/filepath"
 
 	"github.com/vtellier/OpenMaintenance/internal/filestore"
 )
@@ -83,7 +82,10 @@ func checkFilesAtStartup(dbPath string) error {
 	}
 	defer conn.Close()
 
-	baseDir := filepath.Dir(dbPath)
+	baseDir, err := filestore.BaseDir(dbPath)
+	if err != nil {
+		return err
+	}
 	check, err := CheckFiles(conn, baseDir)
 	if err != nil {
 		return fmt.Errorf("checking attached files: %w", err)
