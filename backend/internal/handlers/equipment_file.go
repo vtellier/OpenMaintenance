@@ -3,8 +3,10 @@ package handlers
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -27,11 +29,7 @@ func (h *Handler) fileResponse(equipmentID int, f models.EquipmentFile) generate
 	name := filepath.Base(f.FilePath)
 	abs := filestore.Abs(h.BaseDir, f.FilePath)
 
-	var size int64
-	if info, err := os.Stat(abs); err == nil {
-		size = info.Size()
-	}
-
+	size, missing := statFile(abs)
 	mimeType := detectMime(abs)
 
 	return generated.FileInfo{
@@ -41,7 +39,21 @@ func (h *Handler) fileResponse(equipmentID int, f models.EquipmentFile) generate
 		MimeType:     mimeType,
 		UploadedAt:   f.UploadedAt,
 		Url:          fmt.Sprintf("/api/equipments/%d/files/%s", equipmentID, name),
+		Missing:      missing,
 	}
+}
+
+// statFile returns the size of the file at abs, and whether it is missing
+// from disk: its row exists but the file does not (issue #122).
+func statFile(abs string) (size int64, missing bool) {
+	info, err := os.Stat(abs)
+	if errors.Is(err, fs.ErrNotExist) {
+		return 0, true
+	}
+	if err != nil {
+		return 0, false
+	}
+	return info.Size(), false
 }
 
 // detectMime sniffs the MIME type from the file's leading bytes, falling back

@@ -91,6 +91,7 @@ An intervention can have photos attached (e.g. the state of a part before/after 
 - The intervention detail/edit view shows a photo grid at the bottom with an **"+ Add photo"** button.
 - Each photo can be deleted individually.
 - Tapping a photo opens it full-screen.
+- A photo whose file is gone from the server shows a *"Photo missing on server"* placeholder instead of a broken image. It does not open full-screen and can still be deleted (issue #122).
 
 See [file-storage.md](../file-storage.md) for the storage design.
 
