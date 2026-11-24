@@ -690,7 +690,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
                 <p class="${f.missing ? 'doc-row__meta doc-row__meta--missing' : 'doc-row__meta'}">${f.missing ? 'File missing on server' : formatFileSize(f.size)} • ${formatTimestampDate(f.uploadedAt)}</p>
               </div>
               <div class="doc-row__actions">
-                ${f.missing ? null : html`<a class="btn btn--small" href="${f.url}" download="${f.originalName}">Download</a>`}
+                ${() => f.missing ? null : html`<a class="btn btn--small" href="${f.url}" download="${f.originalName}">Download</a>`}
                 <button class="btn btn--small btn--danger" @click="${() => onDeleteDoc(f)}">Delete</button>
               </div>
             </div>`)}
