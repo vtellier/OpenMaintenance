@@ -652,3 +652,12 @@ CI note: `build-frontend` downloads the OpenAPI generator JAR from Maven Central
 - **Fix**: `filestore.MaxDocumentSize` 50 MB; both 413s in `equipment_file.go` use a message built from it; the OpenAPI description says 50 MB (generated code unchanged); `onUploadChange` uses `extractErrorMessage`. Photos stay at 10 MB, and their 413 text is still a literal.
 - Playwright ran against the scratchpad backend (reused by `webServer`), so the global setup's wipe never touched `backend/maintenance.db`.
 - Verified with `go test ./...`, `pnpm test:unit`, `pnpm test` (60 specs, all pass), `make build`, and `curl` on the fixed backend (the 30,067,499-byte manual → 201; 51 MB → 413 with the new message).
+
+## 2026-11-24 — Refuse to start when none of the attached files are found (issue #121)
+
+- Branch `feat/issue-121-refuse-missing-files`. A database copied to a new `database.path` without its `files/` folder started normally: every document showed 0 B and the startup backup archived no files.
+- **Spec first** (approved): `doc/configuration.md` gains "Moving your data"; `doc/file-storage.md` describes the startup check and rewrites the (still unimplemented) orphan cleanup so it is skipped when files are missing and moves orphans to `files/.orphans/` instead of deleting them.
+- **Prefactor** (no behaviour change): `filestore.ResolveDBPath`, `BaseDir` and `FilesDir` are the one place the `files/` location is derived; `InitDB`, `BackupDB` and the handlers use them.
+- **Tests first** at the agreed `db.InitDB` seam: all referenced files missing → error naming the DB path, the `files/` folder and the count, no archive written and an older backup untouched (red first); some missing → starts and warns with the count and first paths; none referenced → as before. The last two passed at once (the warning came with the refusal slice); a mutation dropping the warning made the first of them fail.
+- **Fix**: `db.CheckFiles` (reads `equipment_files` and `intervention_files`, tolerates a DB from before attachments) runs in `InitDB` before the backup.
+- Verified with `go test ./...`, `make build`, and the built binary on a scratchpad fixture DB: 2 referenced, 0 on disk → refused with exit 1 and no backup; 1 of 2 on disk → warning, backup, server up.
