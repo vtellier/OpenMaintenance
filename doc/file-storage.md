@@ -18,6 +18,8 @@ The `files/` directory lives in the same directory as the database file. There i
 
 The backend creates the directory on startup if it does not exist.
 
+The database and its `files/` directory always travel together: moving one without the other is caught by the [startup check](#startup-check-for-missing-files). See [configuration.md — Moving your data](./configuration.md#moving-your-data).
+
 ## Filesystem layout
 
 Files are organised under the equipment they belong to, even for tasks and interventions (which are always children of an equipment). This keeps all data for one equipment together.
@@ -184,15 +186,32 @@ When an equipment, task, or intervention is deleted:
 
 For equipment deletion: remove the entire `files/equipments/{id}/` directory tree.
 
+### Startup check for missing files
+
+On every startup, once the database file exists and **before the startup backup** (so before anything is written), the backend checks every file path referenced by `equipment_files` and `intervention_files` against the `files/` directory next to the database. A database that predates attachments, or references no file at all, passes as before.
+
+| Referenced files found | Outcome |
+|------------------------|---------|
+| All of them, or nothing is referenced | Startup continues as normal. |
+| Some missing | Startup continues and logs a warning with the number missing and the first few missing paths. Those files show as missing in the app (#122). |
+| **None of them** | Startup is refused. No backup is written and no backup is rotated away, so a service manager restarting the app in a loop can never push good backups out. |
+
+The refusal names the database path, the expected `files/` directory and the number of missing files, and says to move the `files/` directory next to the database. The usual cause is a `database.path` changed to a copy of the database taken without its `files/` directory.
+
+The same check tells the startup backup whether the archive it wrote is complete (see [configuration.md — Backups](./configuration.md#backups)).
+
 ### Startup orphan cleanup
 
-On every startup, after migrations:
+> Not implemented yet. When it is, it must follow these rules.
 
-1. Walk the `files/` directory tree.
-2. For each file found, check if a corresponding DB row exists.
-3. Remove any file with no matching DB reference.
+On startup, after migrations:
 
-This recovers from partially failed deletes.
+1. **Skip the cleanup entirely when the [startup check](#startup-check-for-missing-files) found any missing file.** A database that does not match its `files/` directory (for example `database.path` pointing at an older copy of the database) makes every file uploaded since that copy look like an orphan.
+2. Walk the `files/` directory tree, skipping `files/.orphans/`.
+3. For each file found, check if a corresponding DB row exists.
+4. **Move** any file with no matching DB reference to `files/.orphans/`, keeping its path relative to `files/`. Nothing is ever deleted: the operator empties `files/.orphans/` by hand once satisfied.
+
+This recovers from partially failed deletes and interrupted moves without ever losing a file.
 
 ## Backup impact
 
