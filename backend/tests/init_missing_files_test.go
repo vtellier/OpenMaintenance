@@ -1,6 +1,8 @@
 package tests
 
 import (
+	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -88,4 +90,56 @@ func TestInitDB_RefusesWhenNoAttachedFileIsFound(t *testing.T) {
 	if names := backupNames(t, backupDir); len(names) != 1 || names[0] != filepath.Base(older) {
 		t.Errorf("backup dir = %v, want only the older backup, untouched", names)
 	}
+}
+
+// captureLog redirects the standard logger for the rest of the test.
+func captureLog(t *testing.T) *strings.Builder {
+	t.Helper()
+	var buf strings.Builder
+	log.SetOutput(&buf)
+	t.Cleanup(func() { log.SetOutput(os.Stderr) })
+	return &buf
+}
+
+func TestInitDB_StartsAndWarnsWhenSomeAttachedFilesAreMissing(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "maintenance.db")
+	backupDir := filepath.Join(dir, "backups")
+	seedAttachedFiles(t, dbPath,
+		[]attachedFile{{"files/equipments/1/files/a.pdf", true}, {"files/equipments/1/files/b.pdf", false}},
+		[]attachedFile{{"files/equipments/1/interventions/1/c.jpg", true}},
+	)
+	logs := captureLog(t)
+
+	conn, err := db.InitDB(dbPath, "test", db.BackupConfig{Enabled: true, Path: backupDir, Keep: 7})
+	if err != nil {
+		t.Fatalf("InitDB: %v, want it to start with some files missing", err)
+	}
+	conn.Close()
+
+	for _, want := range []string{"1 of 3 attached files", "files/equipments/1/files/b.pdf"} {
+		if !strings.Contains(logs.String(), want) {
+			t.Errorf("log %q does not mention %q", logs.String(), want)
+		}
+	}
+	onlyBackup(t, backupDir)
+}
+
+func TestInitDB_StartsAsBeforeWhenNoAttachedFileIsReferenced(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "maintenance.db")
+	backupDir := filepath.Join(dir, "backups")
+	seedAttachedFiles(t, dbPath, nil, nil)
+	logs := captureLog(t)
+
+	conn, err := db.InitDB(dbPath, "test", db.BackupConfig{Enabled: true, Path: backupDir, Keep: 7})
+	if err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	conn.Close()
+
+	if strings.Contains(logs.String(), "warning") {
+		t.Errorf("unexpected warning with no attached file referenced: %q", logs.String())
+	}
+	onlyBackup(t, backupDir)
 }
