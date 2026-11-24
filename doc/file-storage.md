@@ -134,14 +134,15 @@ Every list and upload response returns one or more `File` objects:
 |-------|------|-------|
 | `name` | string | Stored UUID filename, used as the `{filename}` URL segment (e.g. `abc123.pdf`). |
 | `original_name` | string | Filename as uploaded (e.g. `manual.pdf`). |
-| `size` | integer | Size in bytes. |
+| `size` | integer | Size in bytes, read from disk; `0` when `missing`. |
 | `mime_type` | string | Detected MIME type. |
 | `uploaded_at` | string (date-time) | ISO 8601 timestamp. |
 | `url` | string | Relative serve URL for the file. |
+| `missing` | boolean | `true` when the file is absent from disk (its row exists, the file does not), `false` otherwise. The entry can still be deleted; serving it returns `404 Not Found`. |
 
 ### List endpoints
 
-`GET …/files` returns a JSON array of `File` objects (empty array when none). `POST …/files` returns the single created `File` object with `201 Created`. Serving a missing file returns `404 Not Found`.
+`GET …/files` returns a JSON array of `File` objects (empty array when none). `POST …/files` returns the single created `File` object with `201 Created`. Serving a missing file returns `404 Not Found`. A list keeps an entry whose file is gone from disk and flags it with `missing: true`, so the app can say so and the entry can be deleted (issue #122).
 
 ## File lifecycle
 
@@ -193,7 +194,7 @@ On every startup, once the database file exists and **before the startup backup*
 | Referenced files found | Outcome |
 |------------------------|---------|
 | All of them, or nothing is referenced | Startup continues as normal. |
-| Some missing | Startup continues and logs a warning with the number missing and the first few missing paths. Those files cannot be downloaded until they are put back. |
+| Some missing | Startup continues and logs a warning with the number missing and the first few missing paths. In the app, those files show as missing on the server (`missing: true`: the Documents tab and the intervention photos say so); they cannot be downloaded until they are put back, and their entries can be deleted. |
 | **None of them** | Startup is refused. No backup is written and no backup is rotated away, so a service manager restarting the app in a loop can never push good backups out. |
 
 The refusal names the database path, the expected `files/` directory and the number of missing files, and says to move the `files/` directory next to the database. The usual cause is a `database.path` changed to a copy of the database taken without its `files/` directory.

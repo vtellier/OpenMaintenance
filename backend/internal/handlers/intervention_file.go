@@ -47,11 +47,7 @@ func (h *Handler) interventionFileResponse(interventionID int, f models.Interven
 	name := filepath.Base(f.FilePath)
 	abs := filestore.Abs(h.BaseDir, f.FilePath)
 
-	var size int64
-	if info, err := os.Stat(abs); err == nil {
-		size = info.Size()
-	}
-
+	size, missing := statFile(abs)
 	return generated.FileInfo{
 		Name:         name,
 		OriginalName: f.OriginalName,
@@ -59,6 +55,7 @@ func (h *Handler) interventionFileResponse(interventionID int, f models.Interven
 		MimeType:     detectMime(abs),
 		UploadedAt:   f.UploadedAt,
 		Url:          fmt.Sprintf("/api/interventions/%d/files/%s", interventionID, name),
+		Missing:      missing,
 	}
 }
 

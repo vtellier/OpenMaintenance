@@ -72,6 +72,8 @@ A **"+ Upload document"** button opens a file picker. Any file type is accepted,
 
 A refused upload shows the server's reason in a red banner above the list, e.g. *"file exceeds the 50 MB limit"*. The generic *"Failed to upload document"* shows only when the response gives no reason (e.g. the server is unreachable).
 
+A document whose file is gone from the server (see [file-storage.md](../file-storage.md), `missing`) shows *"File missing on server"* in place of its size, has no **Download** link, and keeps its **Delete** action, so the dangling entry can be removed.
+
 Empty state: *"No documents attached."* + **"+ Upload your first document"** CTA.
 
 ## User flows

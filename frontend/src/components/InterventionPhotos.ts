@@ -89,7 +89,9 @@ export function InterventionPhotos(interventionId: number) {
     }
   }
 
+  // A photo missing on the server has nothing to show full-screen (#122).
   function onView(f: FileInfo) {
+    if (f.missing) return
     state.viewing = f
   }
 
@@ -118,7 +120,9 @@ export function InterventionPhotos(interventionId: number) {
           if (photos.length === 0) return html`<p class="photo-empty">No photos yet.</p>`
           return html`<div class="photo-grid">
             ${() => photos.map(f => html`<div class="photo-thumb">
-              <img class="photo-thumb__img" src="${f.url}" alt="${f.originalName}" @click="${() => onView(f)}" />
+              ${() => f.missing
+                ? html`<div class="photo-thumb__missing" title="${f.originalName}">Photo missing on server</div>`
+                : html`<img class="photo-thumb__img" src="${f.url}" alt="${f.originalName}" @click="${() => onView(f)}" />`}
               <button class="photo-thumb__del" title="Delete photo" @click="${() => onDeleteClick(f)}" disabled="${() => state.deletingName === f.name}">×</button>
             </div>`)}
           </div>`
@@ -131,7 +135,9 @@ export function InterventionPhotos(interventionId: number) {
         return html`<div class="modal-overlay photo-confirm" @click="${onConfirmOverlayClick}">
           <div class="modal modal--narrow">
             <h2 class="modal__title">Delete photo</h2>
-            <img class="photo-confirm__preview" src="${target.url}" alt="${target.originalName}" />
+            ${() => target.missing
+              ? html`<div class="photo-confirm__preview photo-confirm__preview--missing">Photo missing on server</div>`
+              : html`<img class="photo-confirm__preview" src="${target.url}" alt="${target.originalName}" />`}
             <p class="confirm-text">Delete this photo? This cannot be undone.</p>
             <div class="modal__actions">
               <button class="btn" @click="${onCancelDelete}" disabled="${deleting}">Cancel</button>

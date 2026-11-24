@@ -1225,6 +1225,7 @@ components:
         - mime_type
         - uploaded_at
         - url
+        - missing
       properties:
         name:
           type: string
@@ -1237,7 +1238,7 @@ components:
         size:
           type: integer
           format: int64
-          description: Size of the file in bytes
+          description: Size of the file in bytes (0 when missing)
         mime_type:
           type: string
           description: Detected MIME type of the file
@@ -1250,6 +1251,13 @@ components:
           type: string
           description: Relative URL to download the file
           example: "/api/equipments/12/files/abc123.pdf"
+        missing:
+          type: boolean
+          description: >
+            True when the file is absent from disk: the entry exists but the file
+            does not. Size is then 0, serving it returns 404, and it can still be
+            deleted.
+          example: false
     VersionInfo:
       type: object
       required:

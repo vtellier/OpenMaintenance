@@ -663,6 +663,17 @@ CI note: `build-frontend` downloads the OpenAPI generator JAR from Maven Central
 - Verified with `go test ./...`, `make build`, and the built binary on a scratchpad fixture DB: 2 referenced, 0 on disk → refused with exit 1 and no backup; 1 of 2 on disk → warning, backup, server up.
 - **Review** (before merge): the startup check now takes the `files/` location from `filestore.BaseDir` like the backup and handlers; a single missing file reads "references 1 attached file, but it is not in …" (test first); the docs no longer describe #122 ("show as missing") and #123 (backup completeness) as if they were built; an unrelated research brief that had been swept into the docs commit was dropped (it stays in that commit's history, 9e7bd47).
 
+## 2026-11-24 — A missing attached file says so in the app (issue #122)
+
+- Branch `feat/issue-122-missing-file-in-app`. A document whose file was gone from disk showed **0 B** with a Download link that failed; a missing photo rendered as a broken image.
+- **Spec first** (approved): the `File` table in `doc/file-storage.md` (`missing`, size 0 when missing), `doc/gui/equipments.md` (Documents tab) and `doc/gui/interventions.md` (photo placeholder).
+- **API first**: `FileInfo.missing` (required boolean) in `openapi.yaml`, Go stubs and TS client regenerated (both gitignored).
+- **Tests first** at the agreed seams, each red first where it could be: `httptest` `TestEquipmentFile_ListReportsAMissingDocument` and `TestInterventionFile_ListReportsAMissingPhoto` (missing true/false, real size, serve still 404); `TestMissingFile_CanStillBeDeleted` passed at once (deleting a missing file already worked; now pinned); Playwright `missing-file-says-so.spec.ts`, file lists stubbed with `page.route`, red on "0 B • …" and the broken `<img>`.
+- **Fix**: `statFile` in the handlers sets `size` and `missing` (absent = `fs.ErrNotExist`, as the startup check of #121); the Documents tab shows "File missing on server" and drops Download; `InterventionPhotos` shows a placeholder tile and a placeholder in the delete confirmation, and does not open the viewer.
+- Playwright ran against a scratchpad backend on :3001 (reused by `webServer`), so the global setup's wipe never touched `backend/maintenance.db`.
+- Verified with `go test ./...`, `pnpm test:unit`, `pnpm run typecheck`, `pnpm test` (62 specs, all pass), `make build`, `curl` on a real missing document (`missing: true`, `size: 0`, serve 404) and a screenshot of the Documents tab.
+- **Review** (before merge): merged `main` (#121); the list rows are reused by position, so after a delete a row kept the previous file's Download link, image or placeholder, or showed template source text. The missing/present branches are now reactive functions (arrow-js gotchas 8 and 9), pinned by four Playwright cases (test first). `doc/configuration.md` and the startup-check table in `doc/file-storage.md` now say missing files show as missing in the app and can be deleted. `pnpm test` 66 specs pass.
+
 ## 2026-11-24 — An incomplete backup never rotates a complete one away (issue #123)
 
 - Branch `feat/issue-123-skip-rotation-incomplete-backup`, on `main` after #121 merged. A backup of a database whose attached files are partly missing lacked them, yet rotation still counted it and deleted the oldest backup, possibly the last one holding those files.
