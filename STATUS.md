@@ -811,3 +811,4 @@ Deployed to the local install (`openmaintenance.service`, `/opt/openmaintenance`
 - **Test first** (Playwright, `missing-file-says-so.spec.ts`): the four row-reuse delete cases collect `pageerror` events and expect none. Both photo cases failed before the fix.
 - **Root cause:** `InterventionPhotos` cleared `deletingName` in a `finally` after the reload. Each tile's Delete button watches it. The reload had already re-rendered the grid, but Arrow tears the dropped tile down a microtask later. Clearing the flag in between queued that tile's watcher. Arrow's `watch()` stop does not remove an already-queued rerun, so the watcher then ran on a released expression slot and threw.
 - **Fix:** clear `deletingName` before the reload; the error path clears it and returns. New arrow-js gotcha 10 describes the pitfall and the upstream cause.
+- **Follow-up:** #145 lists the other handlers that reset a flag in a `finally` after a reload, the same shape as this bug.
