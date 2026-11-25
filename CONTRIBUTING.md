@@ -61,6 +61,9 @@ Put each test next to the module it covers, named `<module>.test.ts` (e.g. `src/
 | Run frontend unit tests | `pnpm test:unit` | `frontend/` |
 | Run frontend tests | `pnpm test` | `frontend/` |
 | Run backend tests | `go test ./...` | `backend/` |
+| Seed demo data into a running, empty backend | `make seed` | repo root |
+
+`make seed` only runs on an empty database. If the database already holds an equipment or a group, it creates nothing and exits with an error. To start again, stop the backend, delete its database file (`database.path` in `config.yaml`, `./maintenance.db` by default), and start it again.
 
 ## Repository structure
 
