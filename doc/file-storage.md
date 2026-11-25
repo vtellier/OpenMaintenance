@@ -6,6 +6,16 @@ Files are stored on disk in a `files/` directory alongside the SQLite database. 
 
 This keeps the database lean, backup simple (archive the directory containing both the `.db` and `files/`), and avoids BLOB performance issues.
 
+## The attachments module
+
+Every rule on this page lives in one module, `backend/internal/attachments` (#127, [ADR 0004](./adr/0004-attachments-below-db.md)). It owns the attachment tables (`equipment_files`, `intervention_files`) and the bytes under `files/`: no other code reads or writes either. Their migrations stay with the others in `db`.
+
+- **Kinds.** A document and a photo are two kinds of attachment that differ only by data: their table and owner column, their directory, their cap, the types they allow, and whether they are served as a download or inline.
+- **Owners.** Callers name whose attachments they mean: the documents of an equipment, or the photos of an intervention, with the ids its directory needs. The caller checks first that the owner exists; the module knows only its own tables.
+- **What it does.** Store an upload, list attachments (with `missing`), give what is needed to serve one, delete one, count photos, delete everything an owner has, move an intervention's photos to another equipment, and check the referenced files at startup and for the backup.
+- **What stays outside.** URLs and the API's `File` object belong to the handlers, so a photo's URL does not depend on where its bytes are. Where the data lives (the database path and the directory beside it) belongs to `filestore`.
+- **Refusals** carry their reason, built from the kind's cap and allowed types, so the message cannot drift from the rule. Handlers map them to `413`, `415` or `404`.
+
 ## Directory location
 
 The `files/` directory lives in the same directory as the database file. There is no configuration key — it is always derived from `database.path`.
@@ -53,6 +63,8 @@ Files are stored under a generated UUID to avoid collisions and path special-cha
 
 ### `task_files` — photos attached to a task
 
+> Not implemented yet (#26).
+
 | Column | Type | Notes |
 |--------|------|-------|
 | `task_id` | INTEGER | FK → tasks.id |
@@ -75,19 +87,21 @@ Files are stored under a generated UUID to avoid collisions and path special-cha
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/equipment/{id}/files` | List all documents. |
-| `POST` | `/api/equipment/{id}/files` | Upload a document. |
-| `GET` | `/api/equipment/{id}/files/{filename}` | Serve a document. |
-| `DELETE` | `/api/equipment/{id}/files/{filename}` | Delete a document. |
+| `GET` | `/api/equipments/{id}/files` | List all documents. |
+| `POST` | `/api/equipments/{id}/files` | Upload a document. |
+| `GET` | `/api/equipments/{id}/files/{filename}` | Serve a document. |
+| `DELETE` | `/api/equipments/{id}/files/{filename}` | Delete a document. |
 
 ### Task photos (issue #26)
 
+> Not implemented yet (#26). In the attachments module they would be a third kind, owned by a task.
+
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/equipment/{id}/tasks/{task_id}/files` | List all photos for this task. |
-| `POST` | `/api/equipment/{id}/tasks/{task_id}/files` | Upload a photo. |
-| `GET` | `/api/equipment/{id}/tasks/{task_id}/files/{filename}` | Serve a photo. |
-| `DELETE` | `/api/equipment/{id}/tasks/{task_id}/files/{filename}` | Delete a photo. |
+| `GET` | `/api/equipments/{id}/tasks/{task_id}/files` | List all photos for this task. |
+| `POST` | `/api/equipments/{id}/tasks/{task_id}/files` | Upload a photo. |
+| `GET` | `/api/equipments/{id}/tasks/{task_id}/files/{filename}` | Serve a photo. |
+| `DELETE` | `/api/equipments/{id}/tasks/{task_id}/files/{filename}` | Delete a photo. |
 
 ### Intervention photos (issue #25)
 
@@ -173,19 +187,20 @@ The filesystem and the database cannot share a transaction, so the steps are ord
 2. In one DB transaction, save the intervention and rewrite its photos' `file_path` to the copies.
 3. Delete the originals and the old intervention directory. Log on failure, do not abort.
 
+The attachments module runs the three steps. The caller hands it the save of the intervention, which runs in the step 2 transaction, since the module does not write interventions itself.
+
 If step 1 or 2 fails, the copies are removed and the edit is rejected: the intervention and its photos stay where they were. An interruption can only leave unreferenced files behind (copies before step 2, originals after it), which [startup orphan cleanup](#startup-orphan-cleanup) recovers.
 
 A photo whose file is already missing from disk does not block the move: there is nothing to copy, but its row is still rewritten, so it stays with its intervention and can be deleted through the API.
 
 ### Entity deletion cascade
 
-When an equipment, task, or intervention is deleted:
+Deleting an equipment, a task or an intervention deletes its attachments too. The `db` delete functions call the attachments module themselves, so no delete path can leave attachments behind:
 
-1. Query all `_files` rows for that entity.
-2. Delete each file from disk.
-3. Delete the entity and its `_files` rows.
+1. Delete the owner's attachment rows, then the owner.
+2. Remove its directory from disk: `files/equipments/{id}/` for an equipment, `files/equipments/{eq}/interventions/{id}/` for an intervention, and that of each of its interventions for a task. Log on failure, do not abort: a leftover is an unreferenced file, which [startup orphan cleanup](#startup-orphan-cleanup) recovers.
 
-For equipment deletion: remove the entire `files/equipments/{id}/` directory tree.
+Step 1 does not run in one transaction yet, and some of its errors are ignored (#128).
 
 ### Startup check for missing files
 
@@ -199,7 +214,7 @@ On every startup, once the database file exists and **before the startup backup*
 
 The refusal names the database path, the expected `files/` directory and the number of missing files, and says to move the `files/` directory next to the database. The usual cause is a `database.path` changed to a copy of the database taken without its `files/` directory.
 
-The check lives in one place (`db.CheckFiles`). The startup backup reuses it to tell whether the archive it just wrote is complete, and skips rotation when it is not (see [configuration.md — Backups](./configuration.md#backups)).
+The check lives in one place, the attachments module. The startup backup reuses it to tell whether the archive it just wrote is complete, and skips rotation when it is not (see [configuration.md — Backups](./configuration.md#backups)).
 
 ### Startup orphan cleanup
 

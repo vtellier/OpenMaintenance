@@ -8,67 +8,11 @@ import (
 	"log"
 	"os"
 
+	"github.com/vtellier/OpenMaintenance/internal/attachments"
 	"github.com/vtellier/OpenMaintenance/internal/filestore"
 )
 
-// fileTables are the tables whose file_path column references an attached
-// file under files/ (see doc/file-storage.md).
-var fileTables = []string{"equipment_files", "intervention_files"}
-
-// FileCheck is the result of checking the attached files a database references
-// against the files/ directory next to it.
-type FileCheck struct {
-	Referenced int      // attached files the database references
-	Missing    []string // their relative paths (files/...) that are not on disk
-}
-
-// AllMissing reports whether the database references attached files and none
-// of them is on disk: the files/ directory was left behind.
-func (c FileCheck) AllMissing() bool {
-	return c.Referenced > 0 && len(c.Missing) == c.Referenced
-}
-
-// CheckFiles lists the attached files conn references and reports which of
-// them are missing from baseDir. A database whose file tables do not exist yet
-// (one from before attachments) references nothing. It only reads.
-func CheckFiles(conn *sql.DB, baseDir string) (FileCheck, error) {
-	var check FileCheck
-	for _, table := range fileTables {
-		var n int
-		if err := conn.QueryRow(
-			`SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = ?`, table,
-		).Scan(&n); err != nil {
-			return check, err
-		}
-		if n == 0 {
-			continue
-		}
-		rows, err := conn.Query(`SELECT file_path FROM ` + table + ` ORDER BY file_path`)
-		if err != nil {
-			return check, err
-		}
-		for rows.Next() {
-			var rel string
-			if err := rows.Scan(&rel); err != nil {
-				rows.Close()
-				return check, err
-			}
-			check.Referenced++
-			if _, err := os.Stat(filestore.Abs(baseDir, rel)); errors.Is(err, fs.ErrNotExist) {
-				check.Missing = append(check.Missing, rel)
-			}
-		}
-		if err := rows.Close(); err != nil {
-			return check, err
-		}
-		if err := rows.Err(); err != nil {
-			return check, err
-		}
-	}
-	return check, nil
-}
-
-// checkFilesAtStartup runs CheckFiles on the database at dbPath before anything
+// checkFilesAtStartup checks the attached files of the database at dbPath before anything
 // is written. It refuses to start when every referenced file is missing, and
 // logs a warning when only some are. A database that does not exist yet is
 // not checked.
@@ -86,7 +30,7 @@ func checkFilesAtStartup(dbPath string) error {
 	if err != nil {
 		return err
 	}
-	check, err := CheckFiles(conn, baseDir)
+	check, err := attachments.New(conn, baseDir).CheckFiles()
 	if err != nil {
 		return fmt.Errorf("checking attached files: %w", err)
 	}
@@ -110,7 +54,7 @@ func checkFilesAtStartup(dbPath string) error {
 // missingFilesShown is how many missing paths a warning lists.
 const missingFilesShown = 5
 
-func logMissingFiles(check FileCheck, filesDir string) {
+func logMissingFiles(check attachments.FileCheck, filesDir string) {
 	shown := check.Missing
 	more := ""
 	if len(shown) > missingFilesShown {

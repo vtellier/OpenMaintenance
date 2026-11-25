@@ -2,8 +2,10 @@ package db
 
 import (
 	"database/sql"
-	"github.com/vtellier/OpenMaintenance/internal/models"
 	"time"
+
+	"github.com/vtellier/OpenMaintenance/internal/attachments"
+	"github.com/vtellier/OpenMaintenance/internal/models"
 )
 
 // DefaultEquipmentIcon is the emoji used when an equipment has no custom icon.
@@ -161,20 +163,26 @@ func CorrectEquipmentHours(db *sql.DB, id int, hours float64, at time.Time) erro
 	return err
 }
 
-func DeleteEquipment(db *sql.DB, id int) error {
-	// Remove photos of any intervention belonging to this equipment (including
-	// exceptional interventions, which are not tied to a task) before the
-	// interventions themselves are gone.
-	db.Exec(
-		`DELETE FROM intervention_files
-		 WHERE intervention_id IN (SELECT id FROM interventions WHERE equipment_id = ?)`,
-		id,
-	)
-	DeleteTasksByEquipment(db, id)
+// DeleteEquipment deletes an equipment, its tasks, its interventions and
+// everything attached under it, its files last.
+func DeleteEquipment(db *sql.DB, files *attachments.Store, id int) error {
+	// The photos of every intervention of the equipment go, exceptional ones
+	// (tied to no task) included, along with its documents.
+	ids, err := interventionIDs(db, id)
+	if err != nil {
+		return err
+	}
+	removeFiles, err := files.DeleteEquipment(db, id, ids)
+	if err != nil {
+		return err
+	}
+	DeleteTasksByEquipment(db, files, id)
 	db.Exec("DELETE FROM interventions WHERE equipment_id = ?", id)
-	db.Exec("DELETE FROM equipment_files WHERE equipment_id = ?", id)
-	_, err := db.Exec("DELETE FROM equipments WHERE id = ?", id)
-	return err
+	if _, err := db.Exec("DELETE FROM equipments WHERE id = ?", id); err != nil {
+		return err
+	}
+	removeFiles()
+	return nil
 }
 
 func ListEquipments(db *sql.DB) ([]models.Equipment, error) {

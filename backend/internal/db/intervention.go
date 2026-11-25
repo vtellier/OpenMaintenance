@@ -2,8 +2,10 @@ package db
 
 import (
 	"database/sql"
-	"github.com/vtellier/OpenMaintenance/internal/models"
 	"time"
+
+	"github.com/vtellier/OpenMaintenance/internal/attachments"
+	"github.com/vtellier/OpenMaintenance/internal/models"
 )
 
 const interventionColumns = "id, task_id, equipment_id, exceptional_label, date, location, performed_by, comments, hours_at, expiry_date, created_at, updated_at"
@@ -123,7 +125,17 @@ func UpdateIntervention(db *sql.DB, intervention *models.Intervention) error {
 	return tx.Commit()
 }
 
-// updateIntervention is UpdateIntervention within a caller's transaction.
+// UpdateInterventionTx is UpdateIntervention within the caller's transaction.
+func UpdateInterventionTx(tx *sql.Tx, intervention *models.Intervention) error {
+	return updateIntervention(tx, intervention)
+}
+
+// execer is satisfied by both *sql.DB and *sql.Tx, so a write can run on its
+// own or as part of a transaction.
+type execer interface {
+	Exec(query string, args ...any) (sql.Result, error)
+}
+
 func updateIntervention(db execer, intervention *models.Intervention) error {
 	intervention.UpdatedAt = time.Now()
 
@@ -163,10 +175,64 @@ func clearReplacedExpiryDate(db execer, intervention *models.Intervention) error
 	return err
 }
 
-func DeleteIntervention(db *sql.DB, id int) error {
-	db.Exec("DELETE FROM intervention_files WHERE intervention_id = ?", id)
-	_, err := db.Exec("DELETE FROM interventions WHERE id = ?", id)
-	return err
+// DeleteIntervention deletes an intervention and its photos, their files last.
+func DeleteIntervention(db *sql.DB, files *attachments.Store, id int) error {
+	photos, err := photosOf(db, "id = ?", id)
+	if err != nil {
+		return err
+	}
+	removeFiles, err := files.DeleteAll(db, photos...)
+	if err != nil {
+		return err
+	}
+	if _, err := db.Exec("DELETE FROM interventions WHERE id = ?", id); err != nil {
+		return err
+	}
+	removeFiles()
+	return nil
+}
+
+// photosOf names the photos of each intervention matching where. An
+// intervention without an equipment predates photos and has none, so it is
+// left out.
+func photosOf(db *sql.DB, where string, args ...any) ([]attachments.Owner, error) {
+	rows, err := db.Query("SELECT id, equipment_id FROM interventions WHERE "+where, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var photos []attachments.Owner
+	for rows.Next() {
+		var id int
+		var equipmentID sql.NullInt64
+		if err := rows.Scan(&id, &equipmentID); err != nil {
+			return nil, err
+		}
+		if equipmentID.Valid {
+			photos = append(photos, attachments.InterventionPhotos(int(equipmentID.Int64), id))
+		}
+	}
+	return photos, rows.Err()
+}
+
+// interventionIDs returns the ids of the interventions of an equipment.
+func interventionIDs(db *sql.DB, equipmentID int) ([]int, error) {
+	rows, err := db.Query("SELECT id FROM interventions WHERE equipment_id = ?", equipmentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
 }
 
 func ListInterventions(db *sql.DB) ([]models.Intervention, error) {
@@ -187,14 +253,22 @@ func ListInterventions(db *sql.DB) ([]models.Intervention, error) {
 	return interventions, nil
 }
 
-func DeleteInterventionsByTask(db *sql.DB, taskID int) error {
-	db.Exec(
-		`DELETE FROM intervention_files
-		 WHERE intervention_id IN (SELECT id FROM interventions WHERE task_id = ?)`,
-		taskID,
-	)
-	_, err := db.Exec("DELETE FROM interventions WHERE task_id = ?", taskID)
-	return err
+// DeleteInterventionsByTask deletes the interventions of a task and their
+// photos, their files last.
+func DeleteInterventionsByTask(db *sql.DB, files *attachments.Store, taskID int) error {
+	photos, err := photosOf(db, "task_id = ?", taskID)
+	if err != nil {
+		return err
+	}
+	removeFiles, err := files.DeleteAll(db, photos...)
+	if err != nil {
+		return err
+	}
+	if _, err := db.Exec("DELETE FROM interventions WHERE task_id = ?", taskID); err != nil {
+		return err
+	}
+	removeFiles()
+	return nil
 }
 
 func ListInterventionsByTask(db *sql.DB, taskID int) ([]models.Intervention, error) {

@@ -696,3 +696,14 @@ Changes bundled in this release (since v0.8.0):
 No schema change: rolling back to v0.8.0 is safe.
 
 Deployed to the local install (`openmaintenance.service`, `/opt/openmaintenance`, port 20100): binary installed as `openmaintenance-v0.9.0`, symlink repointed, service restarted. Before deploying, all 16 attached files the live database references were checked present. After the restart, `/api/version` answers `v0.9.0`, no missing-file warning was logged, and the startup backup (`database.20261125-082323.tar.gz`, 43.8 MB) holds the files.
+
+## 2026-11-25 — One attachments module (issue #127)
+
+- Branch `refactor/issue-127-attachments-module`, from an architecture review (candidate 1 of 5: deepen attached files into one module). A pure refactor: same routes, `File` object, status codes and messages.
+- **Spec first** (approved): `doc/file-storage.md` describes the module, the deletion cascade and the check; task photos marked not implemented yet (#26); ADR 0004 records why the module sits below `db`; `CONTEXT.md` defines **Attachment**.
+- **The module**, `backend/internal/attachments`: two kinds (document, photo) that differ only by data; callers name an owner; `Store` adds (cap, sniffed type, generated name, cleanup on failure), lists (with `missing`), opens for serving, deletes one, counts, deletes everything an owner has (rows through the caller's database or transaction, the directory once they are gone), moves an intervention's photos to another equipment (copy, then the caller's save and the path rewrite in one transaction, then delete the originals), and checks the referenced files for startup and the backup. Refusals carry their reason, built from the kind's cap.
+- `db`'s equipment, task and intervention delete functions call the module; the handlers no longer remove directories. `filestore` keeps only where the data lives. Gone: the handlers' copies for documents and photos, `db/equipment_file.go`, `db/intervention_file.go`, `models.File`, `models.InterventionFile`, `filestore.CopyFile` and the path helpers.
+- **Tests**: no assertion changed and none added; the existing `httptest` suites (upload, list, serve, delete, cascade, move and its rollbacks, missing files, startup check, backup) are the seam. Seven lines that read or seed attachment rows past the API now use the module's `List` or a raw `INSERT`.
+- One error-path difference: a failure to read which interventions an equipment has, or to delete attachment rows, now answers 500 instead of being ignored. The rest of the cascade still ignores some errors and is not atomic (#128).
+- Bugs found along the way, each its own issue: #128 (cascade not atomic), #129 (photo refusal not shown), #130 (Same hours records 0 h), #131 (intervention saved when its reading is not).
+- Verified with `go test ./...` and `make build`.

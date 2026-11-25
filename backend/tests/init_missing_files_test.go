@@ -40,22 +40,26 @@ func seedAttachedFiles(t *testing.T, dbPath string, docs, photos []attachedFile)
 		t.Fatalf("CreateIntervention: %v", err)
 	}
 
+	// The rows are inserted directly: a row whose file is missing is a state
+	// the app cannot produce through its own interface.
 	dir := filepath.Dir(dbPath)
 	for _, d := range docs {
-		if err := db.CreateEquipmentFile(conn, &models.EquipmentFile{
-			EquipmentID: eq.ID, FilePath: d.relPath, OriginalName: filepath.Base(d.relPath), UploadedAt: time.Now(),
-		}); err != nil {
-			t.Fatalf("CreateEquipmentFile: %v", err)
+		if _, err := conn.Exec(
+			`INSERT INTO equipment_files (equipment_id, file_path, original_name, uploaded_at) VALUES (?, ?, ?, ?)`,
+			eq.ID, d.relPath, filepath.Base(d.relPath), time.Now(),
+		); err != nil {
+			t.Fatalf("insert document row: %v", err)
 		}
 		if d.onDisk {
 			writeFile(t, filepath.Join(dir, filepath.FromSlash(d.relPath)), []byte("doc"))
 		}
 	}
 	for _, p := range photos {
-		if err := db.CreateInterventionFile(conn, &models.InterventionFile{
-			InterventionID: inv.ID, FilePath: p.relPath, OriginalName: filepath.Base(p.relPath), UploadedAt: time.Now(),
-		}); err != nil {
-			t.Fatalf("CreateInterventionFile: %v", err)
+		if _, err := conn.Exec(
+			`INSERT INTO intervention_files (intervention_id, file_path, original_name, uploaded_at) VALUES (?, ?, ?, ?)`,
+			inv.ID, p.relPath, filepath.Base(p.relPath), time.Now(),
+		); err != nil {
+			t.Fatalf("insert photo row: %v", err)
 		}
 		if p.onDisk {
 			writeFile(t, filepath.Join(dir, filepath.FromSlash(p.relPath)), []byte("photo"))
