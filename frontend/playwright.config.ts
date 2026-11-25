@@ -45,10 +45,24 @@ export default defineConfig({
       timeout: 120_000,
     },
   ],
+  // Both projects share the one backend and database, one after the other.
+  // Specs that run in both (smoke, navigation) must not rely on a name being
+  // unique across the run.
   projects: [
     {
+      // Desktop: every spec except the phone-only ones.
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: /\/mobile-[^/]*\.spec\.ts$/,
+    },
+    {
+      // A phone: the bottom tab bar replaces the top navbar (doc/gui/navigation.md).
+      // Only a subset runs here, to keep CI time reasonable: the smoke and
+      // navigation specs, and the `mobile-*.spec.ts` specs. Pixel 7 runs on
+      // Chromium, the one browser CI installs.
+      name: 'mobile',
+      use: { ...devices['Pixel 7'] },
+      testMatch: [/\/smoke\.spec\.ts$/, /\/navigation\.spec\.ts$/, /\/mobile-[^/]*\.spec\.ts$/],
     },
   ],
 })
