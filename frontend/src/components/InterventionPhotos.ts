@@ -80,14 +80,19 @@ export function InterventionPhotos(interventionId: number) {
     state.error = null
     try {
       await interventionApi.deleteInterventionFile({ id: interventionId, filename: f.name })
-      if (state.viewing?.name === f.name) state.viewing = null
-      state.confirmDelete = null
-      await load()
     } catch {
       state.error = 'Failed to delete photo'
-    } finally {
       state.deletingName = null
+      return
     }
+    if (state.viewing?.name === f.name) state.viewing = null
+    state.confirmDelete = null
+    // Reset before the reload, never after it: each tile's Delete button
+    // watches deletingName, and a tile the reload drops is torn down a tick
+    // later. Changing deletingName in between queues that tile's watcher, which
+    // then runs on a released slot and throws (#139, arrow-js gotcha 10).
+    state.deletingName = null
+    await load()
   }
 
   // A photo missing on the server has nothing to show full-screen (#122).
