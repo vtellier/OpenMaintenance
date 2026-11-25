@@ -120,9 +120,11 @@ When a control has no accessible name, give it one in the app, with no visible c
 
 `getByLabel` matches part of the name, ignoring case, so `getByLabel('Date')` also finds "Date of commissioning" and "Expiry date". Pass `{ exact: true }` whenever the name is a word other labels contain.
 
+`getByRole('img')` skips an image with `alt=""` (its role becomes `presentation`) and a hidden one. So an image a spec counts or checks the absence of must keep a non-empty `alt` (the app's photos use `alt={originalName}`; the React port must keep it), or an absence check would pass on a decorative `<img alt="">`.
+
 The only tag a spec may name is the document's own `body` (`smoke.spec.ts`), which no framework renders. For `<html>`, use `:root`.
 
-Two `git grep -E` patterns over `frontend/tests` must stay at zero:
+Two `git grep -E` patterns over every file under `frontend/tests` (specs and README alike, as the migration progress page counts them) must stay at zero. In prose, describe a bad selector in words rather than writing it as a `locator(...)` call:
 - `locator\(['"](input|select|img|option|textarea|button|label|li|ul|span|div|p|a|table|tr|td|th|form|h[1-6])(['":. #>[]|$)`
 - `locator\('[^']* [^']*'\)|locator\("[^"]* [^"]*"\)`
 
@@ -141,7 +143,7 @@ When you reproduced a bug interactively with chrome-devtools MCP, you have a seq
 Translate it as follows:
 - `navigate_page` → `await page.goto(url)`
 - `click uid=X` → identify the element from your snapshot (its role/text/label), then `await page.getByRole('button', { name: 'Add equipment' }).click()`.
-- `fill uid=X "value"` → same — find the visible label or placeholder: `await page.getByLabel('Name').fill('Test')`.
+- `fill uid=X "value"` → same — find the visible label or placeholder: `await page.getByPlaceholder('e.g. Main Engine').fill('Test')`, or `getByLabel('Task', { exact: true })` for a control with a name.
 - `take_snapshot` → no equivalent; just assert what you would have visually verified.
 
 ## Database state

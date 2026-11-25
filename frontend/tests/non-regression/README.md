@@ -31,8 +31,8 @@ If both are already running (e.g. `make dev`), they are reused as-is.
    besides the shared one.
 5. Each test must create its own data and not depend on other tests.
 6. Find elements by role, label or text, or by a single class when the
-   element has neither. No tag names (`locator('select')`) and no nesting
-   inside one selector (`'.modal input'`): chain locators to scope. See
+   element has neither. No tag names (a locator that names the `select`
+   tag) and no nesting inside one selector (a modal class followed by `input`): chain locators to scope. See
    "Locators" in the non-regression-test skill.
 
 ## Page errors and console errors fail the test
