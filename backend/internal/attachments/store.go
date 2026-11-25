@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"log"
@@ -58,8 +59,11 @@ func (s *Store) Add(o Owner, originalName string, declaredSize int64, src io.Rea
 		src = io.MultiReader(bytes.NewReader(head[:n]), src)
 	}
 
-	name := randomName() + ext
-	relPath := o.path(name)
+	name, err := randomName()
+	if err != nil {
+		return Attachment{}, err
+	}
+	relPath := o.path(name + ext)
 	absPath := s.abs(relPath)
 
 	if err := os.MkdirAll(filepath.Dir(absPath), 0755); err != nil {
@@ -71,7 +75,15 @@ func (s *Store) Add(o Owner, originalName string, declaredSize int64, src io.Rea
 	}
 	// +1 lets an over-cap body be told apart from one exactly at the cap.
 	written, err := io.Copy(dst, io.LimitReader(src, k.maxSize+1))
-	dst.Close()
+	// Flush to disk and check the close before a row points at the file: a
+	// failed last write may only show there (a full disk), leaving it
+	// truncated.
+	if err == nil {
+		err = dst.Sync()
+	}
+	if cerr := dst.Close(); err == nil {
+		err = cerr
+	}
 	if err != nil {
 		os.Remove(absPath)
 		return Attachment{}, err
@@ -206,6 +218,11 @@ func (s *Store) originalName(o Owner, relPath string) (string, error) {
 
 // attachment builds the Attachment stored at relPath, reading its size and
 // type from disk.
+//
+// Reading the type opens the file and reads 512 bytes, so List opens one file
+// per row and Open one per download. That cost is accepted (issue #138): an
+// owner has few attachments, and storing the type in the row would need a
+// migration and a backfill of the existing rows for no visible gain.
 func (s *Store) attachment(relPath, originalName string, uploadedAt time.Time) Attachment {
 	abs := s.abs(relPath)
 	size, missing := statFile(abs)
@@ -266,12 +283,12 @@ var createFile = func(name string) (storedFile, error) {
 // fail.
 var randSource io.Reader = rand.Reader
 
-// randomName returns a fresh name for a stored file: 32 hex characters.
-func randomName() string {
+// randomName returns a fresh name for a stored file: 32 hex characters. It
+// fails rather than fall back to a fixed name, which two uploads would share.
+func randomName() (string, error) {
 	b := make([]byte, 16)
 	if _, err := io.ReadFull(randSource, b); err != nil {
-		// crypto/rand failure is effectively impossible.
-		return "file"
+		return "", fmt.Errorf("name the stored file: %w", err)
 	}
-	return hex.EncodeToString(b)
+	return hex.EncodeToString(b), nil
 }
