@@ -707,3 +707,19 @@ Deployed to the local install (`openmaintenance.service`, `/opt/openmaintenance`
 - One error-path difference: a failure to read which interventions an equipment has, or to delete attachment rows, now answers 500 instead of being ignored. The rest of the cascade still ignores some errors and is not atomic (#128).
 - Bugs found along the way, each its own issue: #128 (cascade not atomic), #129 (photo refusal not shown), #130 (Same hours records 0 h), #131 (intervention saved when its reading is not).
 - Verified with `go test ./...` and `make build`.
+
+## 2026-11-25 — Deleting an owner is all or nothing (issue #128)
+
+- Branch `fix/issue-128-atomic-delete`, stacked on #127 and implemented by a subagent. Deleting an equipment, a task or an intervention ran its cascade one statement at a time, outside a transaction, and ignored most errors: a failure could leave rows behind while still answering 204, or answer 500 with part of the cascade already deleted.
+- **Spec first:** "Entity deletion cascade" in `doc/file-storage.md`. Step 1 is one transaction: the owner, everything it owns and their attachment rows. Step 2 removes the directories after the commit. A failure rolls back everything and the API answers 500.
+- **Test first** (`httptest`, `backend/tests/delete_cascade_atomic_test.go`):
+  - Setup: an equipment with a document, a task with an intervention, and an exceptional intervention, each intervention with a photo.
+  - A `RAISE(ABORT)` trigger makes one table's delete fail. There are 10 cases, one per owner and table.
+  - Each case expects 500, with everything still served, listed and on disk.
+  - 8 cases failed before the fix. The other 2 already passed, because the failing statement ran first; they stay as guards.
+- **Fix:** `db/delete.go` runs each delete through `deleteInTx`, whose reads and writes all use the transaction, and removes files only after the commit. `DeleteInterventionsByTask` and `DeleteTasksByEquipment` are now unexported helpers that take the transaction.
+- **Review:**
+  - The built binary ran on seeded data.
+  - A live `BEFORE DELETE ON interventions` trigger gave 500, with the equipment, its task, its document and its photo, and both files on disk, all still there.
+  - Without the trigger the same delete answered 204 and left no rows and no directory.
+  - One CI review note led to a comment on why the task loop finds no photo rows left.
