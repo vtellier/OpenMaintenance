@@ -20,6 +20,7 @@ The branching decision itself is Step 3.5 of [`.agents/skills/bug-fix/SKILL.md`]
 
 - Config: `frontend/playwright.config.ts`
 - Global setup (wipes DB via API before every run): `frontend/tests/global-setup.ts`
+- Shared fixture (fails a test on any page error or console error): `frontend/tests/fixtures.ts`
 - Specs: `frontend/tests/non-regression/*.spec.ts`
 - Index (must be kept in sync): `frontend/tests/non-regression/README.md`
 - Run command: `pnpm test` from `frontend/`
@@ -42,10 +43,12 @@ Playwright's `webServer` block starts both servers itself, or reuses them if the
 
 ## Spec file template
 
-Keep specs short. Navigate, act, assert. No page objects, no fixtures, no helpers (until duplication actually hurts).
+Keep specs short. Navigate, act, assert. No page objects, no helpers (until duplication actually hurts), and no fixtures besides the shared one.
+
+Import `test` and `expect` (and the `Page` type) from `../fixtures`, **never from `@playwright/test`**. See [Page errors and console errors fail the test](#page-errors-and-console-errors-fail-the-test).
 
 ```ts
-import { expect, test } from '@playwright/test'
+import { expect, test } from '../fixtures'
 
 /**
  * Bug: <one-line title>
@@ -61,6 +64,28 @@ test('<short scenario>', async ({ page }) => {
   await expect(page.getByText('Expected text')).toBeVisible()
 })
 ```
+
+## Page errors and console errors fail the test
+
+`frontend/tests/fixtures.ts` extends Playwright's `test`. For every test it collects the uncaught exceptions of the page (`pageerror`) and every console message of type `error`, and at teardown it fails the test with the list. So an error the app logs fails the suite even when the screen looks right, and so will React's warnings after the cutover (#146).
+
+Chromium also logs a console error for every request that gets an HTTP error status or is aborted (`Failed to load resource: ...`). A test that provokes an error on purpose declares it with the `expectErrors` fixture, before the action:
+
+```ts
+import { expect, failedRequest, test } from '../fixtures'
+
+test("a refused Update hours shows the backend's reason", async ({ page, expectErrors }) => {
+  // ... create eq
+  expectErrors(failedRequest(`/api/equipments/${eq.id}/hours`, 400))
+  // ... act, assert the reason is shown
+})
+```
+
+- `failedRequest(path, status)` matches the error for that request path only: a number is the HTTP status, a string such as `'net::ERR_FAILED'` is the network error of a `route.abort()`.
+- Any other matcher: a string matches the message exactly, a RegExp matches part of it (anchor it), `{ message, path }` also pins the URL.
+- Every declared error must be logged at least once, and any other error still fails the test. Keep declarations narrow: an exact message, a tight pattern, and the path when there is one.
+- An error that is not on purpose is a bug: fix it. If the fix is not small, open an issue, declare that exact message, and put a comment that points to the issue next to the declaration.
+- A stubbed file list (`page.route`) must also serve the bytes of any file the page loads, or its 404 fails the test (see `stubFileList` in `missing-file-says-so.spec.ts`).
 
 ## Naming
 

@@ -230,7 +230,7 @@ state.deletingName = null
 await load()
 ```
 
-**The rule**: after a write that re-renders a list, do not write state the old rows read, because the dropped rows have not been torn down yet. Reset row flags first, then reload. To catch these errors in Playwright, collect `page.on('pageerror')` and assert the list is empty.
+**The rule**: after a write that re-renders a list, do not write state the old rows read, because the dropped rows have not been torn down yet. Reset row flags first, then reload. In Playwright, the shared fixture (`frontend/tests/fixtures.ts`) fails any test that logs one of these errors.
 
 ---
 
