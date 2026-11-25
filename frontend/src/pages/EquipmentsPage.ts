@@ -533,7 +533,7 @@ export const EquipmentsPage = component(() => {
       </div>
       <div class="form-field">
         <label class="form-field__label">Date of commissioning</label>
-        <input type="date" .value="${() => state.addCommissionedAt}" @input="${(e: Event) => { state.addCommissionedAt = (e.target as HTMLInputElement).value }}" />
+        <input type="date" aria-label="Date of commissioning" .value="${() => state.addCommissionedAt}" @input="${(e: Event) => { state.addCommissionedAt = (e.target as HTMLInputElement).value }}" />
       </div>
       <div class="toggle-row">
         <span class="toggle-row__label">This equipment has an hour-meter</span>
@@ -545,7 +545,7 @@ export const EquipmentsPage = component(() => {
       ${() => state.addTracksHours ? html`
         <div class="form-field">
           <label class="form-field__label">Initial hours</label>
-          <input type="number" min="0" .value="${() => String(state.addHours)}" @input="${(e: Event) => { state.addHours = Number((e.target as HTMLInputElement).value) }}" />
+          <input type="number" min="0" aria-label="Initial hours" .value="${() => String(state.addHours)}" @input="${(e: Event) => { state.addHours = Number((e.target as HTMLInputElement).value) }}" />
         </div>
       ` : null}
       <div class="modal__actions">

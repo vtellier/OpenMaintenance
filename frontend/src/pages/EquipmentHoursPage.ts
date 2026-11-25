@@ -84,7 +84,7 @@ export function EquipmentHoursPage(idParam: string) {
 
             <div class="form-field">
               <label class="form-field__label">New hours</label>
-              <input type="number" min="${() => String(state.currentHours)}" .value="${() => String(state.newHours)}" @input="${(e: Event) => { state.newHours = Number((e.target as HTMLInputElement).value) }}" />
+              <input type="number" aria-label="New hours" min="${() => String(state.currentHours)}" .value="${() => String(state.newHours)}" @input="${(e: Event) => { state.newHours = Number((e.target as HTMLInputElement).value) }}" />
             </div>
 
             <div class="form__actions">

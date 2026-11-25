@@ -153,7 +153,7 @@ export function FullInterventionModal(
         ${equipmentIdFixed == null ? html`
           <div class="form-field">
             <label class="form-field__label">Equipment *</label>
-            <select .value="${() => state.equipmentId != null ? String(state.equipmentId) : ''}" @change="${onEquipmentChange}">
+            <select aria-label="Equipment" .value="${() => state.equipmentId != null ? String(state.equipmentId) : ''}" @change="${onEquipmentChange}">
               <option value="">-- Select equipment --</option>
               ${() => equipmentChoices(equipments()).map(eq => state.equipmentId === eq.id
                 ? html`<option value="${String(eq.id)}" selected="selected">${eq.label}</option>`
@@ -172,7 +172,7 @@ export function FullInterventionModal(
 
         <div class="form-field">
           <label class="form-field__label">Task *</label>
-          <select .value="${() => state.taskId != null ? String(state.taskId) : ''}" @change="${onTaskChange}" disabled="${() => state.isExceptional}">
+          <select aria-label="Task" .value="${() => state.taskId != null ? String(state.taskId) : ''}" @change="${onTaskChange}" disabled="${() => state.isExceptional}">
             <option value="">-- Select task --</option>
             ${() => filteredTasks().map(t => state.taskId === t.id
               ? html`<option value="${String(t.id)}" selected="selected">${t.name}</option>`
@@ -189,13 +189,13 @@ export function FullInterventionModal(
 
         <div class="form-field">
           <label class="form-field__label">Date *</label>
-          <input type="date" .value="${() => state.date}" @input="${onDateChange}" />
+          <input type="date" aria-label="Date" .value="${() => state.date}" @input="${onDateChange}" />
         </div>
 
         ${() => tracksHours() ? html`
           <div class="form-field">
             <label class="form-field__label">Hours</label>
-            <input type="number" min="0" .value="${() => state.hours == null ? '' : String(state.hours)}" @input="${onHoursChange}" />
+            <input type="number" min="0" aria-label="Hours" .value="${() => state.hours == null ? '' : String(state.hours)}" @input="${onHoursChange}" />
           </div>
         ` : null}
 
