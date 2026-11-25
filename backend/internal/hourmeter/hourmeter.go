@@ -10,7 +10,8 @@
 //   - a reading captured by an intervention refreshes it only when it raises
 //     the reading;
 //   - editing equipment metadata touches neither: db.UpdateEquipment does not
-//     write them, and only this package calls db.SetEquipmentHours.
+//     write them, and only this package calls db.SetEquipmentHours (or its
+//     Tx variant).
 package hourmeter
 
 import (
@@ -67,12 +68,14 @@ func Confirm(db *sql.DB, eq *models.Equipment, hours float64) error {
 // RecordIntervention applies the reading captured by an intervention when it
 // is logged or edited. It raises the equipment's reading, and refreshes its
 // freshness, only when hours_at is strictly greater than the current reading
-// and the equipment tracks hours.
-func RecordIntervention(db *sql.DB, intervention *models.Intervention) error {
+// and the equipment tracks hours. It runs in tx, the transaction that stores
+// the intervention, so the two are saved together or not at all: any error
+// must abort that transaction.
+func RecordIntervention(tx *sql.Tx, intervention *models.Intervention) error {
 	if intervention.HoursAt == nil || intervention.EquipmentID == nil {
 		return nil
 	}
-	eq, err := dbpackage.GetEquipment(db, *intervention.EquipmentID)
+	eq, err := dbpackage.GetEquipmentTx(tx, *intervention.EquipmentID)
 	if err != nil {
 		return err
 	}
@@ -80,12 +83,10 @@ func RecordIntervention(db *sql.DB, intervention *models.Intervention) error {
 	if !eq.TracksHours || (eq.Hours != nil && hours <= *eq.Hours) {
 		return nil
 	}
-	// A reading raised meanwhile by another request makes this one stale: it
-	// changes nothing, like any reading that is not higher.
-	if err := write(db, eq, hours); err != nil && !errors.Is(err, ErrBackwards) {
-		return err
-	}
-	return nil
+	// A reading raised meanwhile by another request makes this one stale
+	// (not written): it changes nothing, like any reading that is not higher.
+	_, err = dbpackage.SetEquipmentHoursTx(tx, eq.ID, hours, time.Now())
+	return err
 }
 
 // Correct records the reading the user confirms through "Correct reading":

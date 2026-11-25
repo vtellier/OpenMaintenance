@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -58,12 +57,16 @@ func (h *Handler) CreateIntervention(ctx echo.Context) error {
 		return ctx.JSON(400, map[string]string{"error": err.Error()})
 	}
 
-	if err := dbpackage.CreateIntervention(h.DB, intervention); err != nil {
+	// The intervention and the reading it raises are stored together, or not
+	// at all, so retrying a failed log cannot duplicate it.
+	err := dbpackage.InTx(h.DB, func(tx *sql.Tx) error {
+		if err := dbpackage.CreateInterventionTx(tx, intervention); err != nil {
+			return err
+		}
+		return hourmeter.RecordIntervention(tx, intervention)
+	})
+	if err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
-	}
-
-	if err := hourmeter.RecordIntervention(h.DB, intervention); err != nil {
-		log.Printf("record hour-meter reading of intervention %d: %v", intervention.ID, err)
 	}
 
 	return ctx.JSON(201, intervention)
@@ -99,10 +102,6 @@ func (h *Handler) UpdateIntervention(ctx echo.Context, id int) error {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
 
-	if err := hourmeter.RecordIntervention(h.DB, intervention); err != nil {
-		log.Printf("record hour-meter reading of intervention %d: %v", intervention.ID, err)
-	}
-
 	return ctx.JSON(200, intervention)
 }
 
@@ -113,9 +112,17 @@ func (h *Handler) DeleteIntervention(ctx echo.Context, id int) error {
 	return ctx.NoContent(204)
 }
 
-// saveIntervention saves an edited intervention. When the edit moves it to
-// another equipment, its photos move with it, in the transaction that saves it.
+// saveIntervention saves an edited intervention with the hour-meter reading
+// it raises, in one transaction. When the edit moves it to another equipment,
+// its photos move with it, in that same transaction.
 func (h *Handler) saveIntervention(inv *models.Intervention) error {
+	save := func(tx *sql.Tx) error {
+		if err := dbpackage.UpdateInterventionTx(tx, inv); err != nil {
+			return err
+		}
+		return hourmeter.RecordIntervention(tx, inv)
+	}
+
 	before, err := dbpackage.GetIntervention(h.DB, inv.ID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		// Without the current equipment we cannot tell whether photos must
@@ -124,11 +131,10 @@ func (h *Handler) saveIntervention(inv *models.Intervention) error {
 	}
 	if err != nil || before.EquipmentID == nil || inv.EquipmentID == nil ||
 		*before.EquipmentID == *inv.EquipmentID {
-		return dbpackage.UpdateIntervention(h.DB, inv)
+		return dbpackage.InTx(h.DB, save)
 	}
 	return h.attachments().Move(
-		attachments.InterventionPhotos(*before.EquipmentID, inv.ID), *inv.EquipmentID,
-		func(tx *sql.Tx) error { return dbpackage.UpdateInterventionTx(tx, inv) },
+		attachments.InterventionPhotos(*before.EquipmentID, inv.ID), *inv.EquipmentID, save,
 	)
 }
 
