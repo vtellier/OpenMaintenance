@@ -206,6 +206,14 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] **A missing attached file says so** (issue #122): the `File` object reports `missing`; a missing document shows "File missing on server" with no Download link, a missing photo shows a placeholder instead of a broken image, and both can still be deleted
 - [x] **An incomplete backup never rotates a complete one away** (issue #123): when the database references attached files that are not on disk, the startup backup logs how many and skips rotation for that run, reusing `db.CheckFiles`
 
+## Milestone 24 — Attachments in One Module (issues #127, #128, #129, #130, #131)
+
+- [x] **One attachments module** (issue #127): storing, listing, serving, deleting and moving documents and photos, the referenced-files check, and the cascade when an equipment, a task or an intervention is deleted all live in `internal/attachments`; no behaviour change (ADR 0004)
+- [ ] **Deleting an owner is all or nothing** (issue #128)
+- [ ] **A refused photo upload says why** (issue #129)
+- [ ] **No "Same hours" for an equipment with no reading** (issue #130)
+- [ ] **An intervention and the reading it raises are saved together** (issue #131)
+
 ## Future (post-V1)
 
 - Configurable "due soon" window
