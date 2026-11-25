@@ -8,7 +8,7 @@ Users define their own maintenance program, log interventions, and see at a glan
 
 ## Product principles
 
-1. **Minimalist by design** — Lightweight stack, no heavy framework, no bloat. The UI must remain simple and fast.
+1. **Minimalist by design** — React for the UI ([ADR 0005](./adr/0005-react-web-ui.md)), and as few dependencies as possible beyond it: no bloat. The codebase stays independent and simple, and the UI stays simple and fast.
 2. **Self-hostable anywhere** — Single Go binary + SQLite file. Runs on a VPS, a laptop, or a Raspberry Pi.
 3. **No authentication** — Anyone with access to the app can use it. Security is delegated to the deployment (network, reverse proxy, etc.).
 4. **Multi-device friendly** — Usable on desktop, tablet, and mobile. Layout adapts; no separate mobile app.

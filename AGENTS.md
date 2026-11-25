@@ -4,7 +4,7 @@
 
 - **Purpose**: Free, open-source web app for tracking maintenance tasks (boats, cars, homes, etc.).
 - **Self-hostable**: Designed to be easily self-hosted.
-- **Minimalist**: Lightweight by design — no heavy frameworks.
+- **Minimalist**: React for the UI ([ADR 0005](./doc/adr/0005-react-web-ui.md)), and as few dependencies as possible beyond it. The codebase stays independent and simple.
 
 ## Architecture
 
