@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, failedRequest, test } from '../fixtures'
 
 /**
  * Bug: settings page shows "✓ Up to date" even when the GitHub release check
@@ -63,7 +63,8 @@ test('settings page shows "up to date" only when the check completed and confirm
   await expect(page.locator('.settings-about__uptodate')).toBeVisible()
 })
 
-test('settings page does not show "up to date" when the update check API call fails', async ({ page }) => {
+test('settings page does not show "up to date" when the update check API call fails', async ({ page, expectErrors }) => {
+  expectErrors(failedRequest('/api/update-status', 'net::ERR_FAILED'))
   await page.route('**/api/update-status', route => route.abort())
 
   await page.goto('/settings')

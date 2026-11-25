@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from '../fixtures'
 
 /**
  * Smoke test — verifies the test harness itself (servers reachable, DB wiped).

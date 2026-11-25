@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, failedRequest, test } from '../fixtures'
 
 const API = 'http://127.0.0.1:3001/api'
 
@@ -10,7 +10,8 @@ const API = 'http://127.0.0.1:3001/api'
  * Issue: #74, #107
  * Fixed in: open
  */
-test("a refused save from Dashboard Done keeps the form open and shows the backend's reason", async ({ page }) => {
+test("a refused save from Dashboard Done keeps the form open and shows the backend's reason", async ({ page, expectErrors }) => {
+  expectErrors(failedRequest('/api/interventions', 400))
   const eqRes = await page.request.post(`${API}/equipments`, {
     data: { name: 'Done Error Boat', tracks_hours: false },
   })
