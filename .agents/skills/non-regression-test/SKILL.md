@@ -152,7 +152,9 @@ await page.locator('.history-item')
 
 A fixed sleep is too short on a slow runner and wasted time on a fast one, so `frontend/tests/` has none. Wait on what the page shows with a web-first assertion (`await expect(locator).toHaveText(...)`). It retries until it holds.
 
-When the expected outcome is that nothing changes (a late response must be ignored), an assertion that passes at once proves nothing. First wait for a sign that the page has handled the event, then assert. `manual-update-check.spec.ts` ("a slow page-load status…") shows how: an init script wraps `fetch`, and once the page has read that response's JSON it sets a 0 ms timer that marks `<html>`. Everything the page does next runs as microtasks, so the timer fires after it. The spec waits for the mark, then checks the screen.
+When the expected outcome is that nothing changes (a late response must be ignored), an assertion that passes at once proves nothing. First wait for a sign that the page has handled the event, then assert. `manual-update-check.spec.ts` ("a slow page-load status…") shows how: an init script wraps `fetch`, and once the page has read that response's JSON it marks `<html>` after three hops: a 0 ms timer, then an animation frame, then a `MessageChannel` message. The page queues its re-render in the microtasks that follow the JSON, so each hop runs after the matching kind of render: a microtask re-render (Arrow), a frame callback, or a posted-message task (React's scheduler). The spec waits for the mark, then checks the screen.
+
+The mark is not a proof for every scheduler: a render behind a longer timer, or a time-sliced render (`startTransition`) that yields, could still land after it. So whenever the code under such a test changes framework or scheduling, break the behaviour by hand (for this spec, remove the `checkStarted` guard in `UpdateCheck`) and confirm the test fails before trusting it.
 
 ## Updating the index
 
