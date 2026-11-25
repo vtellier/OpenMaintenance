@@ -106,6 +106,19 @@ test('a missing photo shows a placeholder, does not open the viewer, and can be 
  * Issue: #122 (found in review)
  */
 
+/**
+ * Bug: deleting a row logged "TypeError: expressionPool[effect] is not a
+ * function" from Arrow.js. Nothing on screen showed it, so the row-reuse tests
+ * also fail on any uncaught error the page throws.
+ * Issue: #139
+ * Fixed in: open
+ */
+function collectPageErrors(page: Page) {
+  const errors: string[] = []
+  page.on('pageerror', err => errors.push(err.message))
+  return errors
+}
+
 /** Stubs a file list whose DELETE removes the entry from the next GET. */
 async function stubFileList(page: Page, base: string, initial: ReturnType<typeof fileInfo>[]) {
   let files = initial
@@ -130,6 +143,7 @@ for (const deleteFirst of ['missing', 'present'] as const) {
     const missing = fileInfo('bbb.pdf', 'invoice.pdf', `${base}/bbb.pdf`, true, 0)
     const [first, kept] = deleteFirst === 'missing' ? [missing, present] : [present, missing]
     await stubFileList(page, base, [first, kept])
+    const errors = collectPageErrors(page)
 
     await page.goto(`/equipments/${eq.id}/documents`)
     await page.locator('.doc-row').filter({ hasText: first.original_name }).getByRole('button', { name: 'Delete' }).click()
@@ -146,6 +160,7 @@ for (const deleteFirst of ['missing', 'present'] as const) {
       await expect(row.locator('.doc-row__meta')).toContainText('2.0 KB')
       await expect(row.getByRole('link', { name: 'Download' })).toHaveAttribute('href', kept.url)
     }
+    expect(errors).toEqual([])
   })
 
   test(`deleting the ${deleteFirst} photo before it leaves the other tile showing its own file`, async ({ page }) => {
@@ -163,6 +178,7 @@ for (const deleteFirst of ['missing', 'present'] as const) {
     const missing = fileInfo('ccc.jpg', 'after.jpg', `${base}/ccc.jpg`, true, 0)
     const [first, kept] = deleteFirst === 'missing' ? [missing, present] : [present, missing]
     await stubFileList(page, base, [first, kept])
+    const errors = collectPageErrors(page)
 
     await page.goto('/history')
     await page.locator('.history-item').filter({ hasText: label }).getByRole('button', { name: 'Edit' }).click()
@@ -189,5 +205,6 @@ for (const deleteFirst of ['missing', 'present'] as const) {
       await thumbs.locator('img').click()
       await expect(page.locator('.photo-viewer img')).toHaveAttribute('src', kept.url)
     }
+    expect(errors).toEqual([])
   })
 }
