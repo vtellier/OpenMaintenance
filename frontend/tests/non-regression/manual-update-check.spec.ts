@@ -96,7 +96,46 @@ test('a check that cannot reach the server says so', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Check for updates' })).toBeEnabled()
 })
 
+// Set on <html> once the page has handled the page-load GET (see below).
+const STATUS_HANDLED = 'data-update-status-handled'
+
 test('a slow page-load status does not overwrite a newer check result', async ({ page }) => {
+  // Nothing visible changes when the late GET is ignored, so the test needs a
+  // sign that the page has handled it. An init script wraps fetch. Once the
+  // page has read the GET's JSON, it marks <html> after three hops, one per
+  // way a UI can schedule its re-render:
+  //  - a 0 ms timer runs after every microtask, such as Arrow's re-render;
+  //  - an animation frame then runs after any frame callback queued before it;
+  //  - a posted message then runs after any message posted before it, the
+  //    same task source React's scheduler renders in.
+  // The page's handling after json() is all microtasks, so it queues its
+  // re-render before the first hop runs, and the mark comes after that
+  // render. Not covered: a render deferred by a longer timer, or a
+  // time-sliced render (startTransition) that yields. A port of UpdateCheck
+  // must check again that this test fails without the `checkStarted` guard.
+  await page.addInitScript(attr => {
+    const realFetch = window.fetch
+    window.fetch = async (...args) => {
+      const response = await realFetch(...args)
+      const url = new URL(response.url, location.href)
+      if (url.pathname === '/api/update-status') {
+        const realJson = response.json.bind(response)
+        response.json = async () => {
+          const body = await realJson()
+          setTimeout(() => requestAnimationFrame(() => {
+            const channel = new MessageChannel()
+            channel.port1.onmessage = () => {
+              channel.port1.close()
+              document.documentElement.setAttribute(attr, '')
+            }
+            channel.port2.postMessage(null)
+          }))
+          return body
+        }
+      }
+      return response
+    }
+  }, STATUS_HANDLED)
   let answerGet!: () => void
   const getAnswered = new Promise<void>(resolve => { answerGet = resolve })
   await page.route('**/api/update-status', async route => {
@@ -116,12 +155,9 @@ test('a slow page-load status does not overwrite a newer check result', async ({
   await page.getByRole('button', { name: 'Check for updates' }).click()
   await expect(page.locator('.settings-about__update')).toBeVisible()
 
-  const getResponse = page.waitForResponse('**/api/update-status')
+  await expect(page.locator('html')).not.toHaveAttribute(STATUS_HANDLED)
   answerGet()
-  await getResponse
-  // Nothing visible changes when the late GET is ignored: give the page time
-  // to (wrongly) apply it before checking the line still shows the check.
-  await page.waitForTimeout(300)
+  await expect(page.locator('html')).toHaveAttribute(STATUS_HANDLED, '')
   await expect(page.locator('.settings-about__update')).toBeVisible()
   await expect(page.locator('.settings-about__uptodate')).toHaveCount(0)
 })
