@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vtellier/OpenMaintenance/internal/attachments"
 	"github.com/vtellier/OpenMaintenance/internal/filestore"
 )
 
@@ -120,7 +121,7 @@ func BackupDB(dbPath string, cfg BackupConfig) error {
 }
 
 // incompleteBackup says why the backup of the database snapshot lacks
-// attached files it references, using the same check as startup (CheckFiles),
+// attached files it references, using the same check as startup,
 // or returns "" when it is complete. When the check itself fails, the backup
 // cannot be shown complete and is treated as incomplete.
 func incompleteBackup(snapshot, baseDir string) string {
@@ -129,7 +130,7 @@ func incompleteBackup(snapshot, baseDir string) string {
 		return fmt.Sprintf("cannot check attached files: %v", err)
 	}
 	defer conn.Close()
-	check, err := CheckFiles(conn, baseDir)
+	check, err := attachments.New(conn, baseDir).CheckFiles()
 	if err != nil {
 		return fmt.Sprintf("cannot check attached files: %v", err)
 	}
