@@ -778,6 +778,15 @@ Deployed to the local install (`openmaintenance.service`, `/opt/openmaintenance`
   - Moving an intervention with a photo to another equipment answered 500. The intervention, its photo and the target's reading stayed put.
   - With the trigger dropped, logging added the intervention and raised the reading (512 → 532). The move put the photo under the new equipment and raised that equipment's reading (230 → 532).
 
+## 2026-11-25 — `make seed` refuses a database that already holds data (issue #140)
+
+- Branch `fix/issue-140-seed-refuses-seeded-db`, implemented by a subagent. A second `make seed` on the same database created the first equipments again, then stopped on a 409 for the Winches group. That left duplicates and half the demo data.
+- **Decision:** seed refuses up front instead of reusing what exists.
+- **Refactor:** seeding moved from `main` into `run(baseURL, client, out)`, which returns its first error instead of exiting.
+- **Test first** (`backend/cmd/seed/main_test.go`): it runs the seeder against the real API on a temp DB over `httptest`. On an empty database it seeds 6 equipments and 1 group. A database that was already seeded, or holds only a group or only an equipment, must make it fail with the counts and send no POST. Before the fix, a second run sent 25 POSTs and then hit the 409.
+- **Fix:** before creating anything, `run` lists the equipments and groups and refuses when either is not empty. No new endpoint.
+- **Docs:** CONTRIBUTING, README, the run-openmaintenance skill and the review-pr command now say seed needs an empty database.
+
 ## 2026-11-25 — Attachment storage hardening (issue #138)
 
 - Branch `fix/issue-138-attachment-store-hardening`, implemented by a subagent. Three weaknesses in `internal/attachments/store.go`, found by inspection.

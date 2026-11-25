@@ -9,8 +9,9 @@
 //	go run ./cmd/seed            # against http://localhost:3001
 //	OM_BASE_URL=… go run ./cmd/seed
 //
-// The backend must already be running. The seeder appends data; for a clean
-// slate, stop the server, delete backend/maintenance.db, restart, then seed.
+// The backend must already be running, on an empty database. When the
+// database already holds an equipment or a group, the seeder creates nothing
+// and exits with an error; wipe the database first, then seed.
 package main
 
 import (
@@ -24,17 +25,37 @@ import (
 	"time"
 )
 
-var baseURL = envOr("OM_BASE_URL", "http://localhost:3001")
-
-// httpClient carries a timeout so the seeder fails loudly and fast instead of
-// hanging indefinitely if the backend stalls mid-request.
-var httpClient = &http.Client{Timeout: 10 * time.Second}
-
 func main() {
 	log.SetFlags(0)
-	if err := waitHealthy(); err != nil {
+	baseURL := envOr("OM_BASE_URL", "http://localhost:3001")
+	// The timeout makes the seeder fail loudly and fast instead of hanging
+	// indefinitely if the backend stalls mid-request.
+	client := &http.Client{Timeout: 10 * time.Second}
+	if err := waitHealthy(client, baseURL); err != nil {
 		log.Fatalf("seed: backend not reachable at %s: %v\n  → start it first (see the run-openmaintenance skill)", baseURL, err)
 	}
+	if err := run(baseURL, client, os.Stdout); err != nil {
+		log.Fatalf("seed: %v", err)
+	}
+}
+
+// seeder posts the demo dataset. The first failed request is kept in err and
+// every later request is skipped, so run stops creating at the first failure.
+type seeder struct {
+	baseURL string
+	client  *http.Client
+	out     io.Writer
+	err     error
+}
+
+// run seeds the instance at baseURL with the demo dataset, printing progress
+// to out.
+func run(baseURL string, client *http.Client, out io.Writer) error {
+	s := &seeder{baseURL: baseURL, client: client, out: out}
+	if err := s.requireEmpty(); err != nil {
+		return err
+	}
+	createGroup, createEquipment, createTask, createIntervention := s.createGroup, s.createEquipment, s.createTask, s.createIntervention
 
 	now := time.Now()
 	monthsAgo := func(n int) time.Time { return now.AddDate(0, -n, 0) }
@@ -158,73 +179,148 @@ func main() {
 	gearbox := createTask(map[string]any{"equipment_id": outboard, "name": "Gearbox oil change", "hours_interval": 50, "months_interval": 12})
 	createIntervention(map[string]any{"task_id": gearbox, "date": rfc(monthsAgo(20)), "hours_at": 150, "location": "Home marina", "performed_by": "Owner"})
 
-	fmt.Printf("\n✓ Seed complete — 1 group, 6 equipments (1 decommissioned), 11 tasks, 16 interventions.\n  Open %s to see Overdue / Due-soon / OK statuses.\n", baseURL)
+	if s.err != nil {
+		return s.err
+	}
+	fmt.Fprintf(out, "\n✓ Seed complete — 1 group, 6 equipments (1 decommissioned), 11 tasks, 16 interventions.\n  Open %s to see Overdue / Due-soon / OK statuses.\n", baseURL)
+	return nil
 }
 
 // ── HTTP helpers ─────────────────────────────────────────────────────────────
 
-func createGroup(body map[string]any) int {
-	id := post("/api/groups", body)
-	fmt.Printf("  group #%d  %v\n", id, body["name"])
-	return id
-}
-
-func createEquipment(body map[string]any) int {
-	id := post("/api/equipments", body)
-	fmt.Printf("  equipment #%d  %v\n", id, body["name"])
-	return id
-}
-
-func createTask(body map[string]any) int {
-	id := post("/api/tasks", body)
-	fmt.Printf("    task #%d  %v\n", id, body["name"])
-	return id
-}
-
-func createIntervention(body map[string]any) int {
-	id := post("/api/interventions", body)
-	label := body["exceptional_label"]
-	if label == nil {
-		label = body["date"]
-	}
-	fmt.Printf("      intervention #%d  %v\n", id, label)
-	return id
-}
-
-// post sends a JSON POST and returns the created object's integer id.
-func post(path string, body map[string]any) int {
-	payload, err := json.Marshal(body)
+// requireEmpty fails unless the instance holds no equipment and no group.
+// Tasks and interventions always belong to an equipment, so these two lists
+// cover all user data. A second run would otherwise duplicate the equipments,
+// then stop on the existing group's name (issue #140).
+func (s *seeder) requireEmpty() error {
+	equipments, err := s.count("/api/equipments")
 	if err != nil {
-		log.Fatalf("seed: marshal %s: %v", path, err)
+		return err
 	}
-	resp, err := httpClient.Post(baseURL+path, "application/json", bytes.NewReader(payload))
+	groups, err := s.count("/api/groups")
 	if err != nil {
-		log.Fatalf("seed: POST %s: %v", path, err)
+		return err
+	}
+	if equipments == 0 && groups == 0 {
+		return nil
+	}
+	return fmt.Errorf("the database already holds data (%s, %s); seed only runs on an empty database.\n"+
+		"  Wipe it first: stop the backend, delete its database file (database.path in config.yaml,\n"+
+		"  ./maintenance.db by default), start it again, then seed. Or delete every equipment and group.",
+		plural(equipments, "equipment"), plural(groups, "group"))
+}
+
+// count returns the length of the JSON array served at path.
+func (s *seeder) count(path string) (int, error) {
+	resp, err := s.client.Get(s.baseURL + path)
+	if err != nil {
+		return 0, fmt.Errorf("GET %s: %w", path, err)
 	}
 	defer resp.Body.Close()
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("seed: read %s response: %v", path, err)
+		return 0, fmt.Errorf("read %s response: %w", path, err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("GET %s → %d: %s", path, resp.StatusCode, data)
+	}
+	var items []json.RawMessage
+	if err := json.Unmarshal(data, &items); err != nil {
+		return 0, fmt.Errorf("decode %s response: %w\n  body: %s", path, err, data)
+	}
+	return len(items), nil
+}
+
+func plural(n int, noun string) string {
+	if n == 1 {
+		return "1 " + noun
+	}
+	return fmt.Sprintf("%d %ss", n, noun)
+}
+
+func (s *seeder) createGroup(body map[string]any) int {
+	id := s.post("/api/groups", body)
+	s.logf("  group #%d  %v\n", id, body["name"])
+	return id
+}
+
+func (s *seeder) createEquipment(body map[string]any) int {
+	id := s.post("/api/equipments", body)
+	s.logf("  equipment #%d  %v\n", id, body["name"])
+	return id
+}
+
+func (s *seeder) createTask(body map[string]any) int {
+	id := s.post("/api/tasks", body)
+	s.logf("    task #%d  %v\n", id, body["name"])
+	return id
+}
+
+func (s *seeder) createIntervention(body map[string]any) int {
+	id := s.post("/api/interventions", body)
+	label := body["exceptional_label"]
+	if label == nil {
+		label = body["date"]
+	}
+	s.logf("      intervention #%d  %v\n", id, label)
+	return id
+}
+
+// logf prints a progress line, unless an earlier request failed.
+func (s *seeder) logf(format string, args ...any) {
+	if s.err == nil {
+		fmt.Fprintf(s.out, format, args...)
+	}
+}
+
+// post sends a JSON POST and returns the created object's integer id. On a
+// failure it keeps the error and returns 0; once an error is kept, later calls
+// send nothing.
+func (s *seeder) post(path string, body map[string]any) int {
+	if s.err != nil {
+		return 0
+	}
+	id, err := s.doPost(path, body)
+	if err != nil {
+		s.err = err
+		return 0
+	}
+	return id
+}
+
+func (s *seeder) doPost(path string, body map[string]any) (int, error) {
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return 0, fmt.Errorf("marshal %s: %w", path, err)
+	}
+	resp, err := s.client.Post(s.baseURL+path, "application/json", bytes.NewReader(payload))
+	if err != nil {
+		return 0, fmt.Errorf("POST %s: %w", path, err)
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, fmt.Errorf("read %s response: %w", path, err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		log.Fatalf("seed: POST %s → %d: %s\n  payload: %s", path, resp.StatusCode, data, payload)
+		return 0, fmt.Errorf("POST %s → %d: %s\n  payload: %s", path, resp.StatusCode, data, payload)
 	}
 	var out struct {
 		ID int `json:"id"`
 	}
 	if err := json.Unmarshal(data, &out); err != nil {
-		log.Fatalf("seed: decode %s response: %v\n  body: %s", path, err, data)
+		return 0, fmt.Errorf("decode %s response: %w\n  body: %s", path, err, data)
 	}
 	if out.ID == 0 {
-		log.Fatalf("seed: %s response has no id\n  body: %s", path, data)
+		return 0, fmt.Errorf("%s response has no id\n  body: %s", path, data)
 	}
-	return out.ID
+	return out.ID, nil
 }
 
-func waitHealthy() error {
+func waitHealthy(client *http.Client, baseURL string) error {
 	var lastErr error
 	for i := 0; i < 20; i++ { // up to ~6 s; the backend is expected to be running already
-		resp, err := httpClient.Get(baseURL + "/api/version")
+		resp, err := client.Get(baseURL + "/api/version")
 		if err == nil {
 			resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
