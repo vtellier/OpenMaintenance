@@ -48,7 +48,7 @@ test('Done on the Dashboard opens the full form prefilled and saves it', async (
   await expect(modal.getByText('Save the intervention to attach photos.')).toBeVisible()
 
   // The location the quick log used to ask for (#97) is saved, trimmed.
-  await modal.getByPlaceholder('e.g. Marina X, Home garage').fill('  Marina Done  ')
+  await modal.getByLabel('Location', { exact: true }).fill('  Marina Done  ')
   await modal.getByRole('button', { name: 'Save' }).click()
   await expect(modal).toBeHidden()
   // The task is OK now: it leaves the Dashboard.

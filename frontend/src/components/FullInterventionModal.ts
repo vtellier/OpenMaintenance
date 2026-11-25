@@ -203,7 +203,7 @@ export function FullInterventionModal(
 
         <div class="form-field">
           <label class="form-field__label">Location</label>
-          <input placeholder="e.g. Marina X, Home garage" .value="${() => state.location}" @input="${onLocationChange}" />
+          <input placeholder="e.g. Marina X, Home garage" aria-label="Location" .value="${() => state.location}" @input="${onLocationChange}" />
         </div>
 
         <div class="form-field">
