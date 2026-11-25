@@ -28,6 +28,7 @@ Use this skill whenever the bug reproduces without a browser.
 
 - Business logic: `backend/internal/logic/` (e.g. `due_status.go` → `ComputeDueStatus`)
 - DB access: `backend/internal/db/`
+- Attachments (documents, photos: their rows and their files under `files/`): `backend/internal/attachments/`
 - Handlers: `backend/internal/handlers/`
 - Models: `backend/internal/models/`
 - Black-box HTTP tests: `backend/tests/`

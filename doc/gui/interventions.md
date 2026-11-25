@@ -88,7 +88,8 @@ Nothing is asked either when another intervention left on the equipment still re
 An intervention can have photos attached (e.g. the state of a part before/after the work). Photos are attached in the intervention form once the intervention is saved: a new log (from Done or "+ Log intervention") shows a hint to save first; editing a past intervention from the History tab shows its photos.
 
 - The history list shows a photo count badge when photos are present (e.g. *"3 photos"*).
-- The intervention detail/edit view shows a photo grid at the bottom with an **"+ Add photo"** button.
+- The intervention detail/edit view shows a photo grid at the bottom with an **"+ Add photo"** button. A photo is a JPEG, PNG, WebP or GIF image of up to 10 MB.
+- A refused upload shows the server's reason in a red banner above the grid, e.g. *"file exceeds the 10 MB limit"* or *"only JPEG, PNG, WebP and GIF images are allowed"*. The generic *"Failed to upload photo"* shows only when the response gives no reason (e.g. the server is unreachable) (issue #129).
 - Each photo can be deleted individually.
 - Tapping a photo opens it full-screen.
 - A photo whose file is gone from the server shows a *"Photo missing on server"* placeholder instead of a broken image. It does not open full-screen and can still be deleted (issue #122).

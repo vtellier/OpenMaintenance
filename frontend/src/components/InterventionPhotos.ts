@@ -2,6 +2,7 @@ import { html, reactive } from '@arrow-js/core'
 import { FileInfo } from '@generated/api/models/FileInfo'
 import { InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
+import { extractErrorMessage } from '@/lib/format'
 
 const interventionApi = new InterventionApi(apiConfig)
 
@@ -52,8 +53,8 @@ export function InterventionPhotos(interventionId: number) {
         await interventionApi.uploadInterventionFile({ id: interventionId, file })
       }
       await load()
-    } catch {
-      state.error = 'Failed to upload photo'
+    } catch (err) {
+      state.error = await extractErrorMessage(err, 'Failed to upload photo')
     } finally {
       state.uploading = false
       input.value = ''
