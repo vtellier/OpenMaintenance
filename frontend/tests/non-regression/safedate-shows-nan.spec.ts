@@ -25,7 +25,7 @@ test('intervention dates display as proper YYYY-MM-DD, not NaN', async ({ page }
 
   const nanNodes = await page.evaluate(() => {
     const results = []
-    const walk = document.createTreeWalker(document.documentElement, NodeFilter.SHOW_TEXT, null, false)
+    const walk = document.createTreeWalker(document.documentElement, NodeFilter.SHOW_TEXT, null)
     let node
     while ((node = walk.nextNode())) {
       if (node.textContent && node.textContent.includes('NaN')) {
