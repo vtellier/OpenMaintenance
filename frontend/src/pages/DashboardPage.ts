@@ -117,7 +117,9 @@ export function DashboardPage() {
       await load()
     }
 
-    // No reading yet: nothing to confirm, so only Update is offered.
+    // No reading yet: nothing to confirm, so only Update is offered. The rows
+    // call it from a function slot, () => sameHoursButton(eq): a slot that
+    // switches between null and a template must be one (arrow-js gotchas 8, 9).
     function sameHoursButton(eq: EquipmentRow) {
       if (sameHoursReading(eq) == null) return null
       return html`<button class="btn btn--small btn--ghost" @click="${() => onSameHours(eq)}" disabled="${() => state.sameHoursSavingId === eq.id}">${() => state.sameHoursSavingId === eq.id ? '...' : 'Same hours'}</button>`
@@ -174,7 +176,7 @@ export function DashboardPage() {
                   <a href="${eqHref}" class="hours-banner__eq-name">${eq.name}</a>
                   <span class="hours-banner__hours">${formatHours(eq.hours)}</span>
                   <span class="${updatedClass}">updated ${relativeTime(eq.hoursUpdatedAt)}</span>
-                  ${sameHoursButton(eq)}
+                  ${() => sameHoursButton(eq)}
                   <a href="${updateHref}" class="btn btn--small">Update</a>
                 </div>`
               })}
@@ -189,7 +191,7 @@ export function DashboardPage() {
                     <a href="${eqHref}" class="hours-banner__eq-name">${eq.name}</a>
                     <span class="hours-banner__hours">${formatHours(eq.hours)}</span>
                     <span class="${updatedClass}">updated ${relativeTime(eq.hoursUpdatedAt)}</span>
-                    ${sameHoursButton(eq)}
+                    ${() => sameHoursButton(eq)}
                     <a href="${updateHref}" class="btn btn--small">Update</a>
                   </div>`
                 })}
