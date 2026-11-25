@@ -97,6 +97,27 @@ test('a check that cannot reach the server says so', async ({ page }) => {
 })
 
 test('a slow page-load status does not overwrite a newer check result', async ({ page }) => {
+  // Nothing visible changes when the late GET is ignored, so the test needs a
+  // sign that the page has handled it. Once the page has read the GET's JSON,
+  // the rest of its handling (the API client, the page's callback, Arrow's
+  // re-render) runs as microtasks, so a timer set at that moment fires after
+  // all of it. The timer marks <html>, which the test then waits for.
+  await page.addInitScript(() => {
+    const realFetch = window.fetch
+    window.fetch = async (...args) => {
+      const response = await realFetch(...args)
+      const url = new URL(response.url, location.href)
+      if (url.pathname === '/api/update-status') {
+        const realJson = response.json.bind(response)
+        response.json = async () => {
+          const body = await realJson()
+          setTimeout(() => document.documentElement.setAttribute('data-update-status-handled', ''))
+          return body
+        }
+      }
+      return response
+    }
+  })
   let answerGet!: () => void
   const getAnswered = new Promise<void>(resolve => { answerGet = resolve })
   await page.route('**/api/update-status', async route => {
@@ -116,12 +137,9 @@ test('a slow page-load status does not overwrite a newer check result', async ({
   await page.getByRole('button', { name: 'Check for updates' }).click()
   await expect(page.locator('.settings-about__update')).toBeVisible()
 
-  const getResponse = page.waitForResponse('**/api/update-status')
+  await expect(page.locator('html')).not.toHaveAttribute('data-update-status-handled')
   answerGet()
-  await getResponse
-  // Nothing visible changes when the late GET is ignored: give the page time
-  // to (wrongly) apply it before checking the line still shows the check.
-  await page.waitForTimeout(300)
+  await expect(page.locator('html')).toHaveAttribute('data-update-status-handled', '')
   await expect(page.locator('.settings-about__update')).toBeVisible()
   await expect(page.locator('.settings-about__uptodate')).toHaveCount(0)
 })
