@@ -741,3 +741,18 @@ Deployed to the local install (`openmaintenance.service`, `/opt/openmaintenance`
   - an upload that failed at the network level shows the fallback.
   
   The spec header now names the fix commit.
+
+## 2026-11-25 — No "Same hours" for an equipment with no reading (issue #130)
+
+- Branch `fix/issue-130-no-same-hours-without-reading`, implemented by a subagent. An equipment that tracks hours but has no reading yet showed in the Dashboard banner with a **Same hours** button. One tap recorded `0 h`, a reading the user never entered.
+- **Spec first:** `doc/gui/dashboard.md` (the banner, and the "Dismiss the reminder" flow) and `doc/data-model.md` (freshness) now say Same hours confirms the current reading, so it is offered only when there is one.
+- **Test first:**
+  - Vitest on a new `sameHoursReading(eq)` in `lib/hourMeterFreshness.ts`, covering 1245 h, an entered 0 h, and no reading.
+  - A Playwright spec, `dashboard-no-same-hours-without-reading.spec.ts`. It failed on the unfixed page because the Same hours button was present.
+  - The #34 spec tapped Same hours on an equipment with no reading, so it relied on the bug. It now starts from a 120 h reading made to look 10 days old.
+- **Fix:** the page offers Same hours only when `sameHoursReading` returns a reading, and sends that reading. The old `eq.hours ?? 0` is gone.
+- **Review:**
+  - Merged `main` (#127, #128, #129).
+  - The button slot switches between `null` and a template, so it is now rendered through a function slot (arrow-js gotchas 8 and 9). This is safe either way today, because rows with no reading always sort first.
+  - Both dashboard specs pass.
+  - Checked in Chrome on seeded data plus an equipment with no reading. Its row shows only Update. Same hours on the Yanmar moved it to the fresh group, and the row with no reading kept only Update.
