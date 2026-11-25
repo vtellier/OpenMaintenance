@@ -112,7 +112,7 @@ test('a missing photo shows a placeholder, does not open the viewer, and can be 
  * (`tests/fixtures.ts`) fails these tests on any uncaught error the page
  * throws, so they also pin this one.
  * Issue: #139
- * Fixed in: open
+ * Fixed in: 95eadbf
  */
 
 /** A 1×1 transparent PNG, the bytes of a stubbed photo that is present. */
