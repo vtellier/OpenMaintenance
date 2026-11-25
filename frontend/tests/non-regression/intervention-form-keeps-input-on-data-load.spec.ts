@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from '../fixtures'
 
 /**
  * Bug: the full intervention form was rebuilt, losing what the user typed,

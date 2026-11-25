@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, failedRequest, test } from '../fixtures'
 
 const API = 'http://127.0.0.1:3001/api'
 
@@ -8,7 +8,8 @@ const API = 'http://127.0.0.1:3001/api'
  * "intervention date cannot be in the future".
  * Fixed in: open
  */
-test('saving an intervention with a future date shows the specific backend error', async ({ page }) => {
+test('saving an intervention with a future date shows the specific backend error', async ({ page, expectErrors }) => {
+  expectErrors(failedRequest('/api/interventions', 400))
   const eqRes = await page.request.post(`${API}/equipments`, {
     data: { name: 'Error Message Test Equipment', tracks_hours: false },
   })

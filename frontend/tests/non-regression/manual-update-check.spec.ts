@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, failedRequest, test, type Page } from '../fixtures'
 
 /**
  * Feature (not a bug): Settings → About has a "Check for updates" button that
@@ -86,7 +86,8 @@ test('a failed check says why', async ({ page }) => {
   await expect(page.locator('.settings-about__uptodate')).toHaveCount(0)
 })
 
-test('a check that cannot reach the server says so', async ({ page }) => {
+test('a check that cannot reach the server says so', async ({ page, expectErrors }) => {
+  expectErrors(failedRequest('/api/update-status/check', 'net::ERR_FAILED'))
   const release = await mockUpdateApi(page, 'abort')
   release()
   await page.goto('/settings')

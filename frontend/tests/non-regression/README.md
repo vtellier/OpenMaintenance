@@ -25,8 +25,36 @@ If both are already running (e.g. `make dev`), they are reused as-is.
 
 1. Name the file after the bug, kebab-case: `safedate-shows-nan.spec.ts`.
 2. Top of file, link to the ROADMAP item and commit that fixed it.
-3. Keep it short: navigate, act, assert. No page objects, no fixtures.
-4. Each test must create its own data and not depend on other tests.
+3. Import `test` and `expect` from `../fixtures`, never from
+   `@playwright/test`.
+4. Keep it short: navigate, act, assert. No page objects, and no fixtures
+   besides the shared one.
+5. Each test must create its own data and not depend on other tests.
+
+## Page errors and console errors fail the test
+
+The shared fixture (`frontend/tests/fixtures.ts`) collects every uncaught page
+error and every console message of type `error`, and fails the test with the
+list. Chromium logs a console error for each request that gets an HTTP error
+status or is aborted, so a test that provokes one on purpose declares it
+before the action:
+
+```ts
+test('...', async ({ page, expectErrors }) => {
+  expectErrors(failedRequest(`/api/equipments/${eq.id}/hours`, 400))
+```
+
+Every declared error must be logged, and any other error still fails the
+test. Keep declarations narrow. An error the app logs by mistake is a bug: fix
+it, or open an issue and declare that exact message with a comment that points
+to the issue. End each spec on an assertion: the fixture waits one frame and
+one task before the check, not for longer timers. See the non-regression-test
+skill (`.agents/skills/non-regression-test/SKILL.md`) for the matchers.
+
+The fixture also keeps the suite off the internet. The Google Fonts
+stylesheet is answered with an empty one, so no font file is downloaded and
+the pages use the fallback fonts. Any other request that leaves `localhost`
+is blocked, which fails the test. Requests to the app itself are not touched.
 
 ## Index
 

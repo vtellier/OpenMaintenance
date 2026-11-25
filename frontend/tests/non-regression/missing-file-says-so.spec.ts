@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from '../fixtures'
 
 const API = 'http://127.0.0.1:3001/api'
 
@@ -108,26 +108,37 @@ test('a missing photo shows a placeholder, does not open the viewer, and can be 
 
 /**
  * Bug: deleting a row logged "TypeError: expressionPool[effect] is not a
- * function" from Arrow.js. Nothing on screen showed it, so the row-reuse tests
- * also fail on any uncaught error the page throws.
+ * function" from Arrow.js. Nothing on screen showed it. The shared fixture
+ * (`tests/fixtures.ts`) fails these tests on any uncaught error the page
+ * throws, so they also pin this one.
  * Issue: #139
- * Fixed in: open
+ * Fixed in: 95eadbf
  */
-function collectPageErrors(page: Page) {
-  const errors: string[] = []
-  page.on('pageerror', err => errors.push(err.message))
-  return errors
-}
 
-/** Stubs a file list whose DELETE removes the entry from the next GET. */
+/** A 1×1 transparent PNG, the bytes of a stubbed photo that is present. */
+const PNG_1PX = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+  'base64',
+)
+
+/**
+ * Stubs a file list whose DELETE removes the entry from the next GET. A
+ * listed file that is not missing is served as a tiny PNG: its bytes are not
+ * on the backend, and a 404 for its <img> would fail the test as a console
+ * error.
+ */
 async function stubFileList(page: Page, base: string, initial: ReturnType<typeof fileInfo>[]) {
   let files = initial
   await page.route(`**${base}`, route =>
     route.request().method() === 'GET' ? route.fulfill({ json: files }) : route.fallback(),
   )
   await page.route(`**${base}/*`, route => {
-    if (route.request().method() !== 'DELETE') return route.fallback()
     const name = route.request().url().split('/').pop()
+    const method = route.request().method()
+    if (method === 'GET' && files.some(f => f.name === name && !f.missing)) {
+      return route.fulfill({ contentType: 'image/png', body: PNG_1PX })
+    }
+    if (method !== 'DELETE') return route.fallback()
     files = files.filter(f => f.name !== name)
     return route.fulfill({ status: 204 })
   })
@@ -143,7 +154,6 @@ for (const deleteFirst of ['missing', 'present'] as const) {
     const missing = fileInfo('bbb.pdf', 'invoice.pdf', `${base}/bbb.pdf`, true, 0)
     const [first, kept] = deleteFirst === 'missing' ? [missing, present] : [present, missing]
     await stubFileList(page, base, [first, kept])
-    const errors = collectPageErrors(page)
 
     await page.goto(`/equipments/${eq.id}/documents`)
     await page.locator('.doc-row').filter({ hasText: first.original_name }).getByRole('button', { name: 'Delete' }).click()
@@ -160,7 +170,6 @@ for (const deleteFirst of ['missing', 'present'] as const) {
       await expect(row.locator('.doc-row__meta')).toContainText('2.0 KB')
       await expect(row.getByRole('link', { name: 'Download' })).toHaveAttribute('href', kept.url)
     }
-    expect(errors).toEqual([])
   })
 
   test(`deleting the ${deleteFirst} photo before it leaves the other tile showing its own file`, async ({ page }) => {
@@ -178,7 +187,6 @@ for (const deleteFirst of ['missing', 'present'] as const) {
     const missing = fileInfo('ccc.jpg', 'after.jpg', `${base}/ccc.jpg`, true, 0)
     const [first, kept] = deleteFirst === 'missing' ? [missing, present] : [present, missing]
     await stubFileList(page, base, [first, kept])
-    const errors = collectPageErrors(page)
 
     await page.goto('/history')
     await page.locator('.history-item').filter({ hasText: label }).getByRole('button', { name: 'Edit' }).click()
@@ -205,6 +213,5 @@ for (const deleteFirst of ['missing', 'present'] as const) {
       await thumbs.locator('img').click()
       await expect(page.locator('.photo-viewer img')).toHaveAttribute('src', kept.url)
     }
-    expect(errors).toEqual([])
   })
 }

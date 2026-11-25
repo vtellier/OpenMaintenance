@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from '../fixtures'
 
 const API = 'http://127.0.0.1:3001/api'
 
@@ -8,7 +8,7 @@ const API = 'http://127.0.0.1:3001/api'
  * exceptional intervention cannot be saved (issue #73).
  * Fixed in: open
  */
-async function seed(page: import('@playwright/test').Page, tag: string) {
+async function seed(page: import('../fixtures').Page, tag: string) {
   const eqRes = await page.request.post(`${API}/equipments`, {
     data: { name: `History Edit Engine ${tag}`, icon: '🔧', tracks_hours: true, hours: 120 },
   })

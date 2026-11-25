@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, failedRequest, test, type Page } from '../fixtures'
 
 const API = 'http://127.0.0.1:3001/api'
 
@@ -30,8 +30,9 @@ async function openInterventionPhotos(page: Page, name: string): Promise<number>
 
 const photoInput = (page: Page) => page.locator('.photo-section input[type="file"]')
 
-test("a file that is not an image shows the backend's reason", async ({ page }) => {
-  await openInterventionPhotos(page, 'Photo Reason Bilge Pump')
+test("a file that is not an image shows the backend's reason", async ({ page, expectErrors }) => {
+  const id = await openInterventionPhotos(page, 'Photo Reason Bilge Pump')
+  expectErrors(failedRequest(`/api/interventions/${id}/files`, 415))
 
   // The real backend sniffs the bytes and answers 415.
   await photoInput(page).setInputFiles({
@@ -45,8 +46,9 @@ test("a file that is not an image shows the backend's reason", async ({ page }) 
   await expect(page.getByText('No photos yet.')).toBeVisible()
 })
 
-test("a photo over the size cap shows the backend's reason", async ({ page }) => {
+test("a photo over the size cap shows the backend's reason", async ({ page, expectErrors }) => {
   const id = await openInterventionPhotos(page, 'Photo Reason Windlass')
+  expectErrors(failedRequest(`/api/interventions/${id}/files`, 413))
 
   // Answer the upload as the backend does for a photo over the cap, without
   // pushing more than 10 MB through the browser. Listing still hits the backend.
@@ -65,8 +67,9 @@ test("a photo over the size cap shows the backend's reason", async ({ page }) =>
   await expect(page.locator('.photo-section .flash--error')).toHaveText('file exceeds the 10 MB limit')
 })
 
-test('a refused upload with no reason falls back to the generic message', async ({ page }) => {
+test('a refused upload with no reason falls back to the generic message', async ({ page, expectErrors }) => {
   const id = await openInterventionPhotos(page, 'Photo Reason Anchor Light')
+  expectErrors(failedRequest(`/api/interventions/${id}/files`, 502))
 
   await page.route(`**/api/interventions/${id}/files`, route =>
     route.request().method() === 'POST'

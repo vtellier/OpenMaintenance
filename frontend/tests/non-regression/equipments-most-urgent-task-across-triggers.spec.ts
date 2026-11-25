@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from '../fixtures'
 
 const API = 'http://127.0.0.1:3001/api'
 

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, failedRequest, test } from '../fixtures'
 
 const API = 'http://127.0.0.1:3001/api'
 
@@ -9,11 +9,12 @@ const API = 'http://127.0.0.1:3001/api'
  * Issue: #119
  * Fixed in: open
  */
-test("a refused document upload shows the backend's reason", async ({ page }) => {
+test("a refused document upload shows the backend's reason", async ({ page, expectErrors }) => {
   const eqRes = await page.request.post(`${API}/equipments`, {
     data: { name: 'Upload Reason Inverter', tracks_hours: false },
   })
   const eq = await eqRes.json()
+  expectErrors(failedRequest(`/api/equipments/${eq.id}/files`, 413))
 
   // Answer the upload as the backend does for a file over the cap, without
   // pushing tens of MB through the browser. Listing still hits the backend.

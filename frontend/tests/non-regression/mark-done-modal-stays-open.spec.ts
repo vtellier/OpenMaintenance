@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from '../fixtures'
 
 const API = 'http://127.0.0.1:3001/api'
 
@@ -10,7 +10,7 @@ const API = 'http://127.0.0.1:3001/api'
  */
 
 async function createEquipmentWithOverdueTask(
-  page: import('@playwright/test').Page,
+  page: import('../fixtures').Page,
   label: string,
 ) {
   const eqRes = await page.request.post(`${API}/equipments`, {

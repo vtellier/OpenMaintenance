@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, failedRequest, test } from '../fixtures'
 
 const API = 'http://127.0.0.1:3001/api'
 
@@ -10,7 +10,8 @@ const API = 'http://127.0.0.1:3001/api'
  * Issue: #102
  * Fixed in: open
  */
-test('creating an equipment with negative hours shows the reason', async ({ page }) => {
+test('creating an equipment with negative hours shows the reason', async ({ page, expectErrors }) => {
+  expectErrors(failedRequest('/api/equipments', 400))
   await page.goto('/equipments')
   await page.getByRole('button', { name: '+ Add equipment' }).click()
 
@@ -23,11 +24,12 @@ test('creating an equipment with negative hours shows the reason', async ({ page
   await expect(modal.locator('.flash--error')).toHaveText('Hours cannot be negative')
 })
 
-test("a refused Update hours shows the backend's reason", async ({ page }) => {
+test("a refused Update hours shows the backend's reason", async ({ page, expectErrors }) => {
   const eqRes = await page.request.post(`${API}/equipments`, {
     data: { name: 'Update Hours Reason Engine', tracks_hours: true, hours: 100 },
   })
   const eq = await eqRes.json()
+  expectErrors(failedRequest(`/api/equipments/${eq.id}/hours`, 400))
 
   await page.goto(`/equipments/${eq.id}/edit/hours`)
   await expect(page.getByRole('heading', { name: 'Update hours' })).toBeVisible()
