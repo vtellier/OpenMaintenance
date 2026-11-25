@@ -164,13 +164,13 @@ Every list and upload response returns one or more `File` objects:
 
 1. Validate the parent entity exists.
 2. Validate type and size (see [Validation & limits](#validation--limits)); reject before writing on failure.
-3. Generate a UUID filename. The extension comes from the detected MIME type for images, or the original filename for documents.
-4. Write the file to its target path on disk.
+3. Generate a random filename (32 hex characters). The extension comes from the detected MIME type for images, or the original filename for documents. If no random name can be drawn, the upload fails; there is no fixed fallback name.
+4. Write the file to its target path on disk, flush it (`fsync`) and check its close. If any of these fails, remove the file and stop: no row is inserted.
 5. Insert a row in the appropriate DB table, recording `original_name`.
 
 ### Serve
 
-Read the file path from the DB, stream the file from disk with `Content-Type` set to the stored MIME type. Documents are served with `Content-Disposition: attachment; filename="<original_name>"` so downloads keep their original name; images are served inline so they can be displayed.
+Read the file path from the DB, stream the file from disk with `Content-Type` set to the MIME type sniffed from its leading bytes. The type is not stored in the row: listing an owner's files reads 512 bytes of each, an accepted cost since an owner has few files and storing it would need a migration. Documents are served with `Content-Disposition: attachment; filename="<original_name>"` so downloads keep their original name; images are served inline so they can be displayed.
 
 ### Delete
 

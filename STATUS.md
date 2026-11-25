@@ -786,3 +786,13 @@ Deployed to the local install (`openmaintenance.service`, `/opt/openmaintenance`
 - **Test first** (`backend/cmd/seed/main_test.go`): it runs the seeder against the real API on a temp DB over `httptest`. On an empty database it seeds 6 equipments and 1 group. A database that was already seeded, or holds only a group or only an equipment, must make it fail with the counts and send no POST. Before the fix, a second run sent 25 POSTs and then hit the 409.
 - **Fix:** before creating anything, `run` lists the equipments and groups and refuses when either is not empty. No new endpoint.
 - **Docs:** CONTRIBUTING, README, the run-openmaintenance skill and the review-pr command now say seed needs an empty database.
+
+## 2026-11-25 — Attachment storage hardening (issue #138)
+
+- Branch `fix/issue-138-attachment-store-hardening`, implemented by a subagent. Three weaknesses in `internal/attachments/store.go`, found by inspection.
+- **Spec:** the upload and serve steps in `doc/file-storage.md`.
+- **Test first** (in-package, `backend/internal/attachments/store_test.go`): two package-internal swap points, `createFile` and `randSource`, make the stored file's sync or close fail, or the random source fail. All three cases failed before the fix, because `Add` stored the attachment anyway.
+- **Fix:**
+  - `Add` syncs the stored file and checks its close, as `copyFile` does. On failure it removes the file and inserts no row.
+  - `randomName` returns an error instead of the fixed name `file`, and `Add` fails with it.
+  - Reading each attachment's type from disk in `List` and `Open` is kept as an accepted cost: an owner has few files, and storing the type would need a migration. A comment beside `attachment()` says so.
