@@ -212,7 +212,7 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] **Deleting an owner is all or nothing** (issue #128): deleting an equipment, a task or an intervention runs in one transaction, its attachment rows included; on any failure the API answers 500 and nothing is deleted; directories go only after the commit
 - [x] **A refused photo upload says why** (issue #129): a photo over 10 MB or a file that is not an image shows the server's reason; "Failed to upload photo" only when the response gives none
 - [x] **No "Same hours" for an equipment with no reading** (issue #130): an hour-tracked equipment with no reading yet keeps its Dashboard banner row with only **Update**; "Same hours" never records a reading the user did not enter
-- [ ] **An intervention and the reading it raises are saved together** (issue #131)
+- [x] **An intervention and the reading it raises are saved together** (issue #131): logging, editing or moving an intervention stores it and raises the equipment's hour-meter reading in one transaction; on failure the API answers 500 and nothing is saved
 
 ## Future (post-V1)
 
