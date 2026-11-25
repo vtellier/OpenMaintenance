@@ -37,3 +37,7 @@ The expiry date of the part already fitted when an expiry task is created, befor
 **Intervention**:
 A recorded maintenance action on an equipment, either for a task (standard) or a one-off (exceptional).
 _Avoid_: Log entry, job
+
+**Attachment**:
+A file the user adds to an equipment (a document, e.g. a manual or an invoice) or to an intervention (a photo).
+_Avoid_: Upload, blob, file

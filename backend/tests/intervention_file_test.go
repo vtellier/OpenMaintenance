@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/vtellier/OpenMaintenance/internal/attachments"
 	"github.com/vtellier/OpenMaintenance/internal/db"
 	"github.com/vtellier/OpenMaintenance/internal/generated"
 	"github.com/vtellier/OpenMaintenance/internal/handlers"
@@ -137,7 +138,7 @@ func TestInterventionFile_UploadListServeDelete(t *testing.T) {
 	if len(entries) != 0 {
 		t.Errorf("file still on disk after delete")
 	}
-	rows, _ := db.ListInterventionFiles(h.DB, invID)
+	rows, _ := attachments.New(h.DB, h.BaseDir).List(attachments.InterventionPhotos(eqID, invID))
 	if len(rows) != 0 {
 		t.Errorf("row still in DB after delete")
 	}
@@ -267,7 +268,7 @@ func TestInterventionFile_DeleteInterventionCascadesFiles(t *testing.T) {
 	if _, err := os.Stat(interventionPhotoDir(baseDir, eqID, invID)); !os.IsNotExist(err) {
 		t.Errorf("intervention photo dir should be removed after intervention delete")
 	}
-	rows, _ := db.ListInterventionFiles(h.DB, invID)
+	rows, _ := attachments.New(h.DB, h.BaseDir).List(attachments.InterventionPhotos(eqID, invID))
 	if len(rows) != 0 {
 		t.Errorf("intervention_files rows should be gone after cascade")
 	}
@@ -291,7 +292,7 @@ func TestInterventionFile_DeleteEquipmentCascadesFiles(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(baseDir, "files", "equipments", itoa(eqID))); !os.IsNotExist(err) {
 		t.Errorf("equipment files dir should be removed after equipment delete")
 	}
-	rows, _ := db.ListInterventionFiles(h.DB, invID)
+	rows, _ := attachments.New(h.DB, h.BaseDir).List(attachments.InterventionPhotos(eqID, invID))
 	if len(rows) != 0 {
 		t.Errorf("intervention_files rows should be gone after equipment cascade")
 	}

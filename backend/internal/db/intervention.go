@@ -2,8 +2,9 @@ package db
 
 import (
 	"database/sql"
-	"github.com/vtellier/OpenMaintenance/internal/models"
 	"time"
+
+	"github.com/vtellier/OpenMaintenance/internal/models"
 )
 
 const interventionColumns = "id, task_id, equipment_id, exceptional_label, date, location, performed_by, comments, hours_at, expiry_date, created_at, updated_at"
@@ -123,7 +124,17 @@ func UpdateIntervention(db *sql.DB, intervention *models.Intervention) error {
 	return tx.Commit()
 }
 
-// updateIntervention is UpdateIntervention within a caller's transaction.
+// UpdateInterventionTx is UpdateIntervention within the caller's transaction.
+func UpdateInterventionTx(tx *sql.Tx, intervention *models.Intervention) error {
+	return updateIntervention(tx, intervention)
+}
+
+// execer is satisfied by both *sql.DB and *sql.Tx, so a write can run on its
+// own or as part of a transaction.
+type execer interface {
+	Exec(query string, args ...any) (sql.Result, error)
+}
+
 func updateIntervention(db execer, intervention *models.Intervention) error {
 	intervention.UpdatedAt = time.Now()
 
@@ -163,12 +174,6 @@ func clearReplacedExpiryDate(db execer, intervention *models.Intervention) error
 	return err
 }
 
-func DeleteIntervention(db *sql.DB, id int) error {
-	db.Exec("DELETE FROM intervention_files WHERE intervention_id = ?", id)
-	_, err := db.Exec("DELETE FROM interventions WHERE id = ?", id)
-	return err
-}
-
 func ListInterventions(db *sql.DB) ([]models.Intervention, error) {
 	rows, err := db.Query("SELECT " + interventionColumns + " FROM interventions")
 	if err != nil {
@@ -185,16 +190,6 @@ func ListInterventions(db *sql.DB) ([]models.Intervention, error) {
 		interventions = append(interventions, intervention)
 	}
 	return interventions, nil
-}
-
-func DeleteInterventionsByTask(db *sql.DB, taskID int) error {
-	db.Exec(
-		`DELETE FROM intervention_files
-		 WHERE intervention_id IN (SELECT id FROM interventions WHERE task_id = ?)`,
-		taskID,
-	)
-	_, err := db.Exec("DELETE FROM interventions WHERE task_id = ?", taskID)
-	return err
 }
 
 func ListInterventionsByTask(db *sql.DB, taskID int) ([]models.Intervention, error) {

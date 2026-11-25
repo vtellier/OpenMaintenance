@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/vtellier/OpenMaintenance/internal/attachments"
 	dbpackage "github.com/vtellier/OpenMaintenance/internal/db"
 	"github.com/vtellier/OpenMaintenance/internal/hourmeter"
 	"github.com/vtellier/OpenMaintenance/internal/models"
@@ -33,7 +35,7 @@ func (h *Handler) ListInterventionsByTask(ctx echo.Context, taskId int) error {
 // attachPhotoCounts fills the PhotoCount of each intervention from a single
 // grouped query, leaving counts at zero if the lookup fails.
 func (h *Handler) attachPhotoCounts(interventions []models.Intervention) {
-	counts, err := dbpackage.CountInterventionFilesByIntervention(h.DB)
+	counts, err := h.attachments().CountByOwner(attachments.Photo)
 	if err != nil {
 		return
 	}
@@ -72,7 +74,7 @@ func (h *Handler) GetIntervention(ctx echo.Context, id int) error {
 	if err != nil {
 		return ctx.JSON(404, map[string]string{"error": "Intervention not found"})
 	}
-	if n, err := dbpackage.CountInterventionFiles(h.DB, id); err == nil {
+	if n, err := h.attachments().Count(attachments.Photo, id); err == nil {
 		intervention.PhotoCount = n
 	}
 	return ctx.JSON(200, intervention)
@@ -93,7 +95,7 @@ func (h *Handler) UpdateIntervention(ctx echo.Context, id int) error {
 		return ctx.JSON(400, map[string]string{"error": err.Error()})
 	}
 
-	if err := h.saveInterventionMovingPhotos(intervention); err != nil {
+	if err := h.saveIntervention(intervention); err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
 
@@ -105,19 +107,29 @@ func (h *Handler) UpdateIntervention(ctx echo.Context, id int) error {
 }
 
 func (h *Handler) DeleteIntervention(ctx echo.Context, id int) error {
-	// Capture the equipment the intervention belongs to before it is gone, so
-	// its photo directory can be cleaned up afterwards.
-	existing, _ := dbpackage.GetIntervention(h.DB, id)
-
-	if err := dbpackage.DeleteIntervention(h.DB, id); err != nil {
+	if err := dbpackage.DeleteIntervention(h.DB, h.attachments(), id); err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
-
-	if existing != nil && existing.EquipmentID != nil {
-		h.removeInterventionFilesDir(*existing.EquipmentID, id)
-	}
-
 	return ctx.NoContent(204)
+}
+
+// saveIntervention saves an edited intervention. When the edit moves it to
+// another equipment, its photos move with it, in the transaction that saves it.
+func (h *Handler) saveIntervention(inv *models.Intervention) error {
+	before, err := dbpackage.GetIntervention(h.DB, inv.ID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		// Without the current equipment we cannot tell whether photos must
+		// move; saving anyway could strand them.
+		return err
+	}
+	if err != nil || before.EquipmentID == nil || inv.EquipmentID == nil ||
+		*before.EquipmentID == *inv.EquipmentID {
+		return dbpackage.UpdateIntervention(h.DB, inv)
+	}
+	return h.attachments().Move(
+		attachments.InterventionPhotos(*before.EquipmentID, inv.ID), *inv.EquipmentID,
+		func(tx *sql.Tx) error { return dbpackage.UpdateInterventionTx(tx, inv) },
+	)
 }
 
 func validateIntervention(intervention *models.Intervention) error {
