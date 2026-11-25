@@ -37,10 +37,10 @@ test('editing a standard intervention from History shows its task and hours', as
     .click()
 
   const modal = page.locator('.modal')
-  const taskSelect = modal.locator('.form-field').filter({ hasText: 'Task *' }).locator('select')
-  await expect(taskSelect.locator('option', { hasText: 'History Edit Belt check A' })).toHaveCount(1)
+  const taskSelect = modal.getByLabel('Task', { exact: true })
+  await expect(taskSelect.getByRole('option', { name: 'History Edit Belt check A' })).toHaveCount(1)
   await expect(taskSelect).toHaveValue(String(task.id))
-  const hours = modal.locator('.form-field').filter({ hasText: 'Hours' }).locator('input')
+  const hours = modal.getByLabel('Hours', { exact: true })
   await expect(hours).toHaveValue('110')
 })
 

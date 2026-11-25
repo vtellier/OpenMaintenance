@@ -28,7 +28,7 @@ async function openInterventionPhotos(page: Page, name: string): Promise<number>
   return inv.id
 }
 
-const photoInput = (page: Page) => page.locator('.photo-section input[type="file"]')
+const photoInput = (page: Page) => page.getByLabel('+ Add photo', { exact: true })
 
 test("a file that is not an image shows the backend's reason", async ({ page, expectErrors }) => {
   const id = await openInterventionPhotos(page, 'Photo Reason Bilge Pump')
@@ -41,7 +41,7 @@ test("a file that is not an image shows the backend's reason", async ({ page, ex
     buffer: Buffer.from('plain text, not an image'),
   })
 
-  await expect(page.locator('.photo-section .flash--error'))
+  await expect(page.locator('.photo-section').locator('.flash--error'))
     .toHaveText('only JPEG, PNG, WebP and GIF images are allowed')
   await expect(page.getByText('No photos yet.')).toBeVisible()
 })
@@ -64,7 +64,7 @@ test("a photo over the size cap shows the backend's reason", async ({ page, expe
     buffer: Buffer.from('stand-in for a 12 MB photo'),
   })
 
-  await expect(page.locator('.photo-section .flash--error')).toHaveText('file exceeds the 10 MB limit')
+  await expect(page.locator('.photo-section').locator('.flash--error')).toHaveText('file exceeds the 10 MB limit')
 })
 
 test('a refused upload with no reason falls back to the generic message', async ({ page, expectErrors }) => {
@@ -83,5 +83,5 @@ test('a refused upload with no reason falls back to the generic message', async 
     buffer: Buffer.from('stand-in for a photo'),
   })
 
-  await expect(page.locator('.photo-section .flash--error')).toHaveText('Failed to upload photo')
+  await expect(page.locator('.photo-section').locator('.flash--error')).toHaveText('Failed to upload photo')
 })

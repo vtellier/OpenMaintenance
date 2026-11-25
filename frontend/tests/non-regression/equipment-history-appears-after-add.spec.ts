@@ -23,8 +23,8 @@ test('new intervention appears in equipment history tab without page reload', as
   await expect(page.getByText('No history yet for this equipment.')).toBeVisible()
 
   await page.getByRole('button', { name: '+ Log intervention' }).click()
-  await page.locator('select').selectOption({ label: 'History Refresh Task' })
-  await page.locator('input[type="date"]').fill('2026-01-15')
+  await page.getByLabel('Task', { exact: true }).selectOption({ label: 'History Refresh Task' })
+  await page.getByLabel('Date', { exact: true }).fill('2026-01-15')
   await page.getByRole('button', { name: 'Save' }).click()
 
   await expect(page.getByText('No history yet for this equipment.')).not.toBeVisible()

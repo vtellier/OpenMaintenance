@@ -26,7 +26,7 @@ test("a refused document upload shows the backend's reason", async ({ page, expe
 
   await page.goto(`/equipments/${eq.id}/documents`)
   await expect(page.getByText('No documents attached.')).toBeVisible()
-  await page.locator('.tab-toolbar input[type="file"]').setInputFiles({
+  await page.getByLabel('+ Upload document', { exact: true }).setInputFiles({
     name: 'manual.pdf',
     mimeType: 'application/pdf',
     buffer: Buffer.from('%PDF-1.4 stand-in for a 60 MB manual'),

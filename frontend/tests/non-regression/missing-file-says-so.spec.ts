@@ -87,14 +87,14 @@ test('a missing photo shows a placeholder, does not open the viewer, and can be 
   const thumb = page.locator('.photo-thumb')
   await expect(thumb).toHaveCount(1)
   await expect(thumb).toContainText('Photo missing on server')
-  await expect(thumb.locator('img')).toHaveCount(0)
+  await expect(thumb.getByRole('img')).toHaveCount(0)
 
   await thumb.locator('.photo-thumb__missing').click()
   await expect(page.locator('.photo-viewer')).toHaveCount(0)
 
   await thumb.getByTitle('Delete photo').click()
   const confirm = page.locator('.photo-confirm')
-  await expect(confirm.locator('img')).toHaveCount(0)
+  await expect(confirm.getByRole('img')).toHaveCount(0)
   await confirm.getByRole('button', { name: 'Delete' }).click()
   await expect(page.getByText('No photos yet.')).toBeVisible()
 })
@@ -198,7 +198,7 @@ for (const deleteFirst of ['missing', 'present'] as const) {
     await page.locator('.photo-confirm').getByRole('button', { name: 'Cancel' }).click()
     await thumbs.nth(0).getByTitle('Delete photo').click()
     const confirm = page.locator('.photo-confirm')
-    await expect(confirm.locator('img')).toHaveCount(first.missing ? 0 : 1)
+    await expect(confirm.getByRole('img')).toHaveCount(first.missing ? 0 : 1)
     await expect(confirm.locator('.photo-confirm__preview--missing')).toHaveCount(first.missing ? 1 : 0)
     await confirm.getByRole('button', { name: 'Delete' }).click()
 
@@ -206,12 +206,12 @@ for (const deleteFirst of ['missing', 'present'] as const) {
     await expect(thumbs).not.toContainText('renderTemplate')
     if (kept.missing) {
       await expect(thumbs).toContainText('Photo missing on server')
-      await expect(thumbs.locator('img')).toHaveCount(0)
+      await expect(thumbs.getByRole('img')).toHaveCount(0)
     } else {
       await expect(thumbs).not.toContainText('Photo missing on server')
-      await expect(thumbs.locator('img')).toHaveAttribute('src', kept.url)
-      await thumbs.locator('img').click()
-      await expect(page.locator('.photo-viewer img')).toHaveAttribute('src', kept.url)
+      await expect(thumbs.getByRole('img')).toHaveAttribute('src', kept.url)
+      await thumbs.getByRole('img').click()
+      await expect(page.locator('.photo-viewer__img')).toHaveAttribute('src', kept.url)
     }
   })
 }

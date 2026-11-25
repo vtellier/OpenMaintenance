@@ -106,12 +106,29 @@ The same fixture routes every request that leaves the app's hosts (`localhost`, 
   Good: `'logging an intervention saves and closes the modal'`.
   Bad: `'POST /interventions accepts RFC3339 date'` (that's an API test, not a frontend non-regression).
 
-## Locators — preference order
+## Locators — find elements by role, label or text, never by markup
 
-1. `page.getByRole(...)` — best, mirrors accessibility tree.
-2. `page.getByText(...)` / `getByLabel(...)` / `getByPlaceholder(...)`.
-3. `page.locator('css-selector')` — only when the above don't fit.
-4. **Avoid** XPath, nth-child, or anything tied to DOM structure that may change.
+A spec checks behaviour, not markup. The React port (#146) keeps the CSS class names (`style.css` is reused unchanged), but it may use other tags and other nesting. So:
+
+1. **Role, label or text first**: `getByRole(...)`, `getByLabel(...)`, `getByText(...)`, `getByPlaceholder(...)`.
+2. **A single class** when the element has no role or name to find it by: `page.locator('.flash--error')`, `page.locator('.history-item')`.
+3. **No tag names**: no `locator('input')`, `'select'`, `'img'`, `'option'`, `'input[type="date"]'`. A form control is found by its label (`getByLabel('Date', { exact: true })`), an image by `getByRole('img')`, an option by `getByRole('option', { name })`, a link by `getByRole('link')`.
+4. **No nesting inside one selector**: no `'.modal input'`, `'.photo-section .flash--error'`, no `>>`, no `nth-child`, no XPath. To scope, chain locators: `page.locator('.modal').getByLabel('Task', { exact: true })`, `page.locator('.photo-section').locator('.flash--error')`, `row.getByRole('button', { name: 'Del' })`.
+5. **No position to tell controls apart**: not `locator('select').nth(1)`; use each control's label.
+
+When a control has no accessible name, give it one in the app, with no visible change: associate its `<label>` (`for`/`id`) or add an `aria-label` that repeats the visible label without the `*` (`<select aria-label="Task">` under the label `Task *`). Keep the class names. The React port keeps the name.
+
+`getByLabel` matches part of the name, ignoring case, so `getByLabel('Date')` also finds "Date of commissioning" and "Expiry date". Pass `{ exact: true }` whenever the name is a word other labels contain.
+
+`getByRole('img')` skips an image with `alt=""` (its role becomes `presentation`) and a hidden one. So an image a spec counts or checks the absence of must keep a non-empty `alt` (the app's photos use `alt={originalName}`; the React port must keep it), or an absence check would pass on a decorative `<img alt="">`.
+
+The only tag a spec may name is the document's own `body` (`smoke.spec.ts`), which no framework renders. For `<html>`, use `:root`.
+
+Two `git grep -E` patterns over every file under `frontend/tests` (specs and README alike, as the migration progress page counts them) must stay at zero. In prose, describe a bad selector in words rather than writing it as a `locator(...)` call:
+- `locator\(['"](input|select|img|option|textarea|button|label|li|ul|span|div|p|a|table|tr|td|th|form|h[1-6])(['":. #>[]|$)`
+- `locator\('[^']* [^']*'\)|locator\("[^"]* [^"]*"\)`
+
+A list of classes is not nesting, but it contains a space: write `page.locator('.a').or(page.locator('.b'))`, not `'.a, .b'`.
 
 Never use auto-generated chrome-devtools `uid` values in specs — those are session-scoped and meaningless outside the MCP.
 
@@ -126,7 +143,7 @@ When you reproduced a bug interactively with chrome-devtools MCP, you have a seq
 Translate it as follows:
 - `navigate_page` → `await page.goto(url)`
 - `click uid=X` → identify the element from your snapshot (its role/text/label), then `await page.getByRole('button', { name: 'Add equipment' }).click()`.
-- `fill uid=X "value"` → same — find the visible label or placeholder: `await page.getByLabel('Name').fill('Test')`.
+- `fill uid=X "value"` → same — find the visible label or placeholder: `await page.getByPlaceholder('e.g. Main Engine').fill('Test')`, or `getByLabel('Task', { exact: true })` for a control with a name.
 - `take_snapshot` → no equivalent; just assert what you would have visually verified.
 
 ## Database state

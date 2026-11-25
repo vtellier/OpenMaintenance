@@ -45,7 +45,7 @@ test('turning the hour-meter on asks for the initial reading', async ({ page }) 
   await expect(page.getByText('Current hours')).toHaveCount(0)
 
   await page.locator('.toggle-slider').click()
-  const hours = page.locator('input[type="number"]')
+  const hours = page.getByLabel('Current hours')
   await expect(hours).toHaveValue('0')
   await hours.fill('42')
   await page.getByRole('button', { name: 'Save' }).click()

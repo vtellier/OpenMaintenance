@@ -64,7 +64,7 @@ test('deleting a group keeps its equipments, now ungrouped', async ({ page }) =>
   await expect(section(page, 'Groups Sails')).toHaveCount(0)
   const genoa = page.locator('.equipment-card').filter({ hasText: 'Groups Genoa' })
   await expect(genoa).toBeVisible()
-  await expect(page.locator('.equipment-group .equipment-card').filter({ hasText: 'Groups Genoa' })).toHaveCount(0)
+  await expect(page.locator('.equipment-group').locator('.equipment-card').filter({ hasText: 'Groups Genoa' })).toHaveCount(0)
 })
 
 test('changing the icon from the equipment header keeps its group', async ({ page }) => {

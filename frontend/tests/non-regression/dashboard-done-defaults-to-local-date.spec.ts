@@ -35,7 +35,7 @@ test('Dashboard Done defaults to the local date, not the UTC date', async ({ pag
   await page.locator('.equipment-block').filter({ hasText: equipment })
     .getByRole('button', { name: 'Done' }).click()
   const form = page.locator('.modal')
-  await expect(form.locator('input[type="date"]')).toHaveValue('2026-06-22')
+  await expect(form.getByLabel('Date', { exact: true })).toHaveValue('2026-06-22')
 
   await form.getByRole('button', { name: 'Save' }).click()
   await expect(form).toBeHidden()

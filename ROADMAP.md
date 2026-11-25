@@ -222,6 +222,7 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 
 - [x] **0.1 The Playwright suite is stable over repeated runs** (issue #147): five full runs in a row pass locally and in CI; no `waitForTimeout` left in `frontend/tests/`
 - [x] **0.2 Any page error or console error fails a Playwright test** (issue #148): every spec imports `test` and `expect` from `frontend/tests/fixtures.ts`, which fails a test on an uncaught page error or a console error it did not declare; the error specs declare the failed request they provoke
+- [x] **0.3 Specs find elements by role, label or text, not by markup** (issue #149): no tag-name or descendant locator left in `frontend/tests/`; the intervention form's and hour fields' controls carry the name of their visible label; the selector rule is in the non-regression-test skill
 
 ## Future (post-V1)
 

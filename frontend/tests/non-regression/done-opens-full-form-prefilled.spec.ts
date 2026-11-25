@@ -40,15 +40,15 @@ test('Done on the Dashboard opens the full form prefilled and saves it', async (
 
   const modal = page.locator('.modal')
   await expect(modal.getByRole('heading', { name: 'Log intervention' })).toBeVisible()
-  await expect(modal.locator('.form-field', { hasText: 'Equipment *' }).locator('select')).toHaveValue(String(eq.id))
+  await expect(modal.getByLabel('Equipment', { exact: true })).toHaveValue(String(eq.id))
   await expect(modal.getByLabel('Exceptional intervention')).not.toBeChecked()
-  await expect(modal.locator('.form-field', { hasText: 'Task *' }).locator('select')).toHaveValue(String(task.id))
-  await expect(modal.locator('input[type="date"]')).toHaveValue(await localToday(page))
-  await expect(modal.locator('.form-field', { hasText: 'Hours' }).locator('input')).toHaveValue('100')
+  await expect(modal.getByLabel('Task', { exact: true })).toHaveValue(String(task.id))
+  await expect(modal.getByLabel('Date', { exact: true })).toHaveValue(await localToday(page))
+  await expect(modal.getByLabel('Hours', { exact: true })).toHaveValue('100')
   await expect(modal.getByText('Save the intervention to attach photos.')).toBeVisible()
 
   // The location the quick log used to ask for (#97) is saved, trimmed.
-  await modal.locator('.form-field', { hasText: 'Location' }).locator('input').fill('  Marina Done  ')
+  await modal.getByLabel('Location', { exact: true }).fill('  Marina Done  ')
   await modal.getByRole('button', { name: 'Save' }).click()
   await expect(modal).toBeHidden()
   // The task is OK now: it leaves the Dashboard.
@@ -72,9 +72,9 @@ test('Done on Equipment detail opens the full form prefilled, with no reading in
   await expect(modal.getByRole('heading', { name: 'Log intervention' })).toBeVisible()
   // Opened from the equipment's page: no equipment picker.
   await expect(modal.locator('.form-field', { hasText: 'Equipment *' })).toHaveCount(0)
-  await expect(modal.locator('.form-field', { hasText: 'Task *' }).locator('select')).toHaveValue(String(task.id))
-  await expect(modal.locator('input[type="date"]')).toHaveValue(await localToday(page))
-  await expect(modal.locator('.form-field', { hasText: 'Hours' }).locator('input')).toHaveValue('')
+  await expect(modal.getByLabel('Task', { exact: true })).toHaveValue(String(task.id))
+  await expect(modal.getByLabel('Date', { exact: true })).toHaveValue(await localToday(page))
+  await expect(modal.getByLabel('Hours', { exact: true })).toHaveValue('')
 
   await modal.getByRole('button', { name: 'Save' }).click()
   await expect(modal).toBeHidden()
