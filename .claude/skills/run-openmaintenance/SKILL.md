@@ -35,7 +35,7 @@ the app can be opened from a phone on the same network:
 
 ```bash
 timeout 30 bash -c 'until curl -sf http://localhost:3001/api/version >/dev/null; do sleep 1; done'
-make seed                                   # demo data: overdue / due-soon / OK
+make seed                                   # demo data: overdue / due-soon / OK (empty DB only)
 echo "Phone: http://$(hostname -I | awk '{print $1}'):3001"
 ```
 
@@ -92,4 +92,4 @@ Playwright non-regression tests run against a live backend. Start the backend fi
 - **Backup on startup**: The backend creates a timestamped DB backup in `backend/bin/backups/` each run. These accumulate; clean them up manually if needed.
 - **Port conflicts**: If port 3001 is busy, find the PID with `lsof -ti:3001` and kill it — don't switch ports.
 - **Readiness probe**: there is no `/api/health` endpoint. Use `GET /api/version` (returns 200 + JSON) to confirm the server is up before seeding or navigating.
-- **Seeding**: `make seed` POSTs a demo dataset (3 equipments, 8 tasks, 13 interventions) into the **running** backend via the REST API, with dates relative to today so the Dashboard always shows a real Overdue / Due-soon / OK spread. It appends — for a clean slate, stop the server, delete `backend/maintenance.db` (or `backend/bin/maintenance.db` for a built binary), restart, then seed. Source: `backend/cmd/seed/main.go`.
+- **Seeding**: `make seed` POSTs a demo dataset (1 group, 6 equipments, 11 tasks, 16 interventions) into the **running** backend via the REST API, with dates relative to today so the Dashboard always shows a real Overdue / Due-soon / OK spread. It needs an **empty database**: if the backend already holds an equipment or a group, it creates nothing and exits non-zero with the counts it found. To start again, stop the server, delete `backend/maintenance.db` (or `backend/bin/maintenance.db` for a built binary), restart, then seed. Source: `backend/cmd/seed/main.go`.

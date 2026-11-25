@@ -49,6 +49,10 @@ Follow these steps in order. Stop and report if any step fails.
    make seed
    ```
 
+   `make seed` refuses a database that already holds data. If it says so, the
+   database was seeded earlier: either test on that data, or stop the backend,
+   delete `backend/bin/maintenance.db`, start it again and seed.
+
 6. **Pull in the code-review feedback** so it can be addressed alongside manual
    testing — do not ignore it. Fetch top-level reviews, inline comments, and
    any ` ```suggestion ` blocks (covers human reviewers and review bots alike):
