@@ -787,6 +787,24 @@ Deployed to the local install (`openmaintenance.service`, `/opt/openmaintenance`
 - **Fix:** before creating anything, `run` lists the equipments and groups and refuses when either is not empty. No new endpoint.
 - **Docs:** CONTRIBUTING, README, the run-openmaintenance skill and the review-pr command now say seed needs an empty database.
 
+## 2026-11-25 — Attachment storage hardening (issue #138)
+
+- Branch `fix/issue-138-attachment-store-hardening`, implemented by a subagent. Three weaknesses in `internal/attachments/store.go`, found by inspection.
+- **Spec:** the upload and serve steps in `doc/file-storage.md`.
+- **Test first** (in-package, `backend/internal/attachments/store_test.go`): two package-internal swap points, `createFile` and `randSource`, make the stored file's sync or close fail, or the random source fail. All three cases failed before the fix, because `Add` stored the attachment anyway.
+- **Fix:**
+  - `Add` syncs the stored file and checks its close, as `copyFile` does. On failure it removes the file and inserts no row.
+  - `randomName` returns an error instead of the fixed name `file`, and `Add` fails with it.
+  - Reading each attachment's type from disk in `List` and `Open` is kept as an accepted cost: an owner has few files, and storing the type would need a migration. A comment beside `attachment()` says so.
+
+## 2026-11-25 — The 10 MB photo cap has a backend test (issue #137)
+
+- Branch `test/issue-137-photo-cap-test`, implemented by a subagent. The document cap had a 413 test, the photo cap had none; #129's frontend spec stubs the 413.
+- **Tests** (`httptest`, `backend/tests/intervention_file_test.go`), on PNGs padded to size so they are refused for size, not type:
+  - 10 MB + 1 byte: 413, body exactly `{"error":"file exceeds the 10 MB limit"}`, an empty photo list and no file under `files/`;
+  - exactly 10 MB: 201, listed at 10485760 bytes.
+- Both pass on current code, so no fix was needed. Raising the cap to 11 MB by hand turned the first test red.
+
 ## 2026-11-25 — Deleting a photo logs no Arrow.js error (issue #139)
 
 - Branch `fix/issue-139-arrow-expression-pool`, implemented by a subagent. Deleting a photo tile logged `TypeError: expressionPool[effect] is not a function` from Arrow.js. The Documents tab was not affected.
