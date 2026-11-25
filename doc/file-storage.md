@@ -197,10 +197,10 @@ A photo whose file is already missing from disk does not block the move: there i
 
 Deleting an equipment, a task or an intervention deletes its attachments too. The `db` delete functions call the attachments module themselves, so no delete path can leave attachments behind:
 
-1. Delete the owner's attachment rows, then the owner.
-2. Remove its directory from disk: `files/equipments/{id}/` for an equipment, `files/equipments/{eq}/interventions/{id}/` for an intervention, and that of each of its interventions for a task. Log on failure, do not abort: a leftover is an unreferenced file, which [startup orphan cleanup](#startup-orphan-cleanup) recovers.
+1. In one DB transaction, delete the owner, everything it owns and their attachment rows: for an equipment, its tasks, all its interventions (exceptional ones included), its documents and their photos; for a task, its interventions and their photos; for an intervention, its photos.
+2. Once that transaction is committed, remove the directories from disk: `files/equipments/{id}/` for an equipment, `files/equipments/{eq}/interventions/{id}/` for an intervention, and that of each of its interventions for a task. Log on failure, do not abort: the delete has succeeded, and a leftover is an unreferenced file, which [startup orphan cleanup](#startup-orphan-cleanup) recovers.
 
-Step 1 does not run in one transaction yet, and some of its errors are ignored (#128).
+If any statement of step 1 fails, the transaction is rolled back and nothing is deleted: the owner, what it owns, the attachment rows and their files all stay as they were, and the API answers `500`.
 
 ### Startup check for missing files
 

@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/vtellier/OpenMaintenance/internal/attachments"
 	"github.com/vtellier/OpenMaintenance/internal/models"
 )
 
@@ -159,66 +158,6 @@ func clearReplacedExpiryDate(db execer, intervention *models.Intervention) error
 	return err
 }
 
-// DeleteIntervention deletes an intervention and its photos, their files last.
-func DeleteIntervention(db *sql.DB, files *attachments.Store, id int) error {
-	photos, err := photosOf(db, "id = ?", id)
-	if err != nil {
-		return err
-	}
-	removeFiles, err := files.DeleteAll(db, photos...)
-	if err != nil {
-		return err
-	}
-	if _, err := db.Exec("DELETE FROM interventions WHERE id = ?", id); err != nil {
-		return err
-	}
-	removeFiles()
-	return nil
-}
-
-// photosOf names the photos of each intervention matching where. An
-// intervention without an equipment predates photos and has none, so it is
-// left out.
-func photosOf(db *sql.DB, where string, args ...any) ([]attachments.Owner, error) {
-	rows, err := db.Query("SELECT id, equipment_id FROM interventions WHERE "+where, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var photos []attachments.Owner
-	for rows.Next() {
-		var id int
-		var equipmentID sql.NullInt64
-		if err := rows.Scan(&id, &equipmentID); err != nil {
-			return nil, err
-		}
-		if equipmentID.Valid {
-			photos = append(photos, attachments.InterventionPhotos(int(equipmentID.Int64), id))
-		}
-	}
-	return photos, rows.Err()
-}
-
-// interventionIDs returns the ids of the interventions of an equipment.
-func interventionIDs(db *sql.DB, equipmentID int) ([]int, error) {
-	rows, err := db.Query("SELECT id FROM interventions WHERE equipment_id = ?", equipmentID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var ids []int
-	for rows.Next() {
-		var id int
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		ids = append(ids, id)
-	}
-	return ids, rows.Err()
-}
-
 func ListInterventions(db *sql.DB) ([]models.Intervention, error) {
 	rows, err := db.Query("SELECT " + interventionColumns + " FROM interventions")
 	if err != nil {
@@ -235,24 +174,6 @@ func ListInterventions(db *sql.DB) ([]models.Intervention, error) {
 		interventions = append(interventions, intervention)
 	}
 	return interventions, nil
-}
-
-// DeleteInterventionsByTask deletes the interventions of a task and their
-// photos, their files last.
-func DeleteInterventionsByTask(db *sql.DB, files *attachments.Store, taskID int) error {
-	photos, err := photosOf(db, "task_id = ?", taskID)
-	if err != nil {
-		return err
-	}
-	removeFiles, err := files.DeleteAll(db, photos...)
-	if err != nil {
-		return err
-	}
-	if _, err := db.Exec("DELETE FROM interventions WHERE task_id = ?", taskID); err != nil {
-		return err
-	}
-	removeFiles()
-	return nil
 }
 
 func ListInterventionsByTask(db *sql.DB, taskID int) ([]models.Intervention, error) {

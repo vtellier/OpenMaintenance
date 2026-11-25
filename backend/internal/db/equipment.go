@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/vtellier/OpenMaintenance/internal/attachments"
 	"github.com/vtellier/OpenMaintenance/internal/models"
 )
 
@@ -186,28 +185,6 @@ func CorrectEquipmentHours(db *sql.DB, id int, hours float64, at time.Time) erro
 		hours, at, at, id,
 	)
 	return err
-}
-
-// DeleteEquipment deletes an equipment, its tasks, its interventions and
-// everything attached under it, its files last.
-func DeleteEquipment(db *sql.DB, files *attachments.Store, id int) error {
-	// The photos of every intervention of the equipment go, exceptional ones
-	// (tied to no task) included, along with its documents.
-	ids, err := interventionIDs(db, id)
-	if err != nil {
-		return err
-	}
-	removeFiles, err := files.DeleteEquipment(db, id, ids)
-	if err != nil {
-		return err
-	}
-	DeleteTasksByEquipment(db, files, id)
-	db.Exec("DELETE FROM interventions WHERE equipment_id = ?", id)
-	if _, err := db.Exec("DELETE FROM equipments WHERE id = ?", id); err != nil {
-		return err
-	}
-	removeFiles()
-	return nil
 }
 
 func ListEquipments(db *sql.DB) ([]models.Equipment, error) {

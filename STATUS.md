@@ -707,3 +707,52 @@ Deployed to the local install (`openmaintenance.service`, `/opt/openmaintenance`
 - One error-path difference: a failure to read which interventions an equipment has, or to delete attachment rows, now answers 500 instead of being ignored. The rest of the cascade still ignores some errors and is not atomic (#128).
 - Bugs found along the way, each its own issue: #128 (cascade not atomic), #129 (photo refusal not shown), #130 (Same hours records 0 h), #131 (intervention saved when its reading is not).
 - Verified with `go test ./...` and `make build`.
+
+## 2026-11-25 — Deleting an owner is all or nothing (issue #128)
+
+- Branch `fix/issue-128-atomic-delete`, stacked on #127 and implemented by a subagent. Deleting an equipment, a task or an intervention ran its cascade one statement at a time, outside a transaction, and ignored most errors: a failure could leave rows behind while still answering 204, or answer 500 with part of the cascade already deleted.
+- **Spec first:** "Entity deletion cascade" in `doc/file-storage.md`. Step 1 is one transaction: the owner, everything it owns and their attachment rows. Step 2 removes the directories after the commit. A failure rolls back everything and the API answers 500.
+- **Test first** (`httptest`, `backend/tests/delete_cascade_atomic_test.go`):
+  - Setup: an equipment with a document, a task with an intervention, and an exceptional intervention, each intervention with a photo.
+  - A `RAISE(ABORT)` trigger makes one table's delete fail. There are 10 cases, one per owner and table.
+  - Each case expects 500, with everything still served, listed and on disk.
+  - 8 cases failed before the fix. The other 2 already passed, because the failing statement ran first; they stay as guards.
+- **Fix:** `db/delete.go` runs each delete through `deleteInTx`, whose reads and writes all use the transaction, and removes files only after the commit. `DeleteInterventionsByTask` and `DeleteTasksByEquipment` are now unexported helpers that take the transaction.
+- **Review:**
+  - The built binary ran on seeded data.
+  - A live `BEFORE DELETE ON interventions` trigger gave 500, with the equipment, its task, its document and its photo, and both files on disk, all still there.
+  - Without the trigger the same delete answered 204 and left no rows and no directory.
+  - One CI review note led to a comment on why the task loop finds no photo rows left.
+
+## 2026-11-25 — A refused photo upload says why (issue #129)
+
+- Branch `fix/issue-129-photo-refusal-reason`, implemented by a subagent. It is the photo twin of #119: `InterventionPhotos` caught every upload error and showed "Failed to upload photo", even when the backend had answered 413 or 415 with the reason.
+- **Spec first:** the photo section of `doc/gui/interventions.md` now names the accepted images and the 10 MB cap, and says a refusal shows the server's reason.
+- **Test first** (Playwright, `photo-upload-error-shows-reason.spec.ts`), with three cases:
+  - a text file gets 415 from the real backend;
+  - a 413 is stubbed, as #119 did;
+  - a 502 with no reason keeps the generic message.
+  
+  The first two failed on the generic banner before the fix. The third guards the fallback.
+- **Fix:** `onUploadChange` uses `extractErrorMessage(err, 'Failed to upload photo')`, as the Documents tab does.
+- **Review:** merged `main` (#127, #128). Checked in Chrome against the built binary:
+  - a text file shows "only JPEG, PNG, WebP and GIF images are allowed";
+  - a real 10 MB+ PNG shows "file exceeds the 10 MB limit";
+  - an upload that failed at the network level shows the fallback.
+  
+  The spec header now names the fix commit.
+
+## 2026-11-25 — No "Same hours" for an equipment with no reading (issue #130)
+
+- Branch `fix/issue-130-no-same-hours-without-reading`, implemented by a subagent. An equipment that tracks hours but has no reading yet showed in the Dashboard banner with a **Same hours** button. One tap recorded `0 h`, a reading the user never entered.
+- **Spec first:** `doc/gui/dashboard.md` (the banner, and the "Dismiss the reminder" flow) and `doc/data-model.md` (freshness) now say Same hours confirms the current reading, so it is offered only when there is one.
+- **Test first:**
+  - Vitest on a new `sameHoursReading(eq)` in `lib/hourMeterFreshness.ts`, covering 1245 h, an entered 0 h, and no reading.
+  - A Playwright spec, `dashboard-no-same-hours-without-reading.spec.ts`. It failed on the unfixed page because the Same hours button was present.
+  - The #34 spec tapped Same hours on an equipment with no reading, so it relied on the bug. It now starts from a 120 h reading made to look 10 days old.
+- **Fix:** the page offers Same hours only when `sameHoursReading` returns a reading, and sends that reading. The old `eq.hours ?? 0` is gone.
+- **Review:**
+  - Merged `main` (#127, #128, #129).
+  - The button slot switches between `null` and a template, so it is now rendered through a function slot (arrow-js gotchas 8 and 9). This is safe either way today, because rows with no reading always sort first.
+  - Both dashboard specs pass.
+  - Checked in Chrome on seeded data plus an equipment with no reading. Its row shows only Update. Same hours on the Yanmar moved it to the fresh group, and the row with no reading kept only Update.

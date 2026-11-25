@@ -10,7 +10,7 @@ import { byUrgency } from '@/lib/urgency'
 import { relativeTime, isHoursStale, isHoursVeryStale } from '@/lib/timestamp'
 import { WithCalendarDates, fromApiDate, fromApiDateTime } from '@/lib/calendar-date'
 import { equipmentAvatar } from '@/components/EquipmentAvatar'
-import { freshnessBannerEquipments } from '@/lib/hourMeterFreshness'
+import { freshnessBannerEquipments, sameHoursReading } from '@/lib/hourMeterFreshness'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -73,12 +73,13 @@ export function DashboardPage() {
     load()
 
     async function onSameHours(eq: EquipmentRow) {
-      if (eq.id == null || state.sameHoursSavingId != null) return
+      const hours = sameHoursReading(eq)
+      if (eq.id == null || hours == null || state.sameHoursSavingId != null) return
       state.sameHoursSavingId = eq.id
       try {
         await equipmentApi.updateEquipmentHours({
           id: eq.id,
-          equipmentHoursInput: { hours: eq.hours ?? 0 },
+          equipmentHoursInput: { hours },
         })
         await load()
       } catch {
@@ -114,6 +115,14 @@ export function DashboardPage() {
     async function onDoneFormSaved() {
       state.doneFormOpen = false
       await load()
+    }
+
+    // No reading yet: nothing to confirm, so only Update is offered. The rows
+    // call it from a function slot, () => sameHoursButton(eq): a slot that
+    // switches between null and a template must be one (arrow-js gotchas 8, 9).
+    function sameHoursButton(eq: EquipmentRow) {
+      if (sameHoursReading(eq) == null) return null
+      return html`<button class="btn btn--small btn--ghost" @click="${() => onSameHours(eq)}" disabled="${() => state.sameHoursSavingId === eq.id}">${() => state.sameHoursSavingId === eq.id ? '...' : 'Same hours'}</button>`
     }
 
     return html`<section class="page">
@@ -167,7 +176,7 @@ export function DashboardPage() {
                   <a href="${eqHref}" class="hours-banner__eq-name">${eq.name}</a>
                   <span class="hours-banner__hours">${formatHours(eq.hours)}</span>
                   <span class="${updatedClass}">updated ${relativeTime(eq.hoursUpdatedAt)}</span>
-                  <button class="btn btn--small btn--ghost" @click="${() => onSameHours(eq)}" disabled="${() => state.sameHoursSavingId === eq.id}">${() => state.sameHoursSavingId === eq.id ? '...' : 'Same hours'}</button>
+                  ${() => sameHoursButton(eq)}
                   <a href="${updateHref}" class="btn btn--small">Update</a>
                 </div>`
               })}
@@ -182,7 +191,7 @@ export function DashboardPage() {
                     <a href="${eqHref}" class="hours-banner__eq-name">${eq.name}</a>
                     <span class="hours-banner__hours">${formatHours(eq.hours)}</span>
                     <span class="${updatedClass}">updated ${relativeTime(eq.hoursUpdatedAt)}</span>
-                    <button class="btn btn--small btn--ghost" @click="${() => onSameHours(eq)}" disabled="${() => state.sameHoursSavingId === eq.id}">${() => state.sameHoursSavingId === eq.id ? '...' : 'Same hours'}</button>
+                    ${() => sameHoursButton(eq)}
                     <a href="${updateHref}" class="btn btn--small">Update</a>
                   </div>`
                 })}
