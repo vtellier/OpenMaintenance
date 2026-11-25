@@ -25,6 +25,9 @@ func DeleteEquipment(db *sql.DB, files *attachments.Store, id int) error {
 		}
 		removals := []func(){removeFiles}
 
+		// The photo rows of the tasks' interventions are already gone with
+		// the equipment's above, so deleteTask finds none to delete; the
+		// directories it would remove are under the equipment's anyway.
 		taskIDs, err := queryIDs(tx, "SELECT id FROM tasks WHERE equipment_id = ?", id)
 		if err != nil {
 			return nil, err
