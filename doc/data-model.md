@@ -210,6 +210,7 @@ Exactly one of `task_id` or `exceptional_label` must be provided (they are mutua
 - When an intervention is recorded (or edited) with `hours_at`, the equipment tracks hours, and that value is greater than the equipment's current `hours`:
   - The equipment's `hours` is updated to that value.
   - The equipment's `hours_updated_at` is set to "now".
+- Storing the intervention and raising the reading happen **together, or not at all**. If the reading cannot be updated, saving fails (`500`) and nothing is stored: no new intervention, no edit, no reading change, and an edit that moves the intervention to another equipment leaves its photos where they were. Retrying a failed log therefore cannot create a duplicate.
 - Deleting an intervention, or lowering its `hours_at`, never lowers the equipment's `hours`; see [Reading in doubt](#reading-in-doubt).
 - For **standard** interventions: the next due date for the task is recomputed from the latest intervention. On an expiry task, it is the latest intervention's `expiry_date`: editing or deleting that intervention updates it.
 - For **exceptional** interventions: no task due-date side effect.
