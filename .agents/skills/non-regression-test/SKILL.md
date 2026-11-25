@@ -148,6 +148,12 @@ await page.locator('.history-item')
 
 `playwright.config.ts` uses `trace: 'retain-on-failure'`. To debug a failing spec, run `npx playwright show-trace test-results/.../trace.zip`. Don't commit `test-results/` (already in `.gitignore`).
 
+### 8. Never `waitForTimeout`: wait for a sign the page is done
+
+A fixed sleep is too short on a slow runner and wasted time on a fast one, so `frontend/tests/` has none. Wait on what the page shows with a web-first assertion (`await expect(locator).toHaveText(...)`). It retries until it holds.
+
+When the expected outcome is that nothing changes (a late response must be ignored), an assertion that passes at once proves nothing. First wait for a sign that the page has handled the event, then assert. `manual-update-check.spec.ts` ("a slow page-load status…") shows how: an init script wraps `fetch`, and once the page has read that response's JSON it sets a 0 ms timer that marks `<html>`. Everything the page does next runs as microtasks, so the timer fires after it. The spec waits for the mark, then checks the screen.
+
 ## Updating the index
 
 After adding a spec, append a row to `frontend/tests/non-regression/README.md`:

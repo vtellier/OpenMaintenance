@@ -218,6 +218,10 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] **An upload is on disk before its row is stored** (issue #138): an uploaded file is flushed and its close checked; a failed flush or close, or no random name to give it, fails the upload with no file and no row left behind
 - [x] **The 10 MB photo cap has a backend test** (issue #137): a photo over 10 MB answers 413 with the limit and leaves nothing behind; a photo of exactly 10 MB is accepted
 
+## Milestone 25 — Plain React Replaces Arrow.js (epic #146, ADR 0005)
+
+- [x] **0.1 The Playwright suite is stable over repeated runs** (issue #147): five full runs in a row pass locally and in CI; no `waitForTimeout` left in `frontend/tests/`
+
 ## Future (post-V1)
 
 - Configurable "due soon" window

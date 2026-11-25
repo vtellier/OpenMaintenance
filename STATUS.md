@@ -812,3 +812,10 @@ Deployed to the local install (`openmaintenance.service`, `/opt/openmaintenance`
 - **Root cause:** `InterventionPhotos` cleared `deletingName` in a `finally` after the reload. Each tile's Delete button watches it. The reload had already re-rendered the grid, but Arrow tears the dropped tile down a microtask later. Clearing the flag in between queued that tile's watcher. Arrow's `watch()` stop does not remove an already-queued rerun, so the watcher then ran on a released expression slot and threw.
 - **Fix:** clear `deletingName` before the reload; the error path clears it and returns. New arrow-js gotcha 10 describes the pitfall and the upstream cause.
 - **Follow-up:** #145 lists the other handlers that reset a flag in a `finally` after a reload, the same shape as this bug.
+
+## 2026-11-25 — The Playwright suite passes five runs in a row (issue #147)
+
+- Branch `test/issue-147-stable-suite`, implemented by a subagent. Step 0.1 of the React migration (epic #146): the suite must be trusted before it proves the port.
+- **Five runs on `main`:** 70/70 passed each time, with no retries configured. No spec was found flaky.
+- **`waitForTimeout` removed:** "a slow page-load status does not overwrite a newer check result" (`manual-update-check.spec.ts`) slept 300 ms to give the page time to apply the late GET it must ignore. It now waits for a sign that the page has handled that response: an init script wraps `fetch`, and once the page has read the JSON it sets a 0 ms timer that marks `<html>`. Removing the app's `checkStarted` guard by hand turns the test red. `frontend/tests/` holds no `waitForTimeout` now, and gotcha 8 of the non-regression-test skill says why.
+- **Two failed local runs had a cause outside the suite:** the laptop's Wi-Fi dropped and reconnected every few seconds. Chromium then aborts even `localhost` requests (`net::ERR_NETWORK_CHANGED`), so pages never loaded. Five later runs on a steady network passed, and so did five Pipeline runs on the branch. The PR lists both sets.
