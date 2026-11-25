@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/vtellier/OpenMaintenance/internal/attachments"
 	"github.com/vtellier/OpenMaintenance/internal/models"
 )
 
@@ -90,26 +89,6 @@ func UpdateTask(db *sql.DB, task *models.Task) error {
 		task.ID,
 	)
 	return err
-}
-
-// DeleteTask deletes a task, its interventions and their photos.
-func DeleteTask(db *sql.DB, files *attachments.Store, id int) error {
-	DeleteInterventionsByTask(db, files, id)
-	_, err := db.Exec("DELETE FROM tasks WHERE id = ?", id)
-	return err
-}
-
-func DeleteTasksByEquipment(db *sql.DB, files *attachments.Store, equipmentID int) error {
-	tasks, err := ListTasksByEquipment(db, equipmentID)
-	if err != nil {
-		return err
-	}
-	for _, t := range tasks {
-		if err := DeleteTask(db, files, t.ID); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func ListTasks(db *sql.DB) ([]models.Task, error) {
