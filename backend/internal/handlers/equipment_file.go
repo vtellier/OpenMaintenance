@@ -2,13 +2,10 @@ package handlers
 
 import (
 	"fmt"
-	"log"
-	"os"
 
 	"github.com/labstack/echo/v4"
 	"github.com/vtellier/OpenMaintenance/internal/attachments"
 	dbpackage "github.com/vtellier/OpenMaintenance/internal/db"
-	"github.com/vtellier/OpenMaintenance/internal/filestore"
 	"github.com/vtellier/OpenMaintenance/internal/generated"
 )
 
@@ -66,13 +63,4 @@ func (h *Handler) DeleteEquipmentFile(ctx echo.Context, equipmentId int, filenam
 		return attachmentError(ctx, err)
 	}
 	return ctx.NoContent(204)
-}
-
-// removeEquipmentFilesDir removes the entire on-disk directory tree for an
-// equipment. Called by DeleteEquipment after the DB rows are gone.
-func (h *Handler) removeEquipmentFilesDir(equipmentID int) {
-	dir := filestore.Abs(h.BaseDir, filestore.EquipmentRelDir(equipmentID))
-	if err := os.RemoveAll(dir); err != nil {
-		log.Printf("remove equipment files dir %s: %v", dir, err)
-	}
 }

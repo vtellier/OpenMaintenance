@@ -106,18 +106,9 @@ func (h *Handler) UpdateIntervention(ctx echo.Context, id int) error {
 }
 
 func (h *Handler) DeleteIntervention(ctx echo.Context, id int) error {
-	// Capture the equipment the intervention belongs to before it is gone, so
-	// its photo directory can be cleaned up afterwards.
-	existing, _ := dbpackage.GetIntervention(h.DB, id)
-
-	if err := dbpackage.DeleteIntervention(h.DB, id); err != nil {
+	if err := dbpackage.DeleteIntervention(h.DB, h.attachments(), id); err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
-
-	if existing != nil && existing.EquipmentID != nil {
-		h.removeInterventionFilesDir(*existing.EquipmentID, id)
-	}
-
 	return ctx.NoContent(204)
 }
 

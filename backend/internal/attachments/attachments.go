@@ -11,7 +11,6 @@ package attachments
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
 	"strconv"
 	"time"
 
@@ -44,7 +43,7 @@ var Document = &Kind{
 	maxSize:     filestore.MaxDocumentSize,
 	inline:      false,
 	dir: func(equipmentID, _ int) string {
-		return filepath.ToSlash(filepath.Join("files", "equipments", strconv.Itoa(equipmentID), "files"))
+		return equipmentDir(equipmentID) + "/files"
 	},
 }
 
@@ -63,10 +62,15 @@ var Photo = &Kind{
 	typeRefusal: "only JPEG, PNG, WebP and GIF images are allowed",
 	inline:      true,
 	dir: func(equipmentID, interventionID int) string {
-		return filepath.ToSlash(filepath.Join(
-			"files", "equipments", strconv.Itoa(equipmentID),
-			"interventions", strconv.Itoa(interventionID)))
+		return equipmentDir(equipmentID) + "/interventions/" + strconv.Itoa(interventionID)
 	},
+}
+
+// equipmentDir is the directory, relative to the base directory, holding
+// everything attached under an equipment: its documents and the photos of its
+// interventions.
+func equipmentDir(equipmentID int) string {
+	return "files/equipments/" + strconv.Itoa(equipmentID)
 }
 
 // tooLarge is the refusal for a file over the kind's cap. It is built from the

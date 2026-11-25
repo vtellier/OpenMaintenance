@@ -100,16 +100,6 @@ func (h *Handler) DeleteInterventionFile(ctx echo.Context, id int, filename stri
 	return ctx.NoContent(204)
 }
 
-// removeInterventionFilesDir removes the on-disk directory holding one
-// intervention's photos. Called when an intervention (or its parent task) is
-// deleted, so the bytes do not linger after the DB rows are gone.
-func (h *Handler) removeInterventionFilesDir(equipmentID, interventionID int) {
-	dir := filestore.Abs(h.BaseDir, filestore.InterventionFilesRelDir(equipmentID, interventionID))
-	if err := os.RemoveAll(dir); err != nil {
-		log.Printf("remove intervention files dir %s: %v", dir, err)
-	}
-}
-
 // saveInterventionMovingPhotos saves an edited intervention. When the edit
 // moves it to another equipment, its photos move with it: their on-disk
 // location and stored file_path are keyed by the owning equipment
