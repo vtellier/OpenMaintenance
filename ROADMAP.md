@@ -209,7 +209,7 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 ## Milestone 24 — Attachments in One Module (issues #127, #128, #129, #130, #131)
 
 - [x] **One attachments module** (issue #127): storing, listing, serving, deleting and moving documents and photos, the referenced-files check, and the cascade when an equipment, a task or an intervention is deleted all live in `internal/attachments`; no behaviour change (ADR 0004)
-- [ ] **Deleting an owner is all or nothing** (issue #128)
+- [x] **Deleting an owner is all or nothing** (issue #128): deleting an equipment, a task or an intervention runs in one transaction, its attachment rows included; on any failure the API answers 500 and nothing is deleted; directories go only after the commit
 - [ ] **A refused photo upload says why** (issue #129)
 - [ ] **No "Same hours" for an equipment with no reading** (issue #130)
 - [ ] **An intervention and the reading it raises are saved together** (issue #131)
