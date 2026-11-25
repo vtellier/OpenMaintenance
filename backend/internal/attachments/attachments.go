@@ -3,7 +3,8 @@
 // their bytes under the files/ directory next to the database. No other
 // package reads or writes either; see doc/file-storage.md and ADR 0004.
 //
-// It sits below package db and imports neither db nor the handlers. Anything
+// It sits below package db and imports neither db nor the handlers; where the
+// database and its files/ directory are is package filestore's to say. Anything
 // that needs another table — whether an owner exists, which equipment an
 // intervention belongs to — is the caller's to settle before naming an Owner.
 package attachments
@@ -13,8 +14,14 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+)
 
-	"github.com/vtellier/OpenMaintenance/internal/filestore"
+const (
+	// maxDocumentSize is the largest document accepted, in bytes (50 MB):
+	// enough for real equipment manuals, which run to tens of MB.
+	maxDocumentSize = 50 << 20
+	// maxPhotoSize is the largest photo accepted, in bytes (10 MB).
+	maxPhotoSize = 10 << 20
 )
 
 // Kind describes one kind of attachment. The kinds differ only by data: their
@@ -40,7 +47,7 @@ type Kind struct {
 var Document = &Kind{
 	table:       "equipment_files",
 	ownerColumn: "equipment_id",
-	maxSize:     filestore.MaxDocumentSize,
+	maxSize:     maxDocumentSize,
 	inline:      false,
 	dir: func(equipmentID, _ int) string {
 		return equipmentDir(equipmentID) + "/files"
@@ -52,7 +59,7 @@ var Document = &Kind{
 var Photo = &Kind{
 	table:       "intervention_files",
 	ownerColumn: "intervention_id",
-	maxSize:     filestore.MaxImageSize,
+	maxSize:     maxPhotoSize,
 	types: map[string]string{
 		"image/jpeg": ".jpg",
 		"image/png":  ".png",

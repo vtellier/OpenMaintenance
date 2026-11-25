@@ -13,8 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
-	"github.com/vtellier/OpenMaintenance/internal/filestore"
 )
 
 // Store reads and writes the attachments of a database and of the files/
@@ -32,7 +30,7 @@ func New(db *sql.DB, baseDir string) *Store {
 
 // abs joins a stored relative path with the base directory.
 func (s *Store) abs(relPath string) string {
-	return filestore.Abs(s.baseDir, relPath)
+	return filepath.Join(s.baseDir, filepath.FromSlash(relPath))
 }
 
 // Add stores the file read from src as a new attachment of o, under the
