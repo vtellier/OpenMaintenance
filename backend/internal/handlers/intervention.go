@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/vtellier/OpenMaintenance/internal/attachments"
 	dbpackage "github.com/vtellier/OpenMaintenance/internal/db"
 	"github.com/vtellier/OpenMaintenance/internal/hourmeter"
 	"github.com/vtellier/OpenMaintenance/internal/models"
@@ -33,7 +34,7 @@ func (h *Handler) ListInterventionsByTask(ctx echo.Context, taskId int) error {
 // attachPhotoCounts fills the PhotoCount of each intervention from a single
 // grouped query, leaving counts at zero if the lookup fails.
 func (h *Handler) attachPhotoCounts(interventions []models.Intervention) {
-	counts, err := dbpackage.CountInterventionFilesByIntervention(h.DB)
+	counts, err := h.attachments().CountByOwner(attachments.Photo)
 	if err != nil {
 		return
 	}
@@ -72,7 +73,7 @@ func (h *Handler) GetIntervention(ctx echo.Context, id int) error {
 	if err != nil {
 		return ctx.JSON(404, map[string]string{"error": "Intervention not found"})
 	}
-	if n, err := dbpackage.CountInterventionFiles(h.DB, id); err == nil {
+	if n, err := h.attachments().Count(attachments.Photo, id); err == nil {
 		intervention.PhotoCount = n
 	}
 	return ctx.JSON(200, intervention)

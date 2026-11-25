@@ -4,196 +4,99 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"path"
-	"path/filepath"
 
 	"github.com/labstack/echo/v4"
+	"github.com/vtellier/OpenMaintenance/internal/attachments"
 	dbpackage "github.com/vtellier/OpenMaintenance/internal/db"
 	"github.com/vtellier/OpenMaintenance/internal/filestore"
 	"github.com/vtellier/OpenMaintenance/internal/generated"
 	"github.com/vtellier/OpenMaintenance/internal/models"
 )
 
-// imageExtByMime maps the allowed image MIME types to the extension used for
-// the stored file. The MIME type is sniffed from the file's leading bytes, not
-// trusted from the supplied filename.
-var imageExtByMime = map[string]string{
-	"image/jpeg": ".jpg",
-	"image/png":  ".png",
-	"image/webp": ".webp",
-	"image/gif":  ".gif",
-}
-
-// resolveIntervention loads an intervention and the equipment it belongs to.
-// Photos are addressed by intervention id alone; the equipment is needed only
-// to build the on-disk path. When the intervention is missing or has no owning
-// equipment it answers 404 itself and returns ok == false: the caller must then
-// return at once, without writing anything else (issue #92).
-func (h *Handler) resolveIntervention(ctx echo.Context, interventionID int) (inv *models.Intervention, equipmentID int, ok bool) {
+// photosOf names the photos of an intervention. Photos are addressed by
+// intervention id alone; the equipment is needed only for where their bytes
+// are kept. It reports false when the intervention is missing or has no owning
+// equipment: the caller answers 404 (issue #92).
+func (h *Handler) photosOf(interventionID int) (attachments.Owner, bool) {
 	inv, err := dbpackage.GetIntervention(h.DB, interventionID)
 	if err != nil || inv.EquipmentID == nil {
-		ctx.JSON(404, map[string]string{"error": "Intervention not found"})
-		return nil, 0, false
+		return attachments.Owner{}, false
 	}
-	return inv, *inv.EquipmentID, true
+	return attachments.InterventionPhotos(*inv.EquipmentID, interventionID), true
 }
 
-// interventionFileResponse builds the API FileInfo object for a stored photo.
-func (h *Handler) interventionFileResponse(interventionID int, f models.InterventionFile) generated.FileInfo {
-	name := filepath.Base(f.FilePath)
-	abs := filestore.Abs(h.BaseDir, f.FilePath)
+// interventionNotFound answers 404 for an intervention whose photos are asked
+// for but which is missing or has no owning equipment.
+func interventionNotFound(ctx echo.Context) error {
+	return ctx.JSON(404, map[string]string{"error": "Intervention not found"})
+}
 
-	size, missing := statFile(abs)
-	return generated.FileInfo{
-		Name:         name,
-		OriginalName: f.OriginalName,
-		Size:         size,
-		MimeType:     detectMime(abs),
-		UploadedAt:   f.UploadedAt,
-		Url:          fmt.Sprintf("/api/interventions/%d/files/%s", interventionID, name),
-		Missing:      missing,
-	}
+// photosURL is the URL an intervention's photos are served under. It does not
+// depend on the equipment, so it survives the intervention moving.
+func photosURL(interventionID int) string {
+	return fmt.Sprintf("/api/interventions/%d/files/", interventionID)
 }
 
 func (h *Handler) ListInterventionFiles(ctx echo.Context, id int) error {
-	if _, _, ok := h.resolveIntervention(ctx, id); !ok {
-		return nil
+	photos, ok := h.photosOf(id)
+	if !ok {
+		return interventionNotFound(ctx)
 	}
 
-	rows, err := dbpackage.ListInterventionFiles(h.DB, id)
+	list, err := h.attachments().List(photos)
 	if err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
 
-	files := make([]generated.FileInfo, 0, len(rows))
-	for _, r := range rows {
-		files = append(files, h.interventionFileResponse(id, r))
+	files := make([]generated.FileInfo, 0, len(list))
+	for _, a := range list {
+		files = append(files, fileInfo(photosURL(id), a))
 	}
 	return ctx.JSON(200, files)
 }
 
 func (h *Handler) UploadInterventionFile(ctx echo.Context, id int) error {
-	_, equipmentID, ok := h.resolveIntervention(ctx, id)
+	photos, ok := h.photosOf(id)
 	if !ok {
-		return nil
+		return interventionNotFound(ctx)
 	}
 
 	fileHeader, err := ctx.FormFile("file")
 	if err != nil {
 		return ctx.JSON(400, map[string]string{"error": "missing file"})
 	}
-	if fileHeader.Size > filestore.MaxImageSize {
-		return ctx.JSON(413, map[string]string{"error": "file exceeds the 10 MB limit"})
-	}
-
 	src, err := fileHeader.Open()
 	if err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
 	defer src.Close()
 
-	// Sniff the MIME type from the leading bytes and reject anything that is not
-	// an allowed image before writing to disk.
-	head := make([]byte, 512)
-	n, _ := io.ReadFull(src, head)
-	mimeType := http.DetectContentType(head[:n])
-	ext, ok := imageExtByMime[mimeType]
-	if !ok {
-		return ctx.JSON(415, map[string]string{"error": "only JPEG, PNG, WebP and GIF images are allowed"})
-	}
-	if _, err := src.Seek(0, io.SeekStart); err != nil {
-		return ctx.JSON(500, map[string]string{"error": err.Error()})
-	}
-
-	// Build the target path: files/equipments/{eq}/interventions/{inv}/{uuid}{ext}.
-	stored := randomName() + ext
-	relDir := filestore.InterventionFilesRelDir(equipmentID, id)
-	relPath := relDir + "/" + stored
-	absDir := filestore.Abs(h.BaseDir, relDir)
-	absPath := filepath.Join(absDir, stored)
-
-	if err := os.MkdirAll(absDir, 0755); err != nil {
-		return ctx.JSON(500, map[string]string{"error": err.Error()})
-	}
-
-	dst, err := os.Create(absPath)
+	a, err := h.attachments().Add(photos, fileHeader.Filename, fileHeader.Size, src)
 	if err != nil {
-		return ctx.JSON(500, map[string]string{"error": err.Error()})
+		return attachmentError(ctx, err)
 	}
-	// Enforce the size cap again while streaming, so a lying header cannot
-	// exceed it. +1 lets us detect an over-cap body.
-	written, err := io.Copy(dst, io.LimitReader(src, filestore.MaxImageSize+1))
-	dst.Close()
-	if err != nil {
-		os.Remove(absPath)
-		return ctx.JSON(500, map[string]string{"error": err.Error()})
-	}
-	if written > filestore.MaxImageSize {
-		os.Remove(absPath)
-		return ctx.JSON(413, map[string]string{"error": "file exceeds the 10 MB limit"})
-	}
-
-	row := &models.InterventionFile{
-		InterventionID: id,
-		FilePath:       relPath,
-		OriginalName:   fileHeader.Filename,
-	}
-	if err := dbpackage.CreateInterventionFile(h.DB, row); err != nil {
-		os.Remove(absPath)
-		return ctx.JSON(500, map[string]string{"error": err.Error()})
-	}
-
-	return ctx.JSON(201, h.interventionFileResponse(id, *row))
+	return ctx.JSON(201, fileInfo(photosURL(id), a))
 }
 
 func (h *Handler) GetInterventionFile(ctx echo.Context, id int, filename string) error {
-	_, equipmentID, ok := h.resolveIntervention(ctx, id)
+	photos, ok := h.photosOf(id)
 	if !ok {
-		return nil
+		return interventionNotFound(ctx)
 	}
-
-	relPath := filestore.InterventionFilesRelDir(equipmentID, id) + "/" + filename
-	row, err := dbpackage.GetInterventionFileByPath(h.DB, id, relPath)
-	if err != nil {
-		return ctx.JSON(404, map[string]string{"error": "File not found"})
-	}
-
-	abs := filestore.Abs(h.BaseDir, row.FilePath)
-	if _, err := os.Stat(abs); err != nil {
-		return ctx.JSON(404, map[string]string{"error": "File not found"})
-	}
-
-	// Photos are served inline so they can be displayed in the browser.
-	ctx.Response().Header().Set("Content-Type", detectMime(abs))
-	ctx.Response().Header().Set("Content-Disposition", "inline")
-	return ctx.File(abs)
+	return h.serveAttachment(ctx, photos, filename)
 }
 
 func (h *Handler) DeleteInterventionFile(ctx echo.Context, id int, filename string) error {
-	_, equipmentID, ok := h.resolveIntervention(ctx, id)
+	photos, ok := h.photosOf(id)
 	if !ok {
-		return nil
+		return interventionNotFound(ctx)
 	}
-
-	relPath := filestore.InterventionFilesRelDir(equipmentID, id) + "/" + filename
-	row, err := dbpackage.GetInterventionFileByPath(h.DB, id, relPath)
-	if err != nil {
-		return ctx.JSON(404, map[string]string{"error": "File not found"})
+	if err := h.attachments().Delete(photos, filename); err != nil {
+		return attachmentError(ctx, err)
 	}
-
-	if err := dbpackage.DeleteInterventionFile(h.DB, id, relPath); err != nil {
-		return ctx.JSON(500, map[string]string{"error": err.Error()})
-	}
-
-	abs := filestore.Abs(h.BaseDir, row.FilePath)
-	if err := os.Remove(abs); err != nil && !os.IsNotExist(err) {
-		log.Printf("delete file %s: %v", abs, err)
-	}
-
 	return ctx.NoContent(204)
 }
 

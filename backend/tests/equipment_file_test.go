@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v4"
+	"github.com/vtellier/OpenMaintenance/internal/attachments"
 	"github.com/vtellier/OpenMaintenance/internal/db"
 	"github.com/vtellier/OpenMaintenance/internal/generated"
 	"github.com/vtellier/OpenMaintenance/internal/handlers"
@@ -202,7 +203,7 @@ func TestEquipmentFile_UploadListDownloadDelete(t *testing.T) {
 	if len(entries) != 0 {
 		t.Errorf("file still on disk after delete")
 	}
-	rows, _ := db.ListEquipmentFiles(h.DB, id)
+	rows, _ := attachments.New(h.DB, h.BaseDir).List(attachments.EquipmentDocuments(id))
 	if len(rows) != 0 {
 		t.Errorf("row still in DB after delete")
 	}
@@ -234,7 +235,7 @@ func TestEquipmentFile_DeleteEquipmentCascadesFiles(t *testing.T) {
 	if _, err := os.Stat(dir); !os.IsNotExist(err) {
 		t.Errorf("equipment files dir should be removed after equipment delete")
 	}
-	rows, _ := db.ListEquipmentFiles(h.DB, id)
+	rows, _ := attachments.New(h.DB, h.BaseDir).List(attachments.EquipmentDocuments(id))
 	if len(rows) != 0 {
 		t.Errorf("equipment_files rows should be gone after cascade")
 	}
