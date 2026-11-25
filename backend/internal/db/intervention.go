@@ -125,7 +125,17 @@ func UpdateIntervention(db *sql.DB, intervention *models.Intervention) error {
 	return tx.Commit()
 }
 
-// updateIntervention is UpdateIntervention within a caller's transaction.
+// UpdateInterventionTx is UpdateIntervention within the caller's transaction.
+func UpdateInterventionTx(tx *sql.Tx, intervention *models.Intervention) error {
+	return updateIntervention(tx, intervention)
+}
+
+// execer is satisfied by both *sql.DB and *sql.Tx, so a write can run on its
+// own or as part of a transaction.
+type execer interface {
+	Exec(query string, args ...any) (sql.Result, error)
+}
+
 func updateIntervention(db execer, intervention *models.Intervention) error {
 	intervention.UpdatedAt = time.Now()
 

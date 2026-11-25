@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -94,7 +95,7 @@ func (h *Handler) UpdateIntervention(ctx echo.Context, id int) error {
 		return ctx.JSON(400, map[string]string{"error": err.Error()})
 	}
 
-	if err := h.saveInterventionMovingPhotos(intervention); err != nil {
+	if err := h.saveIntervention(intervention); err != nil {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
 
@@ -110,6 +111,25 @@ func (h *Handler) DeleteIntervention(ctx echo.Context, id int) error {
 		return ctx.JSON(500, map[string]string{"error": err.Error()})
 	}
 	return ctx.NoContent(204)
+}
+
+// saveIntervention saves an edited intervention. When the edit moves it to
+// another equipment, its photos move with it, in the transaction that saves it.
+func (h *Handler) saveIntervention(inv *models.Intervention) error {
+	before, err := dbpackage.GetIntervention(h.DB, inv.ID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		// Without the current equipment we cannot tell whether photos must
+		// move; saving anyway could strand them.
+		return err
+	}
+	if err != nil || before.EquipmentID == nil || inv.EquipmentID == nil ||
+		*before.EquipmentID == *inv.EquipmentID {
+		return dbpackage.UpdateIntervention(h.DB, inv)
+	}
+	return h.attachments().Move(
+		attachments.InterventionPhotos(*before.EquipmentID, inv.ID), *inv.EquipmentID,
+		func(tx *sql.Tx) error { return dbpackage.UpdateInterventionTx(tx, inv) },
+	)
 }
 
 func validateIntervention(intervention *models.Intervention) error {
