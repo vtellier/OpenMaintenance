@@ -44,6 +44,21 @@ func CreateEquipment(db *sql.DB, equipment *models.Equipment) error {
 }
 
 func GetEquipment(db *sql.DB, id int) (*models.Equipment, error) {
+	return getEquipment(db, id)
+}
+
+// GetEquipmentTx is GetEquipment within the caller's transaction.
+func GetEquipmentTx(tx *sql.Tx, id int) (*models.Equipment, error) {
+	return getEquipment(tx, id)
+}
+
+// rowQuerier is satisfied by both *sql.DB and *sql.Tx, so a read can run on
+// its own or as part of a transaction.
+type rowQuerier interface {
+	QueryRow(query string, args ...any) *sql.Row
+}
+
+func getEquipment(db rowQuerier, id int) (*models.Equipment, error) {
 	row := db.QueryRow(
 		`SELECT id, name, description, commissioned_at, decommissioned_at, icon, group_id, tracks_hours, hours, hours_updated_at, created_at, updated_at
 		 FROM equipments WHERE id = ?`, id,
@@ -136,6 +151,16 @@ func UpdateEquipment(db *sql.DB, equipment *models.Equipment) error {
 // requests race. It reports whether the reading was written. Only the
 // hourmeter package calls it, since it owns the rules for changing the reading.
 func SetEquipmentHours(db *sql.DB, id int, hours float64, at time.Time) (bool, error) {
+	return setEquipmentHours(db, id, hours, at)
+}
+
+// SetEquipmentHoursTx is SetEquipmentHours within the caller's transaction;
+// only the hourmeter package calls it too.
+func SetEquipmentHoursTx(tx *sql.Tx, id int, hours float64, at time.Time) (bool, error) {
+	return setEquipmentHours(tx, id, hours, at)
+}
+
+func setEquipmentHours(db execer, id int, hours float64, at time.Time) (bool, error) {
 	res, err := db.Exec(
 		`UPDATE equipments SET hours = ?, hours_updated_at = ?, updated_at = ?
 		 WHERE id = ? AND (hours IS NULL OR hours <= ?)`,

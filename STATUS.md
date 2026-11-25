@@ -756,3 +756,24 @@ Deployed to the local install (`openmaintenance.service`, `/opt/openmaintenance`
   - The button slot switches between `null` and a template, so it is now rendered through a function slot (arrow-js gotchas 8 and 9). This is safe either way today, because rows with no reading always sort first.
   - Both dashboard specs pass.
   - Checked in Chrome on seeded data plus an equipment with no reading. Its row shows only Update. Same hours on the Yanmar moved it to the fresh group, and the row with no reading kept only Update.
+
+## 2026-11-25 — An intervention and the reading it raises are saved together (issue #131)
+
+- Branch `fix/issue-131-intervention-and-reading-together`, implemented by a subagent and stacked on #127. Logging or editing an intervention stored it first, then raised the equipment's hour-meter reading. A failure of the second step was only logged, and the API still answered 201 or 200.
+- **Spec first:** a bullet under the intervention side effects in `doc/data-model.md`.
+- **Test first** (`httptest`, `backend/tests/intervention_reading_together_test.go`): a `BEFORE UPDATE OF hours ON equipments` trigger makes the reading write fail, in three cases:
+  - log: 500, no intervention, and the reading and its freshness unchanged;
+  - edit: 500, and the intervention unchanged;
+  - move to another equipment: 500, and the intervention and its photo stay on the first equipment.
+  
+  All three failed before the fix, which answered 201 or 200.
+- **Fix:**
+  - `hourmeter.RecordIntervention` takes the caller's `*sql.Tx`, and any error aborts it.
+  - `db` gains `InTx`, `CreateInterventionTx`, `GetEquipmentTx` and `SetEquipmentHoursTx`.
+  - The handlers save the intervention and record its reading in one transaction. For a move, that is the attachments module's move transaction.
+  - `db.UpdateIntervention`, which committed on its own, is gone, so an edit cannot be saved without its reading.
+- **Review:**
+  - Merged `main` (#128, #129, #130); `deleteInTx` from #128 is now built on `InTx`.
+  - Checked on the built binary with seeded data and a live trigger on the reading write. Logging answered 500 with no intervention added and the reading unchanged.
+  - Moving an intervention with a photo to another equipment answered 500. The intervention, its photo and the target's reading stayed put.
+  - With the trigger dropped, logging added the intervention and raised the reading (512 → 532). The move put the photo under the new equipment and raised that equipment's reading (230 → 532).

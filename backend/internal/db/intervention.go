@@ -59,14 +59,14 @@ func scanIntervention(s interface {
 // clears the current expiry date of the expiry task it replaces a part on
 // (see clearReplacedExpiryDate).
 func CreateIntervention(db *sql.DB, intervention *models.Intervention) error {
+	return InTx(db, func(tx *sql.Tx) error { return CreateInterventionTx(tx, intervention) })
+}
+
+// CreateInterventionTx is CreateIntervention within the caller's transaction.
+// It sets the intervention's id, which only holds once the caller commits.
+func CreateInterventionTx(tx *sql.Tx, intervention *models.Intervention) error {
 	intervention.CreatedAt = time.Now()
 	intervention.UpdatedAt = time.Now()
-
-	tx, err := db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback() // no-op once committed
 
 	result, err := tx.Exec(
 		"INSERT INTO interventions (task_id, equipment_id, exceptional_label, date, location, performed_by, comments, hours_at, expiry_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -86,15 +86,12 @@ func CreateIntervention(db *sql.DB, intervention *models.Intervention) error {
 		return err
 	}
 
-	id, _ := result.LastInsertId()
-	if err := clearReplacedExpiryDate(tx, intervention); err != nil {
-		return err
-	}
-	if err := tx.Commit(); err != nil {
+	id, err := result.LastInsertId()
+	if err != nil {
 		return err
 	}
 	intervention.ID = int(id)
-	return nil
+	return clearReplacedExpiryDate(tx, intervention)
 }
 
 func GetIntervention(db *sql.DB, id int) (*models.Intervention, error) {
@@ -108,23 +105,10 @@ func GetIntervention(db *sql.DB, id int) (*models.Intervention, error) {
 	return intervention, nil
 }
 
-// UpdateIntervention saves an edited intervention and, in the same
-// transaction, clears the current expiry date of the expiry task it now
-// replaces a part on (see clearReplacedExpiryDate).
-func UpdateIntervention(db *sql.DB, intervention *models.Intervention) error {
-	tx, err := db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback() // no-op once committed
-
-	if err := updateIntervention(tx, intervention); err != nil {
-		return err
-	}
-	return tx.Commit()
-}
-
-// UpdateInterventionTx is UpdateIntervention within the caller's transaction.
+// UpdateInterventionTx saves an edited intervention within the caller's
+// transaction, and clears the current expiry date of the expiry task it now
+// replaces a part on (see clearReplacedExpiryDate). It has no variant that
+// commits on its own: an edit is saved with the hour-meter reading it raises.
 func UpdateInterventionTx(tx *sql.Tx, intervention *models.Intervention) error {
 	return updateIntervention(tx, intervention)
 }

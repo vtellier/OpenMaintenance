@@ -70,17 +70,11 @@ func DeleteIntervention(db *sql.DB, files *attachments.Store, id int) error {
 // deleteInTx runs del in a transaction, and once it is committed, the removal
 // of the files it returns.
 func deleteInTx(db *sql.DB, del func(tx *sql.Tx) (removeFiles func(), err error)) error {
-	tx, err := db.Begin()
-	if err != nil {
+	var removeFiles func()
+	if err := InTx(db, func(tx *sql.Tx) (err error) {
+		removeFiles, err = del(tx)
 		return err
-	}
-	defer tx.Rollback()
-
-	removeFiles, err := del(tx)
-	if err != nil {
-		return err
-	}
-	if err := tx.Commit(); err != nil {
+	}); err != nil {
 		return err
 	}
 	removeFiles()
