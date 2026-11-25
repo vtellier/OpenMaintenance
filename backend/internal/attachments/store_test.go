@@ -11,6 +11,9 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// The tests below swap the package variables createFile and randSource, so
+// they must not call t.Parallel().
+
 // newTestStore returns a store over a fresh database holding the documents
 // table. The table mirrors its migration in package db, which this package
 // cannot import (db imports it).
