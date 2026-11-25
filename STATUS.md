@@ -777,3 +777,11 @@ Deployed to the local install (`openmaintenance.service`, `/opt/openmaintenance`
   - Checked on the built binary with seeded data and a live trigger on the reading write. Logging answered 500 with no intervention added and the reading unchanged.
   - Moving an intervention with a photo to another equipment answered 500. The intervention, its photo and the target's reading stayed put.
   - With the trigger dropped, logging added the intervention and raised the reading (512 → 532). The move put the photo under the new equipment and raised that equipment's reading (230 → 532).
+
+## 2026-11-25 — The 10 MB photo cap has a backend test (issue #137)
+
+- Branch `test/issue-137-photo-cap-test`, implemented by a subagent. The document cap had a 413 test, the photo cap had none; #129's frontend spec stubs the 413.
+- **Tests** (`httptest`, `backend/tests/intervention_file_test.go`), on PNGs padded to size so they are refused for size, not type:
+  - 10 MB + 1 byte: 413, body exactly `{"error":"file exceeds the 10 MB limit"}`, an empty photo list and no file under `files/`;
+  - exactly 10 MB: 201, listed at 10485760 bytes.
+- Both pass on current code, so no fix was needed. Raising the cap to 11 MB by hand turned the first test red.
