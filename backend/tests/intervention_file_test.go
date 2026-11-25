@@ -164,7 +164,9 @@ func paddedPNG(size int) []byte {
 	return b
 }
 
-// storedFiles lists every file under the files/ tree.
+// storedFiles lists every file under the files/ tree. It ignores walk errors,
+// and with them WalkDir's return value, on purpose: when the files/ directory
+// was never created, no file was stored, which is what the caller asserts.
 func storedFiles(baseDir string) []string {
 	var stored []string
 	filepath.WalkDir(filepath.Join(baseDir, "files"), func(p string, d os.DirEntry, err error) error {
