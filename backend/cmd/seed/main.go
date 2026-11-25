@@ -9,8 +9,9 @@
 //	go run ./cmd/seed            # against http://localhost:3001
 //	OM_BASE_URL=… go run ./cmd/seed
 //
-// The backend must already be running. The seeder appends data; for a clean
-// slate, stop the server, delete backend/maintenance.db, restart, then seed.
+// The backend must already be running, on an empty database. When the
+// database already holds an equipment or a group, the seeder creates nothing
+// and exits with an error; wipe the database first, then seed.
 package main
 
 import (
@@ -51,6 +52,9 @@ type seeder struct {
 // to out.
 func run(baseURL string, client *http.Client, out io.Writer) error {
 	s := &seeder{baseURL: baseURL, client: client, out: out}
+	if err := s.requireEmpty(); err != nil {
+		return err
+	}
 	createGroup, createEquipment, createTask, createIntervention := s.createGroup, s.createEquipment, s.createTask, s.createIntervention
 
 	now := time.Now()
@@ -183,6 +187,56 @@ func run(baseURL string, client *http.Client, out io.Writer) error {
 }
 
 // ── HTTP helpers ─────────────────────────────────────────────────────────────
+
+// requireEmpty fails unless the instance holds no equipment and no group.
+// Tasks and interventions always belong to an equipment, so these two lists
+// cover all user data. A second run would otherwise duplicate the equipments,
+// then stop on the existing group's name (issue #140).
+func (s *seeder) requireEmpty() error {
+	equipments, err := s.count("/api/equipments")
+	if err != nil {
+		return err
+	}
+	groups, err := s.count("/api/groups")
+	if err != nil {
+		return err
+	}
+	if equipments == 0 && groups == 0 {
+		return nil
+	}
+	return fmt.Errorf("the database already holds data (%s, %s); seed only runs on an empty database.\n"+
+		"  Wipe it first: stop the backend, delete its database file (database.path in config.yaml,\n"+
+		"  ./maintenance.db by default), start it again, then seed. Or delete every equipment and group.",
+		plural(equipments, "equipment"), plural(groups, "group"))
+}
+
+// count returns the length of the JSON array served at path.
+func (s *seeder) count(path string) (int, error) {
+	resp, err := s.client.Get(s.baseURL + path)
+	if err != nil {
+		return 0, fmt.Errorf("GET %s: %w", path, err)
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, fmt.Errorf("read %s response: %w", path, err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("GET %s → %d: %s", path, resp.StatusCode, data)
+	}
+	var items []json.RawMessage
+	if err := json.Unmarshal(data, &items); err != nil {
+		return 0, fmt.Errorf("decode %s response: %w\n  body: %s", path, err, data)
+	}
+	return len(items), nil
+}
+
+func plural(n int, noun string) string {
+	if n == 1 {
+		return "1 " + noun
+	}
+	return fmt.Sprintf("%d %ss", n, noun)
+}
 
 func (s *seeder) createGroup(body map[string]any) int {
 	id := s.post("/api/groups", body)
