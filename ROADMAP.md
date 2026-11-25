@@ -176,6 +176,7 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] Fix two Playwright specs whose data leaked between tests (`freshness-reminder-dismiss-immediate`, `mark-done-modal-stays-open`)
 - [x] Fix two Playwright specs that failed in 30-day months and February (issue #116): the task marked Done on the Dashboard is yearly, so it is OK right after Done in any month
 - [x] **Windows binary built with cgo** (issue #86): cross-compiled with MinGW-w64 so the SQLite driver works (the v0.6.0 `.exe` could not open its database); `make check-cgo` fails CI on any backend binary built without cgo
+- [x] **Seed refuses a database that holds data** (issue #140): `make seed` checks for any equipment or group first, and on a database that already holds one it creates nothing and exits with the counts and how to wipe it
 
 ## Milestone 20 — Backup Visibility in Settings (issue #55)
 

@@ -163,7 +163,7 @@ Run the Playwright non-regression suite (it starts the backend and the dev serve
 cd frontend && pnpm test
 ```
 
-Populate a running instance with a demo dataset (overdue / due-soon / OK statuses):
+Populate a running instance with a demo dataset (overdue / due-soon / OK statuses). It only runs on an empty database, and creates nothing on one that already holds data:
 
 ```bash
 make seed
