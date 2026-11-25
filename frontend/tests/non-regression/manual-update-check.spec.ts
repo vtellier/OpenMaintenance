@@ -36,7 +36,7 @@ test('checking finds a newer version and shows its release link', async ({ page 
 
   const button = page.getByRole('button', { name: 'Check for updates' })
   await expect(button).toBeVisible()
-  await expect(page.locator('.settings-about__update, .settings-about__uptodate')).toHaveCount(0)
+  await expect(page.locator('.settings-about__update').or(page.locator('.settings-about__uptodate'))).toHaveCount(0)
 
   await button.click()
   const busy = page.getByRole('button', { name: 'Checking…' })
@@ -44,7 +44,7 @@ test('checking finds a newer version and shows its release link', async ({ page 
 
   release()
   await expect(page.getByRole('button', { name: 'Check for updates' })).toBeEnabled()
-  const link = page.locator('.settings-about__update a')
+  const link = page.locator('.settings-about__update').getByRole('link')
   await expect(link).toHaveText('⬆ v0.6.0 available — Release notes ↗')
   await expect(link).toHaveAttribute('href', 'https://github.com/vtellier/OpenMaintenance/releases/tag/v0.6.0')
   await expect(page.locator('.update-check').getByRole('status')).toHaveText('Checked just now.')
@@ -156,9 +156,9 @@ test('a slow page-load status does not overwrite a newer check result', async ({
   await page.getByRole('button', { name: 'Check for updates' }).click()
   await expect(page.locator('.settings-about__update')).toBeVisible()
 
-  await expect(page.locator('html')).not.toHaveAttribute(STATUS_HANDLED)
+  await expect(page.locator(':root')).not.toHaveAttribute(STATUS_HANDLED)
   answerGet()
-  await expect(page.locator('html')).toHaveAttribute(STATUS_HANDLED, '')
+  await expect(page.locator(':root')).toHaveAttribute(STATUS_HANDLED, '')
   await expect(page.locator('.settings-about__update')).toBeVisible()
   await expect(page.locator('.settings-about__uptodate')).toHaveCount(0)
 })

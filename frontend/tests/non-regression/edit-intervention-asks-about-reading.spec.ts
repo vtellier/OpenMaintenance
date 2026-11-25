@@ -31,7 +31,7 @@ async function seed(page: Page, name: string, taskName: string) {
 async function editTo450AndCorrect(page: Page, id: number, rows: ReturnType<Page['locator']>) {
   await rows.filter({ hasText: '500 h' }).getByRole('button', { name: 'Edit' }).click()
   const modal = page.locator('.modal')
-  const hours = modal.locator('.form-field').filter({ hasText: 'Hours' }).locator('input')
+  const hours = modal.getByLabel('Hours', { exact: true })
   await expect(hours).toHaveValue('500')
   await hours.fill('450')
   await modal.getByRole('button', { name: 'Save' }).click()

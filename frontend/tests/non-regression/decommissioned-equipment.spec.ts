@@ -53,6 +53,6 @@ test('decommissioning an equipment takes it off the Dashboard and the list, and 
   // The intervention form still offers it, marked and after the equipments in service.
   await page.goto('/history')
   await page.getByRole('button', { name: '+ Log intervention' }).click()
-  const picker = page.locator('.modal .form-field').filter({ hasText: 'Equipment' }).locator('select')
-  await expect(picker.locator('option').last()).toHaveText('Decom Old Dinghy (decommissioned)')
+  const picker = page.locator('.modal').getByLabel('Equipment', { exact: true })
+  await expect(picker.getByRole('option').last()).toHaveText('Decom Old Dinghy (decommissioned)')
 })

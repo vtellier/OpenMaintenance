@@ -46,5 +46,5 @@ test('Done on the Dashboard removes the task while another equipment keeps its d
   await expect(otherRow.locator('.due-indicator')).toHaveClass(/due-indicator--due-soon/)
 
   await block.getByRole('button', { name: 'Done' }).click()
-  await expect(modal.locator('.form-field', { hasText: 'Task *' }).locator('select')).toHaveValue(String(other.task.id))
+  await expect(modal.getByLabel('Task', { exact: true })).toHaveValue(String(other.task.id))
 })

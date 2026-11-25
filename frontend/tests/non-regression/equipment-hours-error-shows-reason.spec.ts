@@ -18,7 +18,7 @@ test('creating an equipment with negative hours shows the reason', async ({ page
   const modal = page.locator('.modal')
   await modal.getByPlaceholder('e.g. Main Engine').fill('Negative Hours Engine')
   await modal.locator('.toggle-row').locator('.toggle-slider').click()
-  await modal.locator('.form-field').filter({ hasText: 'Initial hours' }).locator('input').fill('-5')
+  await modal.getByLabel('Initial hours').fill('-5')
   await modal.getByRole('button', { name: 'Save' }).click()
 
   await expect(modal.locator('.flash--error')).toHaveText('Hours cannot be negative')
@@ -33,7 +33,7 @@ test("a refused Update hours shows the backend's reason", async ({ page, expectE
 
   await page.goto(`/equipments/${eq.id}/edit/hours`)
   await expect(page.getByRole('heading', { name: 'Update hours' })).toBeVisible()
-  await page.locator('.form-field').filter({ hasText: 'New hours' }).locator('input').fill('150')
+  await page.getByLabel('New hours').fill('150')
 
   // The reading moves on elsewhere while the page is open: 150 is now lower
   // than the current reading, and the server refuses it.

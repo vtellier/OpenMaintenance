@@ -31,9 +31,9 @@ test("a refused save from Dashboard Done keeps the form open and shows the backe
   await expect(page.locator('.modal').getByRole('heading', { name: 'Log intervention' })).toBeVisible()
 
   // The backend refuses a future date with {"error": "intervention date cannot be in the future"}.
-  await page.locator('.modal input[type="date"]').fill('2099-12-31')
+  await page.locator('.modal').getByLabel('Date', { exact: true }).fill('2099-12-31')
   await page.getByRole('button', { name: 'Save' }).click()
 
-  await expect(page.locator('.modal .flash--error')).toHaveText('intervention date cannot be in the future')
+  await expect(page.locator('.modal').locator('.flash--error')).toHaveText('intervention date cannot be in the future')
   await expect(page.locator('.modal').getByRole('heading', { name: 'Log intervention' })).toBeVisible()
 })
