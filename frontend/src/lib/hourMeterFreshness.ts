@@ -16,6 +16,13 @@ export function freshnessBannerEquipments<E extends FreshnessEquipment>(equipmen
     .sort((a, b) => updatedTime(a) - updatedTime(b))
 }
 
+// sameHoursReading is the reading "Same hours" confirms: the equipment's
+// current one, or none when it has no reading yet. Then there is nothing to
+// confirm and the button is not offered: a reading is never invented.
+export function sameHoursReading(eq: Pick<Equipment, 'hours'>): number | null {
+  return eq.hours ?? null
+}
+
 function updatedTime(eq: FreshnessEquipment): number {
   return eq.hoursUpdatedAt ? new Date(eq.hoursUpdatedAt).getTime() : 0
 }

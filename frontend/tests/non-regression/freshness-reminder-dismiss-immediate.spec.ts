@@ -8,12 +8,25 @@ const API = 'http://127.0.0.1:3001/api'
  * Fixed in: open (issue #34)
  */
 test('same hours dismissal removes stale row immediately without page reload', async ({ page }) => {
-  // Arrange: equipment with hours tracking — hoursUpdatedAt is null on creation → always stale
+  // Arrange: equipment with a reading. Same hours needs a reading to confirm
+  // (issue #130), and entering it marks it fresh, so the browser is shown
+  // that first reading as 10 days old. The reading Same hours stores passes
+  // through unchanged.
   const eqRes = await page.request.post(`${API}/equipments`, {
-    data: { name: 'Freshness Dismiss Equipment', tracks_hours: true },
+    data: { name: 'Freshness Dismiss Equipment', tracks_hours: true, hours: 120 },
   })
   const eq = await eqRes.json()
-  void eq
+  const staleAt = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+
+  await page.route(/\/api\/equipments(\?.*)?$/, async route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    const response = await route.fetch()
+    const equipments = await response.json()
+    for (const e of equipments) {
+      if (e.id === eq.id && e.hours_updated_at === eq.hours_updated_at) e.hours_updated_at = staleAt
+    }
+    await route.fulfill({ response, json: equipments })
+  })
 
   await page.goto('/')
 
