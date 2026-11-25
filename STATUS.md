@@ -804,3 +804,11 @@ Deployed to the local install (`openmaintenance.service`, `/opt/openmaintenance`
   - 10 MB + 1 byte: 413, body exactly `{"error":"file exceeds the 10 MB limit"}`, an empty photo list and no file under `files/`;
   - exactly 10 MB: 201, listed at 10485760 bytes.
 - Both pass on current code, so no fix was needed. Raising the cap to 11 MB by hand turned the first test red.
+
+## 2026-11-25 — Deleting a photo logs no Arrow.js error (issue #139)
+
+- Branch `fix/issue-139-arrow-expression-pool`, implemented by a subagent. Deleting a photo tile logged `TypeError: expressionPool[effect] is not a function` from Arrow.js. The Documents tab was not affected.
+- **Test first** (Playwright, `missing-file-says-so.spec.ts`): the four row-reuse delete cases collect `pageerror` events and expect none. Both photo cases failed before the fix.
+- **Root cause:** `InterventionPhotos` cleared `deletingName` in a `finally` after the reload. Each tile's Delete button watches it. The reload had already re-rendered the grid, but Arrow tears the dropped tile down a microtask later. Clearing the flag in between queued that tile's watcher. Arrow's `watch()` stop does not remove an already-queued rerun, so the watcher then ran on a released expression slot and threw.
+- **Fix:** clear `deletingName` before the reload; the error path clears it and returns. New arrow-js gotcha 10 describes the pitfall and the upstream cause.
+- **Follow-up:** #145 lists the other handlers that reset a flag in a `finally` after a reload, the same shape as this bug.

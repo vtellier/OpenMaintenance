@@ -201,10 +201,11 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] Equipments list hides decommissioned equipments; "Show decommissioned" shows them dimmed, in their group
 - [x] Left out of the Dashboard and its hour-meter freshness banner; still in History and the intervention forms, marked
 
-## Milestone 23 — Attached Files Stay With Their Database (issues #121, #122, #123)
+## Milestone 23 — Attached Files Stay With Their Database (issues #121, #122, #123, #139)
 
 - [x] **Refuse to start when no attached file is found** (issue #121): a database moved without its `files/` folder stops startup before any backup is written; some missing files only log a warning; the `files/` location is derived in one place
 - [x] **A missing attached file says so** (issue #122): the `File` object reports `missing`; a missing document shows "File missing on server" with no Download link, a missing photo shows a placeholder instead of a broken image, and both can still be deleted
+- [x] **Deleting a photo logs no error** (issue #139): deleting a photo tile no longer logs Arrow.js's "expressionPool[effect] is not a function"; the row-reuse delete specs fail on any uncaught page error
 - [x] **An incomplete backup never rotates a complete one away** (issue #123): when the database references attached files that are not on disk, the startup backup logs how many and skips rotation for that run, reusing `db.CheckFiles`
 
 ## Milestone 24 — Attachments in One Module (issues #127, #128, #129, #130, #131, #137, #138)

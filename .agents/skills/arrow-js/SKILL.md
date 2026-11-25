@@ -201,6 +201,39 @@ The closures capture the **local variable** from the current outer slot run. Whe
 
 ---
 
+### 10. Do not change state a dropped row watches right after the list re-renders
+
+A row that a list re-render drops is not torn down at once: Arrow queues its teardown for a later microtask. If you change state that one of that row's `() =>` slots reads before the teardown runs, Arrow queues the slot's watcher. The teardown then releases the row's expression slots, and the queued watcher runs anyway, because Arrow 1.0.6's `watch()` stop does not take an already-queued rerun out of the queue. It throws `TypeError: expressionPool[effect] is not a function` from `runEffect`/`executeQueue`. Nothing on screen shows it.
+
+The usual trigger is a busy flag cleared in a `finally` after the reload (#139):
+
+```ts
+// ❌ Each row's Delete button watches deletingName; the reload drops one row,
+//    then the finally clears deletingName before that row is torn down
+state.deletingName = f.name
+try {
+  await api.delete(f.name)
+  await load()                 // re-renders the list, queues the dropped row's teardown
+} finally {
+  state.deletingName = null    // queues the dropped row's watcher → throws
+}
+
+// ✅ Reset per-row state before the reload, never after it
+state.deletingName = f.name
+try {
+  await api.delete(f.name)
+} catch {
+  state.deletingName = null
+  return
+}
+state.deletingName = null
+await load()
+```
+
+**The rule**: after a write that re-renders a list, do not write state the old rows read, because the dropped rows have not been torn down yet. Reset row flags first, then reload. To catch these errors in Playwright, collect `page.on('pageerror')` and assert the list is empty.
+
+---
+
 ## References
 
 - `.agents/skills/arrow-js/getting-started.md`
