@@ -156,6 +156,88 @@ func TestInterventionFile_RejectsNonImage(t *testing.T) {
 	}
 }
 
+// paddedPNG is a blob of exactly size bytes that sniffs as image/png, so an
+// upload of it is judged on its size, never on its type.
+func paddedPNG(size int) []byte {
+	b := make([]byte, size)
+	copy(b, pngBytes)
+	return b
+}
+
+// storedFiles lists every file under the files/ tree.
+func storedFiles(baseDir string) []string {
+	var stored []string
+	filepath.WalkDir(filepath.Join(baseDir, "files"), func(p string, d os.DirEntry, err error) error {
+		if err == nil && !d.IsDir() {
+			stored = append(stored, p)
+		}
+		return nil
+	})
+	return stored
+}
+
+func listPhotos(t *testing.T, e *echo.Echo, interventionID int) []generated.FileInfo {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, "/api/interventions/"+itoa(interventionID)+"/files", nil)
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("list: expected 200, got %d (%s)", rec.Code, rec.Body.String())
+	}
+	var files []generated.FileInfo
+	if err := json.Unmarshal(rec.Body.Bytes(), &files); err != nil {
+		t.Fatalf("decode list response: %v", err)
+	}
+	return files
+}
+
+// Issue #137: a photo over the 10 MB cap is refused with a reason that states
+// the limit. Nothing is stored: no row, no file on disk.
+func TestInterventionFile_RefusesAPhotoOver10MB(t *testing.T) {
+	e, h, baseDir := newTestServer(t)
+	eqID := seedEquipment(t, h)
+	taskID := seedTask(t, h, eqID)
+	invID := seedIntervention(t, h, eqID, taskID)
+
+	rec := uploadPhoto(t, e, invID, "huge.png", paddedPNG(10<<20+1))
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("upload: expected 413, got %d (%s)", rec.Code, rec.Body.String())
+	}
+	if got, want := strings.TrimSpace(rec.Body.String()), `{"error":"file exceeds the 10 MB limit"}`; got != want {
+		t.Errorf("body = %s, want %s", got, want)
+	}
+
+	if listed := listPhotos(t, e, invID); len(listed) != 0 {
+		t.Errorf("list: expected no photo after a refused upload, got %d", len(listed))
+	}
+	if stored := storedFiles(baseDir); len(stored) != 0 {
+		t.Errorf("refused upload wrote files to disk: %v", stored)
+	}
+}
+
+// Issue #137: the cap is inclusive. A photo of exactly 10 MB is accepted and
+// listed.
+func TestInterventionFile_AcceptsAPhotoOfExactly10MB(t *testing.T) {
+	e, h, _ := newTestServer(t)
+	eqID := seedEquipment(t, h)
+	taskID := seedTask(t, h, eqID)
+	invID := seedIntervention(t, h, eqID, taskID)
+
+	rec := uploadPhoto(t, e, invID, "big.png", paddedPNG(10<<20))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("upload: expected 201, got %d (%s)", rec.Code, rec.Body.String())
+	}
+
+	listed := listPhotos(t, e, invID)
+	if len(listed) != 1 {
+		t.Fatalf("list: expected 1 photo, got %d", len(listed))
+	}
+	if listed[0].OriginalName != "big.png" || listed[0].Size != 10485760 {
+		t.Errorf("listed %q of %d bytes, want big.png of 10485760 bytes",
+			listed[0].OriginalName, listed[0].Size)
+	}
+}
+
 func TestInterventionFile_MissingIntervention(t *testing.T) {
 	e, _, _ := newTestServer(t)
 
