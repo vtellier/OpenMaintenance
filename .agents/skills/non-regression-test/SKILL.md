@@ -18,11 +18,11 @@ The branching decision itself is Step 3.5 of [`.agents/skills/bug-fix/SKILL.md`]
 
 ## Where things live
 
-- Config: `frontend/playwright.config.ts`
+- Config: `frontend/playwright.config.ts`. Two projects: `chromium` (desktop) runs every spec except `mobile-*.spec.ts`; `mobile` (Pixel 7, on Chromium) runs only `smoke.spec.ts`, `navigation.spec.ts` and `mobile-*.spec.ts`. Name a phone-only spec `mobile-*.spec.ts`. A spec that runs in both projects runs twice on one database, so it must not rely on a name being unique.
 - Global setup (wipes DB via API before every run): `frontend/tests/global-setup.ts`
 - Shared fixture (fails a test on any page error or console error): `frontend/tests/fixtures.ts`
 - Specs: `frontend/tests/non-regression/*.spec.ts`
-- Index (must be kept in sync): `frontend/tests/non-regression/README.md`
+- Index and flow map (must be kept in sync): `frontend/tests/non-regression/README.md`. A spec for a `doc/gui/` flow goes in the flow map too.
 - Run command: `pnpm test` from `frontend/`
 
 Playwright's `webServer` block starts both servers itself, or reuses them if they are already running:
