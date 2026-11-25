@@ -65,7 +65,7 @@ func (s *Store) Add(o Owner, originalName string, declaredSize int64, src io.Rea
 	if err := os.MkdirAll(filepath.Dir(absPath), 0755); err != nil {
 		return Attachment{}, err
 	}
-	dst, err := os.Create(absPath)
+	dst, err := createFile(absPath)
 	if err != nil {
 		return Attachment{}, err
 	}
@@ -245,10 +245,31 @@ func detectMime(path string) string {
 	return http.DetectContentType(buf[:n])
 }
 
+// storedFile is the file Add writes an upload to.
+type storedFile interface {
+	io.Writer
+	Sync() error
+	Close() error
+}
+
+// createFile creates the file Add writes an upload to. Tests swap it to make
+// the sync or the close fail.
+var createFile = func(name string) (storedFile, error) {
+	f, err := os.Create(name)
+	if err != nil {
+		return nil, err
+	}
+	return f, nil
+}
+
+// randSource is where randomName draws its bytes. Tests swap it to make it
+// fail.
+var randSource io.Reader = rand.Reader
+
 // randomName returns a fresh name for a stored file: 32 hex characters.
 func randomName() string {
 	b := make([]byte, 16)
-	if _, err := rand.Read(b); err != nil {
+	if _, err := io.ReadFull(randSource, b); err != nil {
 		// crypto/rand failure is effectively impossible.
 		return "file"
 	}
