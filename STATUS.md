@@ -682,3 +682,17 @@ CI note: `build-frontend` downloads the OpenAPI generator JAR from Maven Central
 - **Fix**: after writing the archive, `BackupDB` runs `CheckFiles` (the #121 check, no second implementation) on the snapshot it archived; any missing file, or a failed check, skips rotation with a log line.
 - Verified with `go test ./...`, `make build`, and the built binary on a scratchpad fixture (`keep: 2`, two older archives): 1 of 2 files missing → three archives and the log line; file restored → next run rotated back to two.
 - **Review** (before merge): merged `main` (#122). No code problem found: the check runs `CheckFiles` on the archived snapshot, a failed check skips rotation, `keep: 0` never checks or deletes. The Backups section now says that while files stay missing every start adds an archive, and that rotation resumes once the files are back or their entries are deleted in the app. Re-verified with the built binary (`keep: 2`, two older archives): 2 of 3 files missing → three archives and the log line; files restored → rotated to two. Left as specified: the incomplete archive still counts toward `keep`, so the first complete run after a restore keeps it and drops the older complete ones (the new archive holds every file).
+
+## 2026-11-25 — Release v0.9.0, deployed on this computer
+
+Tagged `v0.9.0` on `main` (536fad3) and pushed the tag. The release pipeline (run 45491677403) passed every job and published the [GitHub release](https://github.com/vtellier/OpenMaintenance/releases/tag/v0.9.0) with the Linux and Windows binaries.
+
+Changes bundled in this release (since v0.8.0):
+- **Larger documents** (issue #119): equipment documents up to 50 MB; a refused upload shows the server's reason.
+- **Refuse to start when none of the attached files are found** (issue #121): a database moved without its `files/` folder stops startup before any backup is written.
+- **A missing attached file says so in the app** (issue #122): `File.missing` in the API; "File missing on server" in the Documents tab, a placeholder for photos, and the entry can still be deleted.
+- **An incomplete backup never rotates a complete one away** (issue #123).
+
+No schema change: rolling back to v0.8.0 is safe.
+
+Deployed to the local install (`openmaintenance.service`, `/opt/openmaintenance`, port 20100): binary installed as `openmaintenance-v0.9.0`, symlink repointed, service restarted. Before deploying, all 16 attached files the live database references were checked present. After the restart, `/api/version` answers `v0.9.0`, no missing-file warning was logged, and the startup backup (`database.20261125-082323.tar.gz`, 43.8 MB) holds the files.
