@@ -47,8 +47,14 @@ test('...', async ({ page, expectErrors }) => {
 Every declared error must be logged, and any other error still fails the
 test. Keep declarations narrow. An error the app logs by mistake is a bug: fix
 it, or open an issue and declare that exact message with a comment that points
-to the issue. See the non-regression-test skill
-(`.agents/skills/non-regression-test/SKILL.md`) for the matchers.
+to the issue. End each spec on an assertion: the fixture waits one frame and
+one task before the check, not for longer timers. See the non-regression-test
+skill (`.agents/skills/non-regression-test/SKILL.md`) for the matchers.
+
+The fixture also keeps the suite off the internet. The Google Fonts
+stylesheet is answered with an empty one, so no font file is downloaded and
+the pages use the fallback fonts. Any other request that leaves `localhost`
+is blocked, which fails the test. Requests to the app itself are not touched.
 
 ## Index
 
