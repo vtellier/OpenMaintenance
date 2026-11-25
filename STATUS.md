@@ -777,3 +777,13 @@ Deployed to the local install (`openmaintenance.service`, `/opt/openmaintenance`
   - Checked on the built binary with seeded data and a live trigger on the reading write. Logging answered 500 with no intervention added and the reading unchanged.
   - Moving an intervention with a photo to another equipment answered 500. The intervention, its photo and the target's reading stayed put.
   - With the trigger dropped, logging added the intervention and raised the reading (512 → 532). The move put the photo under the new equipment and raised that equipment's reading (230 → 532).
+
+## 2026-11-25 — Attachment storage hardening (issue #138)
+
+- Branch `fix/issue-138-attachment-store-hardening`, implemented by a subagent. Three weaknesses in `internal/attachments/store.go`, found by inspection.
+- **Spec:** the upload and serve steps in `doc/file-storage.md`.
+- **Test first** (in-package, `backend/internal/attachments/store_test.go`): two package-internal swap points, `createFile` and `randSource`, make the stored file's sync or close fail, or the random source fail. All three cases failed before the fix, because `Add` stored the attachment anyway.
+- **Fix:**
+  - `Add` syncs the stored file and checks its close, as `copyFile` does. On failure it removes the file and inserts no row.
+  - `randomName` returns an error instead of the fixed name `file`, and `Add` fails with it.
+  - Reading each attachment's type from disk in `List` and `Open` is kept as an accepted cost: an owner has few files, and storing the type would need a migration. A comment beside `attachment()` says so.
