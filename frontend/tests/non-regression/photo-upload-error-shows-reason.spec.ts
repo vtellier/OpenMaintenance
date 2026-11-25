@@ -7,7 +7,7 @@ const API = 'http://127.0.0.1:3001/api'
  * instead of the backend's reason, so a photo over the cap or a file that is
  * not an image gave the user no clue why it was refused.
  * Issue: #129
- * Fixed in: open
+ * Fixed in: d4f8e9a (issue #129)
  */
 
 /** Creates an equipment with one intervention and opens it from History. */
