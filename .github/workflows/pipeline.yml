@@ -56,6 +56,11 @@ jobs:
         working-directory: frontend
         run: pnpm run typecheck
 
+      # React's hooks rules only (ADR 0005); any warning fails the step.
+      - name: Lint frontend
+        working-directory: frontend
+        run: pnpm lint
+
       - name: Run frontend unit tests
         working-directory: frontend
         run: pnpm test:unit

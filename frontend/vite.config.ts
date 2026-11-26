@@ -2,8 +2,7 @@
 import path from 'node:path'
 import { execSync } from 'node:child_process'
 import { defineConfig } from 'vite'
-
-const arrowPackages = ['@arrow-js/core', '@arrow-js/framework']
+import react from '@vitejs/plugin-react'
 
 // Timezones the unit tests run under: UTC, two east of it (UTC+1/+2 and
 // UTC+14) and two west (UTC−5/−4 and UTC−11).
@@ -18,6 +17,7 @@ function getVersion(): string {
 }
 
 export default defineConfig({
+  plugins: [react()],
   server: {
     host: '127.0.0.1',
     port: 5173,
@@ -30,9 +30,6 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
       '@generated': path.resolve(__dirname, 'generated'),
     },
-  },
-  optimizeDeps: {
-    exclude: arrowPackages,
   },
   define: {
     __APP_VERSION__: JSON.stringify(getVersion()),
