@@ -7,13 +7,17 @@ import { expect, test } from '../fixtures'
  *
  * A directory with no break opportunity (no hyphen, no space) stayed on one
  * line, so Settings grew wider than the phone and the browser zoomed it out;
- * the tab bar then no longer took taps. The backup list is stubbed so the
- * spec does not depend on where the backend runs.
+ * the tab bar then no longer took taps. The version/update line uses the
+ * same class, so the update status is stubbed with a long, unbreakable
+ * version too. The long backup file name guards the name cell's ellipsis.
+ * The backup list is stubbed so the spec does not depend on where the
+ * backend runs.
  *
  * Runs only in the `mobile` project (playwright.config.ts).
  */
 
 const longDirectory = '/home/maintainer/applications/openmaintenance/production/installation/current/backups'
+const longVersion = 'v0.5.0-rc.1+build.20260622140000averyveryverylongbuildmetadatawithnobreakopportunity'
 const longFileName = 'maintenance.20260622140000averyveryverylongbackupfilenamewithnobreakopportunity.tar.gz'
 
 test('a long backup directory wraps, and the page stays as wide as the phone', async ({ page }) => {
@@ -25,9 +29,18 @@ test('a long backup directory wraps, and the page stays as wide as the phone', a
       files: [{ name: longFileName, size: 4_404_019, created_at: '2026-06-22T14:00:00Z' }],
     },
   }))
+  await page.route('**/api/update-status', route => route.fulfill({
+    json: {
+      current_version: 'v0.4.1',
+      latest_version: longVersion,
+      update_available: true,
+      release_url: 'https://github.com/vtellier/OpenMaintenance/releases',
+    },
+  }))
 
   await page.goto('/settings')
   await expect(page.getByText(`Directory: ${longDirectory}`)).toBeVisible()
+  await expect(page.getByRole('link', { name: `⬆ ${longVersion} available` })).toBeVisible()
   await expect(page.locator('.backup-file-item')).toHaveCount(1)
 
   const width = page.viewportSize()!.width
