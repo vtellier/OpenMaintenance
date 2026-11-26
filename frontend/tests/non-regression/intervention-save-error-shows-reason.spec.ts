@@ -1,6 +1,4 @@
-import { expect, failedRequest, test } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, expect, failedRequest, test } from '../fixtures'
 
 /**
  * Bug: saving an intervention with a future date shows a generic error

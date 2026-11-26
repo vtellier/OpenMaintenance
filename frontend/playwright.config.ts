@@ -1,13 +1,18 @@
 import { defineConfig, devices } from '@playwright/test'
+import { APP_URL, EXTERNAL_SERVER } from './tests/target'
 
 /**
  * Playwright config for OpenMaintenance non-regression tests.
  *
- * Servers: the `webServer` entries below start the backend (:3001) and the
- * Vite dev server (:5173) when they are not already up — that is how CI runs
- * the suite. `reuseExistingServer: true` means an already-running pair
- * (`make dev`, or `go run .` in `backend/` plus `pnpm dev` in `frontend/`) is
- * used as-is, so the local workflow is unchanged.
+ * Servers: by default the `webServer` entries below start the backend (:3001)
+ * and the Vite dev server (:5173) when they are not already up — that is how
+ * the `test-frontend` CI job runs the suite. `reuseExistingServer: true` means
+ * an already-running pair (`make dev`, or `go run .` in `backend/` plus
+ * `pnpm dev` in `frontend/`) is used as-is, so the local workflow is unchanged.
+ *
+ * With `OM_TEST_BASE_URL` set (see `tests/target.ts`), Playwright starts no
+ * server and runs every page and API call against that one origin instead.
+ * `pnpm test:prod` sets it to the binary `make build` produces.
  *
  * The global setup then wipes the DB via the API before the test run.
  *
@@ -23,10 +28,12 @@ export default defineConfig({
   reporter: [['list']],
   globalSetup: './tests/global-setup.ts',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: APP_URL,
     trace: 'retain-on-failure',
   },
-  webServer: [
+  // An external server is never started nor reused here: whoever set
+  // OM_TEST_BASE_URL runs it.
+  webServer: EXTERNAL_SERVER ? [] : [
     {
       // Backend. `/api/version` is the readiness probe — there is no
       // `/api/health` endpoint. `cwd` is resolved against this config file.

@@ -13,6 +13,7 @@
     "clean:api": "rm -rf generated/api/* && mkdir -p generated/api",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
+    "test:prod": "scripts/test-prod.sh",
     "test:unit": "vitest run"
   },
   "dependencies": {

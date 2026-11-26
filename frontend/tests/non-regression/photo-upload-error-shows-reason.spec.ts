@@ -1,6 +1,4 @@
-import { expect, failedRequest, test, type Page } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, expect, failedRequest, test, type Page } from '../fixtures'
 
 /**
  * Bug: a refused photo upload showed a generic "Failed to upload photo"

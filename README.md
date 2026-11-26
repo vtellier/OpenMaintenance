@@ -165,6 +165,12 @@ cd frontend && pnpm test
 
 A test fails when the page throws an uncaught error or logs a console error it did not declare. The suite needs no internet access: it stubs the Google Fonts stylesheet and blocks any other outside request. It runs on a desktop browser and, for the navigation and phone-layout specs, on a phone viewport. `frontend/tests/non-regression/README.md` maps every flow of `doc/gui/` to the specs that check it.
 
+Run the same suite against the production build: it runs `make build`, then starts the binary from a temporary directory with its own config and database on port 3201, so your data is untouched and it can run next to `make dev`:
+
+```bash
+cd frontend && pnpm test:prod
+```
+
 Populate a running instance with a demo dataset (overdue / due-soon / OK statuses). It only runs on an empty database, and creates nothing on one that already holds data:
 
 ```bash

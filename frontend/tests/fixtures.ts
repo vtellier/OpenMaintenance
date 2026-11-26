@@ -1,4 +1,5 @@
 import { test as base, expect, type BrowserContext, type Page, type Route } from '@playwright/test'
+import { API, APP_URL, BACKEND_URL } from './target'
 
 /**
  * Every spec imports `test` and `expect` from here, not from
@@ -93,8 +94,11 @@ function formatErrors(errors: LoggedError[]): string {
   return errors.map(e => `  - ${e.kind}: ${e.text}${e.where ? ` (${e.where})` : ''}`).join('\n')
 }
 
-/** The hosts the app is served from: the dev server, the backend, a preview. */
-const APP_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
+/**
+ * The hosts the app is served from: the dev server, the backend, a preview,
+ * or the server `OM_TEST_BASE_URL` names (`tests/target.ts`).
+ */
+const APP_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', new URL(APP_URL).hostname])
 
 /**
  * Keeps every test off the internet, so a slow or unreachable third party
@@ -191,8 +195,12 @@ export const test = base.extend<Fixtures>({
 export { expect }
 export type { Page } from '@playwright/test'
 
-/** The backend's REST API, for the data a spec sets up. */
-export const API = 'http://127.0.0.1:3001/api'
+/**
+ * The backend's REST API (`API`) and origin (`BACKEND_URL`, for a stored
+ * file's `url`), for the data a spec sets up and checks. Never write a host or
+ * a port in a spec: these follow `OM_TEST_BASE_URL` (`tests/target.ts`).
+ */
+export { API, BACKEND_URL }
 
 /**
  * POSTs `data` to the API path (e.g. `/equipments`) and returns the JSON

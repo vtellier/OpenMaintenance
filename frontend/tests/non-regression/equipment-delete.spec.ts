@@ -1,6 +1,4 @@
-import { API, apiPost, expect, test } from '../fixtures'
-
-const BACKEND = 'http://127.0.0.1:3001'
+import { API, apiPost, BACKEND_URL, expect, test } from '../fixtures'
 
 /**
  * Flow, not a bug: deleting an equipment from its detail header
@@ -18,7 +16,7 @@ test('Delete asks first, then removes the equipment with its tasks, history and 
   })
   expect(upload.ok(), await upload.text()).toBeTruthy()
   const file = await upload.json()
-  expect((await page.request.get(`${BACKEND}${file.url}`)).ok()).toBeTruthy()
+  expect((await page.request.get(`${BACKEND_URL}${file.url}`)).ok()).toBeTruthy()
 
   await page.goto(`/equipments/${eq.id}`)
   await page.locator('.detail-header').getByRole('link', { name: 'Delete', exact: true }).click()
@@ -42,7 +40,7 @@ test('Delete asks first, then removes the equipment with its tasks, history and 
   expect(tasks.map(t => t.id)).not.toContain(task.id)
   const interventions: { task_id?: number | null }[] = await (await page.request.get(`${API}/interventions`)).json()
   expect(interventions.map(i => i.task_id)).not.toContain(task.id)
-  expect((await page.request.get(`${BACKEND}${file.url}`)).status()).toBe(404)
+  expect((await page.request.get(`${BACKEND_URL}${file.url}`)).status()).toBe(404)
 })
 
 test('Cancel on the delete page keeps the equipment', async ({ page }) => {

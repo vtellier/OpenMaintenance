@@ -1,6 +1,4 @@
-import { expect, test, type Page } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, expect, test, type Page } from '../fixtures'
 
 /**
  * Bug: an attached file whose row exists but whose bytes are gone from the

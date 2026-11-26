@@ -1,6 +1,4 @@
-import { expect, failedRequest, test } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, expect, failedRequest, test } from '../fixtures'
 
 /**
  * Bug: a failed Dashboard "Done" showed a generic "Failed to save

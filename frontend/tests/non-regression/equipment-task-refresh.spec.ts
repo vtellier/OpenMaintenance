@@ -1,6 +1,4 @@
-import { expect, test } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, expect, test } from '../fixtures'
 
 /**
  * Bug: Equipment task view does not refresh dynamically after marking a task as done

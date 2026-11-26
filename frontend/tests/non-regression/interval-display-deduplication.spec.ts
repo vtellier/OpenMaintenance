@@ -1,6 +1,4 @@
-import { expect, test } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, expect, test } from '../fixtures'
 
 /**
  * Bug: Interval display shows "Every 100h or Every 6mo" — redundant second "Every"
