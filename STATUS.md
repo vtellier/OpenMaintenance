@@ -898,8 +898,7 @@ Deployed to the local install (`openmaintenance.service`, `/opt/openmaintenance`
 ## 2026-11-26 — A long backup directory wraps on a phone (issue #176)
 
 - Branch `fix/issue-176-settings-path-wraps`, implemented by a subagent. Fixed before the React migration freezes `style.css` and `frontend/tests/` (#155): the bug made the mobile specs that tap a tab from Settings flaky on dev runs, whose backup directory under `~/.cache/go-build/…` can be long.
-- **Failing test first:** `mobile-settings-long-backup-path.spec.ts` (`mobile` project) stubs `/api/backups` with a long directory that has no hyphen or space, and a long backup file name. It asserts the page is no wider than the phone and that the Dashboard tab still opens Dashboard. On the old code the page measured 631 px on the 412 px Pixel 7.
+- **Failing test first:** `mobile-settings-long-backup-path.spec.ts` (`mobile` project) stubs `/api/backups` with a long directory that has no hyphen or space and a long backup file name (which guards the name cell's ellipsis), and `/api/update-status` with a long, unbreakable version. It asserts the page is no wider than the phone and that the Dashboard tab still opens Dashboard. On the old code the page measured 631 px on the 412 px Pixel 7.
 - **Fix:** `overflow-wrap: anywhere` on `.settings-about__line`, so the directory, the version line and the update lines wrap inside their column. Normal-length values look the same; class names are unchanged. The backup file names already fit: the name cell ellipsizes. `doc/gui/settings.md` says the directory wraps.
-- **Workaround:** `pnpm test:prod` still runs the binary from a fresh `/tmp` directory, for isolation; its comment and the test README no longer say it has to be short.
+- **Workaround:** `pnpm test:prod` still runs the binary from a fresh `/tmp` directory, for isolation; its comment and the test README give only that reason.
 - **Checks:** `pnpm run build`, `pnpm run typecheck`, the specs type-checked with a throwaway config over `tests/`, both selector greps at zero; `pnpm test` and `pnpm test:prod` 128 passed, 9 skipped.
-
