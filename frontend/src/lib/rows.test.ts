@@ -206,4 +206,9 @@ describe('toBackupFileRow', () => {
     expect(row).toEqual({ name: 'maintenance-20260621.tar.gz', size: 4096, createdAt: '2026-06-21T22:30:00.000Z' })
     expectNoDate(row)
   })
+
+  it('holds an empty string when the API breaks its contract and sends no time', () => {
+    // created_at is required, so the generated client gives an invalid Date.
+    expect(toBackupFileRow(BackupFileFromJSON({ name: 'x.tar.gz', size: 1 })).createdAt).toBe('')
+  })
 })
