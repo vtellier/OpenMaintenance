@@ -26,7 +26,7 @@ The branching decision itself is Step 3.5 of [`.agents/skills/bug-fix/SKILL.md`]
 - Run command: `pnpm test` from `frontend/`; `pnpm test:prod` runs the same suite against the binary `make build` produces (see [Running](#running))
 - Where the suite runs: `frontend/tests/target.ts`. Specs take `API` (and `BACKEND_URL` for a stored file's URL) from `../fixtures`: never write a host or a port in a spec, or the production-build run misses it.
 
-Playwright's `webServer` block starts both servers itself, or reuses them if they are already running:
+Unless `OM_TEST_BASE_URL` is set (see `frontend/tests/target.ts`), Playwright's `webServer` block starts both servers itself, or reuses them if they are already running:
 - backend on `http://localhost:3001` (`go run .` from `backend/`)
 - frontend on `http://localhost:5173` (`pnpm dev` from `frontend/`)
 
@@ -252,6 +252,6 @@ pnpm test:prod       # all specs against the production build (make build, then 
 
 Exit code is 0 on pass, non-zero on fail — used as-is by the `test-frontend` and `test-frontend-prod` jobs in CI (`.github/workflows/pipeline.yml`).
 
-`OM_TEST_BASE_URL=http://127.0.0.1:<port> pnpm test` runs the suite against a server that is already running and serves the app and `/api` together (the binary, or the reference app of #155). Playwright then starts and reuses nothing. The global setup wipes that server's data. See "Against the production build" in `frontend/tests/non-regression/README.md`.
+`OM_TEST_BASE_URL=http://127.0.0.1:<port> pnpm test` runs the suite against a server that is already running and serves the app and `/api` together (the binary, or the reference app of #155). Playwright then starts and reuses nothing. **It wipes that server's data**: the global setup deletes every equipment and group there. It refuses a server that already holds data unless `OM_TEST_ALLOW_WIPE=1` is set. For the reference app of #155, run the suite first on an empty database, then reset its `maintenance.db` and `files/` and seed it (`OM_BASE_URL=http://127.0.0.1:3101 make seed`). See "Against any running server: `OM_TEST_BASE_URL`" in `frontend/tests/non-regression/README.md` for the steps.
 
 A spec that passes under `pnpm test` but fails under `pnpm test:prod` is either a production-only bug (open an issue, do not weaken the spec) or a spec that hard-codes the dev server's host or port.

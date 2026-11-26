@@ -82,10 +82,28 @@ must serve the app and its `/api` together, as the binary does.
 OM_TEST_BASE_URL=http://127.0.0.1:3101 pnpm test
 ```
 
-Step 1.1 of the React migration (#155) points the suite at the reference app,
-the binary built from `pre-react`, this way. The global setup deletes every
-equipment on the server it targets, so never point it at a server whose data
-you want to keep.
+> **Warning: `OM_TEST_BASE_URL` wipes whatever server it points at.** The
+> global setup deletes every equipment and group there, and the specs leave
+> about a hundred test equipments behind. To protect a seeded app, the global
+> setup refuses a server at `OM_TEST_BASE_URL` that already holds an equipment
+> or a group, unless `OM_TEST_ALLOW_WIPE=1` is set. Set it only for a server
+> whose data you are happy to lose.
+
+Step 1.1 of the React migration (#155) checks the suite against the reference
+app (the binary built from `pre-react`, on :3101 in its own directory), which
+must end up seeded with the demo data for the screenshot script. `make seed`
+only seeds an empty database, so run the suite **first**, then reset and seed:
+
+1. Start the reference app on an empty database, and run
+   `OM_TEST_BASE_URL=http://127.0.0.1:3101 pnpm test` from `frontend/`.
+2. Stop the reference app, and delete its `maintenance.db` and its `files/`
+   directory (both in the reference app's own directory).
+3. Start it again, and seed it from the repo root:
+   `OM_BASE_URL=http://127.0.0.1:3101 make seed`.
+
+To check the suite again later, repeat all three steps. Or run the suite
+against a second copy of the reference binary, in a directory of its own with
+its own `config.yaml` and port, and keep the seeded copy for screenshots.
 
 ## Adding a new test
 
