@@ -3,10 +3,9 @@ import { EquipmentApi, TaskApi, GroupApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { iconPicker } from '@/components/IconPicker'
 import { groupPicker } from '@/components/GroupPicker'
-import { extractErrorMessage } from '@/lib/format'
-import { toApiDate, today } from '@/lib/calendar-date'
-import { GroupRow, toEquipmentRow, toGroupRow, toTaskRow } from '@/lib/rows'
-import { decommissioningDateAllowed } from '@/lib/decommissioning'
+import { today } from '@/lib/calendar-date'
+import { GroupRow, toEquipmentRow, toGroupRow } from '@/lib/rows'
+import { canSaveEdit, decommissioningInvalid, editFormOf, saveEdit, turningOn } from '@/lib/equipmentForm'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -29,8 +28,7 @@ export function EquipmentEditPage(idParam: string) {
       tracksHours: false,
       originalTracksHours: false,
       hours: 0,
-      // Floor for the initial reading when turning the hour-meter on: the
-      // reading kept from an earlier tracking period (the meter cannot go back).
+      // The floor for the reading when turning the hour-meter on (equipmentForm.ts).
       minHours: 0,
       loaded: false,
       saving: false,
@@ -44,18 +42,8 @@ export function EquipmentEditPage(idParam: string) {
           equipmentApi.getEquipment({ id: equipmentId }),
           groupApi.listGroups(),
         ])
-        const eq = toEquipmentRow(equipment)
         state.groups = groups.map(toGroupRow)
-        state.groupId = eq.groupId ?? null
-        state.name = eq.name ?? ''
-        state.description = eq.description ?? ''
-        state.icon = eq.icon || '🔧'
-        state.commissionedAt = eq.commissionedAt ?? ''
-        state.decommissionedAt = eq.decommissionedAt ?? ''
-        state.tracksHours = eq.tracksHours ?? false
-        state.originalTracksHours = state.tracksHours
-        state.hours = eq.hours ?? 0
-        state.minHours = eq.hours ?? 0
+        Object.assign(state, editFormOf(toEquipmentRow(equipment)))
       } catch {
         state.error = 'Failed to load equipment'
       } finally {
@@ -65,52 +53,22 @@ export function EquipmentEditPage(idParam: string) {
 
     load()
 
-    // The form only asks for hours while turning the hour-meter on. Once it is
-    // on, the reading changes through "Update hours", never through this form.
-    const turningOn = () => state.tracksHours && !state.originalTracksHours
-    const hoursTooLow = () => turningOn() && state.hours < state.minHours
-    // Not after today, nor before the date of commissioning.
-    const decommissioningInvalid = () => !decommissioningDateAllowed(state.decommissionedAt, state.commissionedAt, today())
+    // Read from the state on each call, so a slot that calls it updates.
+    const canSave = () => canSaveEdit(state, today())
 
-    async function onSubmit(skipConfirmCheck = false) {
-      if (!state.name.trim() || hoursTooLow() || decommissioningInvalid()) return
+    // confirmed: the user has confirmed turning the hour-meter on.
+    async function onSubmit(confirmed = false) {
+      if (!canSave()) return
       state.saving = true
       state.error = null
-
-      if (state.tracksHours && !state.originalTracksHours && !skipConfirmCheck) {
-        try {
-          const tasks = (await taskApi.listTasksByEquipment({ equipmentId })).map(toTaskRow)
-          const hasHoursInterval = tasks.some(t => t.hoursInterval != null && t.hoursInterval > 0)
-          if (hasHoursInterval) {
-            state.showConfirmTracks = true
-            state.saving = false
-            return
-          }
-        } catch {
-          // proceed without confirmation on error
-        }
-      }
-
-      try {
-        await equipmentApi.updateEquipment({
-          id: equipmentId,
-          equipmentInput: {
-            name: state.name.trim(),
-            description: state.description.trim() || undefined,
-            icon: state.icon.trim() || undefined,
-            groupId: state.groupId,
-            commissionedAt: state.commissionedAt ? toApiDate(state.commissionedAt) : undefined,
-            // An edit without it puts the equipment back in service.
-            decommissionedAt: state.decommissionedAt ? toApiDate(state.decommissionedAt) : undefined,
-            tracksHours: state.tracksHours,
-            hours: turningOn() ? state.hours : undefined,
-          },
-        })
+      const result = await saveEdit(state, equipmentId, { equipments: equipmentApi, tasks: taskApi }, confirmed)
+      if ('saved' in result) {
         window.location.href = backHref
-      } catch (err) {
-        state.error = await extractErrorMessage(err, 'Failed to save equipment')
-        state.saving = false
+        return
       }
+      if ('needsConfirmation' in result) state.showConfirmTracks = true
+      else state.error = result.error
+      state.saving = false
     }
 
     return html`<section class="page">
@@ -156,7 +114,7 @@ export function EquipmentEditPage(idParam: string) {
               <label class="form-field__label" for="decommissioned-at">Decommissioned on</label>
               <input id="decommissioned-at" type="date" min="${() => state.commissionedAt}" max="${() => today()}" .value="${() => state.decommissionedAt}" @input="${(e: Event) => { state.decommissionedAt = (e.target as HTMLInputElement).value }}" />
               <p class="form-field__hint">Set when the equipment leaves service. Its tasks are no longer due; its history is kept.</p>
-              ${() => decommissioningInvalid() ? html`<p class="form-field__error">Cannot be after today, nor before the date of commissioning.</p>` : null}
+              ${() => decommissioningInvalid(state, today()) ? html`<p class="form-field__error">Cannot be after today, nor before the date of commissioning.</p>` : null}
             </div>
             <div class="toggle-row">
               <span class="toggle-row__label">This equipment has an hour-meter</span>
@@ -165,7 +123,7 @@ export function EquipmentEditPage(idParam: string) {
                 <span class="toggle-slider"></span>
               </label>
             </div>
-            ${() => turningOn() ? html`
+            ${() => turningOn(state) ? html`
               <div class="form-field">
                 <label class="form-field__label">Current hours</label>
                 <input type="number" aria-label="Current hours" min="${() => String(state.minHours)}" .value="${() => String(state.hours)}" @input="${(e: Event) => { state.hours = Number((e.target as HTMLInputElement).value) }}" />
@@ -174,7 +132,7 @@ export function EquipmentEditPage(idParam: string) {
             ` : null}
             <div class="form__actions">
               <a href="${backHref}" class="btn">Cancel</a>
-              <button class="btn btn--accent" @click="${() => onSubmit()}" disabled="${() => state.saving || !state.name.trim() || hoursTooLow() || decommissioningInvalid()}">
+              <button class="btn btn--accent" @click="${() => onSubmit()}" disabled="${() => state.saving || !canSave()}">
                 ${() => state.saving ? 'Saving...' : 'Save'}
               </button>
             </div>

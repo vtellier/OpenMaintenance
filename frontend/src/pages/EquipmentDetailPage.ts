@@ -5,7 +5,7 @@ import { formatHours, formatFileSize, buildInterventionMeta, extractErrorMessage
 import { dueTimingText } from '@/lib/dueTiming'
 import { byUrgency } from '@/lib/urgency'
 import { relativeTime, formatTimestampDate, isHoursVeryStale } from '@/lib/timestamp'
-import { formatCalendarDate, toApiDate } from '@/lib/calendar-date'
+import { formatCalendarDate } from '@/lib/calendar-date'
 import { EquipmentRow, FileRow, InterventionRow, TaskRow, toEquipmentRow, toFileRow, toInterventionRow, toTaskRow } from '@/lib/rows'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { InterventionFormSource } from '@/lib/interventionForm'
@@ -14,6 +14,7 @@ import { readingQuestion } from '@/components/ReadingDoubtModal'
 import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
 import { isDecommissioned } from '@/lib/decommissioning'
 import { equipmentInterventions, interventionTaskLabel, lastInterventionOfTask, newestFirst } from '@/lib/interventions'
+import { iconChangeInput } from '@/lib/equipmentForm'
 import { canSaveTask, intervalFromInput, intervalValue, newTaskForm, TaskFormValues, TaskKind, taskFormOf, toTaskInput } from '@/lib/taskForm'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -364,20 +365,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       // Optimistic: reflect the new icon immediately, revert if the save fails.
       state.equipment = { ...eq, icon }
       try {
-        await equipmentApi.updateEquipment({
-          id: equipmentId,
-          equipmentInput: {
-            name: eq.name!,
-            description: eq.description || undefined,
-            icon,
-            // An edit replaces the group: send the current one back.
-            groupId: eq.groupId ?? null,
-            commissionedAt: eq.commissionedAt ? toApiDate(eq.commissionedAt) : undefined,
-            // An edit replaces the decommissioning date too: send it back.
-            decommissionedAt: eq.decommissionedAt ? toApiDate(eq.decommissionedAt) : undefined,
-            tracksHours: eq.tracksHours,
-          },
-        })
+        await equipmentApi.updateEquipment({ id: equipmentId, equipmentInput: iconChangeInput(eq, icon) })
       } catch {
         state.equipment = { ...eq, icon: prev }
         state.iconError = 'Failed to update icon'
