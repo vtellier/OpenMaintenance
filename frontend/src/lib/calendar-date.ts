@@ -63,6 +63,10 @@ export function toApiDate(date: CalendarDate): Date {
 /**
  * Reads the intervention date, which the API still types as a timestamp
  * (`format: date-time`, until #72): the day is the local day of that moment.
+ *
+ * Only for that field: the true timestamps (created_at, updated_at,
+ * hours_updated_at, uploaded_at) are read with fromApiTimestamp
+ * (timestamp.ts), which keeps the moment as an ISO string.
  */
 export function fromApiDateTime(value: Date | null | undefined): CalendarDate | undefined {
   if (value == null || isNaN(value.getTime())) return undefined

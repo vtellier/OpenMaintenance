@@ -13,6 +13,9 @@
  */
 export type Timestamp = Date | string | null | undefined
 
+/** A timestamp as display rows hold it: an ISO string such as '2026-05-14T08:30:00.000Z'. */
+export type IsoTimestamp = string
+
 const MS_PER_DAY = 1000 * 60 * 60 * 24
 const STALE_HOURS_THRESHOLD_DAYS = 7
 const VERY_STALE_HOURS_THRESHOLD_DAYS = 30
@@ -58,8 +61,12 @@ export function isHoursVeryStale(hoursUpdatedAt: Timestamp): boolean {
  * Reads a field the API types as `format: date-time` (created_at, updated_at,
  * hours_updated_at, uploaded_at): the generated client's Date, as the ISO
  * string pages keep. Missing or invalid: undefined.
+ *
+ * The intervention date is also `format: date-time` (until #72) but is a
+ * calendar date: read it with fromApiDateTime (calendar-date.ts), which gives
+ * its local day, not with this function.
  */
-export function fromApiTimestamp(value: Date | null | undefined): string | undefined {
+export function fromApiTimestamp(value: Date | null | undefined): IsoTimestamp | undefined {
   if (value == null || isNaN(value.getTime())) return undefined
   return value.toISOString()
 }
