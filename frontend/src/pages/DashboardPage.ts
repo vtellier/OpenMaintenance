@@ -3,11 +3,11 @@ import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { formatHours } from '@/lib/format'
 import { dueTimingText } from '@/lib/dueTiming'
-import { byUrgency } from '@/lib/urgency'
 import { relativeTime, isHoursStale, isHoursVeryStale } from '@/lib/timestamp'
 import { EquipmentRow, InterventionRow, TaskRow, toEquipmentRow, toInterventionRow, toTaskRow } from '@/lib/rows'
 import { equipmentAvatar } from '@/components/EquipmentAvatar'
-import { freshnessBannerEquipments, sameHoursReading } from '@/lib/hourMeterFreshness'
+import { freshnessBanner, sameHoursReading } from '@/lib/hourMeterFreshness'
+import { dueTaskBlocks } from '@/lib/dashboard'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -106,35 +106,15 @@ export function DashboardPage() {
         if (!state.loaded) return html`<p class="page__empty">Loading...</p>`
         if (state.loadError) return html`<div class="flash flash--error">${state.loadError}</div>`
 
-        // Hour-tracked equipments in service, oldest update first.
-        const hourEquipments = freshnessBannerEquipments(state.equipments)
+        // Computed each time this slot runs, from the state it reads.
+        const { stale: staleHourEqs, fresh: freshHourEqs } = freshnessBanner(state.equipments)
+        const blocks = dueTaskBlocks(state.tasks)
 
-        const staleHourEqs = hourEquipments.filter(eq => isHoursStale(eq.hoursUpdatedAt))
-        const freshHourEqs = hourEquipments.filter(eq => !isHoursStale(eq.hoursUpdatedAt))
-
-        const dueTasks = state.tasks.filter(
-          t => t.dueStatus === 'overdue' || t.dueStatus === 'due_soon'
-        )
-
-        const grouped = new Map<number, TaskRow[]>()
-        for (const task of dueTasks) {
-          const eqId = task.equipmentId
-          if (eqId == null) continue
-          if (!grouped.has(eqId)) grouped.set(eqId, [])
-          grouped.get(eqId)!.push(task)
-        }
-
-        for (const [, tasks] of grouped) tasks.sort(byUrgency)
-
-        // Blocks in the order of their most urgent task.
-        const entries = [...grouped.entries()]
-        entries.sort(([, tasksA], [, tasksB]) => byUrgency(tasksA[0], tasksB[0]))
-
-        const hasDueTasks = entries.length > 0
+        const hasDueTasks = blocks.length > 0
         const hasEquipments = state.equipments.length > 0
 
         return html`
-          ${() => hourEquipments.length > 0 ? html`<div class="hours-banner">
+          ${() => staleHourEqs.length + freshHourEqs.length > 0 ? html`<div class="hours-banner">
             <div class="hours-banner__header">
               <span class="hours-banner__title">Keep your hour-meters fresh</span>
             </div>
@@ -188,7 +168,7 @@ export function DashboardPage() {
             // same-shaped templates are updated in place, and static arrays or
             // templates keep their first render (Arrow.js Gotcha 9, #109).
             return html`<div class="dashboard-tasks">
-              ${() => entries.map(([eqId, tasks]) => {
+              ${() => blocks.map(({ equipmentId: eqId, tasks }) => {
                 const eq = state.equipments.find(e => e.id === eqId)
                 if (!eq) {
                   console.warn(`DashboardPage: tasks reference unknown equipment ${eqId}`)

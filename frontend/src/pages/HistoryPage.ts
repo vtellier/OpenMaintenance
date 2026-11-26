@@ -2,33 +2,20 @@ import { component, html, reactive } from '@arrow-js/core'
 import { EquipmentApi, TaskApi, InterventionApi, GroupApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { buildInterventionMeta } from '@/lib/format'
-import { formatCalendarDate, compareCalendarDates } from '@/lib/calendar-date'
+import { formatCalendarDate } from '@/lib/calendar-date'
 import { EquipmentRow, GroupRow, InterventionRow, TaskRow, toEquipmentRow, toGroupRow, toInterventionRow, toTaskRow } from '@/lib/rows'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { InterventionFormSource } from '@/lib/interventionForm'
 import { ReadingDoubt, readingDoubt } from '@/lib/readingDoubt'
 import { readingQuestion } from '@/components/ReadingDoubtModal'
-import { DEFAULT_GROUP_ICON, HistoryFilter, byName, interventionsFor } from '@/lib/equipmentGroups'
+import { DEFAULT_GROUP_ICON, HistoryFilter, byName } from '@/lib/equipmentGroups'
 import { equipmentLabel } from '@/lib/decommissioning'
+import { filterValue, historyItemLabel, historyList, parseFilterValue } from '@/lib/history'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
 const interventionApi = new InterventionApi(apiConfig)
 const groupApi = new GroupApi(apiConfig)
-
-// The equipment filter's select values: "<id>" for an equipment, "g:<id>"
-// for a group, "" for all.
-function filterValue(filter: HistoryFilter): string {
-  if (filter == null) return ''
-  return 'groupId' in filter ? 'g:' + filter.groupId : String(filter.equipmentId)
-}
-
-function parseFilterValue(value: string): HistoryFilter {
-  const isGroup = value.startsWith('g:')
-  const id = parseInt(isGroup ? value.slice(2) : value, 10)
-  if (Number.isNaN(id)) return null
-  return isGroup ? { groupId: id } : { equipmentId: id }
-}
 
 export function HistoryPage() {
   return component(() => {
@@ -74,18 +61,6 @@ export function HistoryPage() {
     }
 
     load()
-
-    function getEquipmentForTask(taskId: number | undefined): EquipmentRow | undefined {
-      if (taskId == null) return undefined
-      const task = state.tasks.find(t => t.id === taskId)
-      if (!task || task.equipmentId == null) return undefined
-      return state.equipments.find(e => e.id === task.equipmentId)
-    }
-
-    function getTask(taskId: number | undefined): TaskRow | undefined {
-      if (taskId == null) return undefined
-      return state.tasks.find(t => t.id === taskId)
-    }
 
     // Built when opened, outside any reactive expression: the form prefills
     // from the page's data once, and a later change to that data does not
@@ -192,15 +167,7 @@ export function HistoryPage() {
         let listContent = null as ReturnType<typeof html> | null
 
         if (loaded && !loadError) {
-          let list = interventionsFor([...interventions], filter, equipments, tasks)
-          // Calendar dates ('YYYY-MM-DD') compare in calendar order.
-          if (filterDateFrom) {
-            list = list.filter(inv => inv.date != null && inv.date >= filterDateFrom)
-          }
-          if (filterDateTo) {
-            list = list.filter(inv => inv.date != null && inv.date <= filterDateTo)
-          }
-          list.sort((a, b) => compareCalendarDates(b.date, a.date))
+          const list = historyList(interventions, { filter, from: filterDateFrom, to: filterDateTo }, equipments, tasks)
 
           if (list.length === 0) {
             listContent = equipments.length === 0
@@ -217,21 +184,11 @@ export function HistoryPage() {
               </div>
               ${() => currentList.map(inv => {
                 const dateStr = formatCalendarDate(inv.date)
-                const parts: string[] = []
-                if (inv.taskId == null) {
-                  const eq = equipments.find((e: EquipmentRow) => e.id === inv.equipmentId)
-                  if (eq?.name) parts.push(eq.name)
-                  if (inv.exceptionalLabel) parts.push(inv.exceptionalLabel)
-                } else {
-                  const eq = getEquipmentForTask(inv.taskId)
-                  const task = getTask(inv.taskId)
-                  if (eq?.name) parts.push(eq.name)
-                  if (task?.name) parts.push(task.name)
-                }
+                const label = historyItemLabel(inv, equipments, tasks)
                 const metaStr = buildInterventionMeta(inv)
                 return html`<div class="history-item">
                   <span class="history-item__date">${dateStr}</span>
-                  <span class="history-item__task">${parts.join(' / ')}</span>
+                  <span class="history-item__task">${label}</span>
                   <span class="history-item__meta" title="${metaStr}">${metaStr}</span>
                   <div class="history-item__actions">
                     <button class="btn btn--small" @click="${() => onEditClick(inv)}">Edit</button>
@@ -250,7 +207,7 @@ export function HistoryPage() {
                 <option value="">All equipments</option>
                 ${() => groups.length > 0 ? html`<optgroup label="Groups">
                   ${() => [...groups].sort(byName).map(g => {
-                    const value = 'g:' + g.id
+                    const value = filterValue({ groupId: g.id! })
                     const label = (g.icon || DEFAULT_GROUP_ICON) + ' ' + g.name
                     return selected === value
                       ? html`<option value="${value}" selected="selected">${label}</option>`
@@ -259,7 +216,7 @@ export function HistoryPage() {
                 </optgroup>` : null}
                 <optgroup label="Equipments">
                   ${() => [...equipments].sort(byName).map(eq => {
-                    const value = String(eq.id)
+                    const value = filterValue({ equipmentId: eq.id! })
                     // A decommissioned equipment is still listed, marked.
                     const label = equipmentLabel(eq)
                     return selected === value

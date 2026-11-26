@@ -5,7 +5,7 @@ import { formatHours, formatFileSize, buildInterventionMeta, extractErrorMessage
 import { dueTimingText } from '@/lib/dueTiming'
 import { byUrgency } from '@/lib/urgency'
 import { relativeTime, formatTimestampDate, isHoursVeryStale } from '@/lib/timestamp'
-import { formatCalendarDate, compareCalendarDates, toApiDate } from '@/lib/calendar-date'
+import { formatCalendarDate, toApiDate } from '@/lib/calendar-date'
 import { EquipmentRow, FileRow, InterventionRow, TaskRow, toEquipmentRow, toFileRow, toInterventionRow, toTaskRow } from '@/lib/rows'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { InterventionFormSource } from '@/lib/interventionForm'
@@ -13,6 +13,7 @@ import { ReadingDoubt, readingDoubt } from '@/lib/readingDoubt'
 import { readingQuestion } from '@/components/ReadingDoubtModal'
 import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
 import { isDecommissioned } from '@/lib/decommissioning'
+import { equipmentInterventions, interventionTaskLabel, lastInterventionOfTask, newestFirst } from '@/lib/interventions'
 
 type TaskKind = 'interval' | 'expiry'
 
@@ -90,13 +91,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
         const newTasks = ts.map(toTaskRow)
         const newAllTasks = allTs.map(toTaskRow)
-
-        const taskIds = new Set(ts.map(t => t.id))
-        const newInterventions = interventionsResponse.filter(
-          inv =>
-            (inv.taskId != null && taskIds.has(inv.taskId)) ||
-            (inv.taskId == null && inv.equipmentId === equipmentId)
-        ).map(toInterventionRow)
+        const newInterventions = equipmentInterventions(interventionsResponse.map(toInterventionRow), equipmentId, newTasks)
 
         const newEquipment = toEquipmentRow(eq)
 
@@ -126,22 +121,9 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
     load()
     loadDocuments()
 
+    // Read from the state on each call, so a slot that calls it updates.
     function getLastIntervention(taskId: number | undefined): InterventionRow | null {
-      if (taskId == null) return null
-      let latest: InterventionRow | null = null
-      for (const inv of state.interventions) {
-        if (inv.taskId === taskId) {
-          if (!latest || compareCalendarDates(inv.date, latest.date) > 0) {
-            latest = inv
-          }
-        }
-      }
-      return latest
-    }
-
-    function getTaskName(taskId: number | undefined): string {
-      const t = state.allTasks.find((tt: TaskRow) => tt.id === taskId)
-      return t?.name || ''
+      return lastInterventionOfTask(state.interventions, taskId)
     }
 
     function sortedTasks(): TaskRow[] {
@@ -597,7 +579,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           <button class="btn btn--accent" @click="${onAddFromHistory}">+ Log intervention</button>
         </div>
         ${() => {
-          const sorted = [...state.interventions].sort((a, b) => compareCalendarDates(b.date, a.date))
+          const sorted = newestFirst(state.interventions)
           if (sorted.length === 0) {
             return html`<p class="page__empty">No history yet for this equipment.</p>`
           }
@@ -610,7 +592,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
             </div>
             ${() => sorted.map(inv => {
               const dateStr = formatCalendarDate(inv.date)
-              const taskLabel = inv.taskId == null ? (inv.exceptionalLabel ?? '') : getTaskName(inv.taskId)
+              const taskLabel = interventionTaskLabel(inv, state.allTasks)
               const metaStr = buildInterventionMeta(inv)
               return html`<div class="history-item">
                 <span class="history-item__date">${dateStr}</span>
