@@ -1,9 +1,10 @@
 import { component, html, reactive } from '@arrow-js/core'
 import { EquipmentApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { extractErrorMessage, formatHours } from '@/lib/format'
+import { formatHours } from '@/lib/format'
 import { formatTimestampDate } from '@/lib/timestamp'
 import { toEquipmentRow } from '@/lib/rows'
+import { canUpdateHours, hoursFromInput, hoursUpdateFormOf, saveHoursUpdate } from '@/lib/hoursForm'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 
@@ -25,9 +26,10 @@ export function EquipmentHoursPage(idParam: string) {
     async function load() {
       try {
         const eq = toEquipmentRow(await equipmentApi.getEquipment({ id: equipmentId }))
+        const form = hoursUpdateFormOf(eq)
         state.name = eq.name ?? ''
-        state.currentHours = eq.hours ?? 0
-        state.newHours = eq.hours ?? 0
+        state.currentHours = form.currentHours
+        state.newHours = form.newHours
         state.lastUpdated = eq.hoursUpdatedAt ?? null
       } catch {
         state.error = 'Failed to load equipment'
@@ -38,22 +40,20 @@ export function EquipmentHoursPage(idParam: string) {
 
     load()
 
+    // Read from the state on each call, so a slot that calls it updates.
+    const canSave = () => canUpdateHours(state)
+
     async function onSubmit() {
-      if (state.newHours < state.currentHours) return
+      if (!canSave()) return
       state.saving = true
       state.error = null
-      try {
-        await equipmentApi.updateEquipmentHours({
-          id: equipmentId,
-          equipmentHoursInput: {
-            hours: state.newHours,
-          },
-        })
+      const error = await saveHoursUpdate(equipmentId, state, equipmentApi)
+      if (error == null) {
         window.location.href = backHref
-      } catch (err) {
-        state.error = await extractErrorMessage(err, 'Failed to update hours')
-        state.saving = false
+        return
       }
+      state.error = error
+      state.saving = false
     }
 
     return html`<section class="page">
@@ -85,12 +85,12 @@ export function EquipmentHoursPage(idParam: string) {
 
             <div class="form-field">
               <label class="form-field__label">New hours</label>
-              <input type="number" aria-label="New hours" min="${() => String(state.currentHours)}" .value="${() => String(state.newHours)}" @input="${(e: Event) => { state.newHours = Number((e.target as HTMLInputElement).value) }}" />
+              <input type="number" aria-label="New hours" min="${() => String(state.currentHours)}" .value="${() => String(state.newHours)}" @input="${(e: Event) => { state.newHours = hoursFromInput((e.target as HTMLInputElement).value) }}" />
             </div>
 
             <div class="form__actions">
               <a href="${backHref}" class="btn">Cancel</a>
-              <button class="btn btn--accent" @click="${onSubmit}" disabled="${() => state.saving || state.newHours < state.currentHours}">
+              <button class="btn btn--accent" @click="${onSubmit}" disabled="${() => state.saving || !canSave()}">
                 ${() => state.saving ? 'Saving...' : 'Update hours'}
               </button>
             </div>
