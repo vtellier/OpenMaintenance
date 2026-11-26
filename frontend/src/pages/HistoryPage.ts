@@ -207,7 +207,7 @@ export function HistoryPage() {
                 <option value="">All equipments</option>
                 ${() => groups.length > 0 ? html`<optgroup label="Groups">
                   ${() => [...groups].sort(byName).map(g => {
-                    const value = 'g:' + g.id
+                    const value = filterValue({ groupId: g.id! })
                     const label = (g.icon || DEFAULT_GROUP_ICON) + ' ' + g.name
                     return selected === value
                       ? html`<option value="${value}" selected="selected">${label}</option>`
@@ -216,7 +216,7 @@ export function HistoryPage() {
                 </optgroup>` : null}
                 <optgroup label="Equipments">
                   ${() => [...equipments].sort(byName).map(eq => {
-                    const value = String(eq.id)
+                    const value = filterValue({ equipmentId: eq.id! })
                     // A decommissioned equipment is still listed, marked.
                     const label = equipmentLabel(eq)
                     return selected === value
