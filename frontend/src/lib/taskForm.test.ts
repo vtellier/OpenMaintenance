@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { canSaveTask, intervalFromInput, intervalValue, kindFields, newTaskForm, TaskFormValues, taskFormOf, toTaskInput } from '@/lib/taskForm'
+import { ResponseError } from '@generated/api/runtime'
+import {
+  canSaveTask, intervalFromInput, intervalValue, kindFields, newTaskForm, saveTask, TaskFormValues, taskFormOf, TaskSaver, toTaskInput,
+} from '@/lib/taskForm'
 
 const oilChange: TaskFormValues = {
   name: 'Oil change', description: '', kind: 'interval', hoursInterval: 100, monthsInterval: 12, currentExpiryDate: '',
@@ -123,5 +126,47 @@ describe('toTaskInput', () => {
       equipmentId: 7, name: 'Replace flare', description: undefined, kind: 'expiry',
       hoursInterval: undefined, monthsInterval: undefined, currentExpiryDate: new Date(Date.UTC(2029, 2, 31)),
     })
+  })
+})
+
+describe('saveTask', () => {
+  function fakeApi(fail?: Error) {
+    const created: Parameters<TaskSaver['createTask']>[0][] = []
+    const updated: Parameters<TaskSaver['updateTask']>[0][] = []
+    const api: TaskSaver = {
+      createTask: async (req) => {
+        created.push(req)
+        if (fail) throw fail
+      },
+      updateTask: async (req) => {
+        updated.push(req)
+        if (fail) throw fail
+      },
+    }
+    return { api, created, updated }
+  }
+
+  it('creates the task without a taskId, and resolves to null', async () => {
+    const { api, created, updated } = fakeApi()
+
+    expect(await saveTask(oilChange, { equipmentId: 7, taskId: null }, api)).toBeNull()
+    expect(created).toEqual([{ taskInput: toTaskInput(oilChange, 7) }])
+    expect(updated).toEqual([])
+  })
+
+  it('updates the task with a taskId, and resolves to null', async () => {
+    const { api, created, updated } = fakeApi()
+
+    expect(await saveTask(flare, { equipmentId: 7, taskId: 12 }, api)).toBeNull()
+    expect(updated).toEqual([{ id: 12, taskInput: toTaskInput(flare, 7) }])
+    expect(created).toEqual([])
+  })
+
+  it('resolves to a fixed message on failure, never the backend reason', async () => {
+    const reason = new ResponseError(new Response(JSON.stringify({ error: 'hours_interval requires the equipment to have hour-meter tracking enabled' }), { status: 400 }))
+
+    expect(await saveTask(oilChange, { equipmentId: 7, taskId: null }, fakeApi(reason).api)).toBe('Failed to add task')
+    expect(await saveTask(oilChange, { equipmentId: 7, taskId: 12 }, fakeApi(reason).api)).toBe('Failed to update task')
+    expect(await saveTask(oilChange, { equipmentId: 7, taskId: 12 }, fakeApi(new Error('network')).api)).toBe('Failed to update task')
   })
 })

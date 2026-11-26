@@ -49,6 +49,24 @@ export function toNewEquipmentInput(form: NewEquipmentValues): EquipmentInput {
   }
 }
 
+/** The part of the generated EquipmentApi that Add equipment saves through. */
+export interface EquipmentCreator {
+  createEquipment(req: { equipmentInput: EquipmentInput }): Promise<unknown>
+}
+
+/**
+ * Saves Add equipment. Resolves to null on success, or to the reason it
+ * failed, as the backend gives it. Call only when canAddEquipment.
+ */
+export async function saveNewEquipment(form: NewEquipmentValues, api: EquipmentCreator): Promise<string | null> {
+  try {
+    await api.createEquipment({ equipmentInput: toNewEquipmentInput(form) })
+    return null
+  } catch (err: unknown) {
+    return extractErrorMessage(err, 'Failed to add equipment')
+  }
+}
+
 // ── Edit equipment ──
 
 export interface EquipmentEditValues {

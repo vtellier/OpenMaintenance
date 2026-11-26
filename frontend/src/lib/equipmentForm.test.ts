@@ -3,8 +3,8 @@ import { ResponseError } from '@generated/api/runtime'
 import { EquipmentInput } from '@generated/api/models/EquipmentInput'
 import { Task } from '@generated/api/models/Task'
 import {
-  canAddEquipment, canSaveEdit, decommissioningInvalid, editFormOf, EquipmentEditApi, EquipmentEditValues, hasHoursInterval,
-  hoursTooLow, iconChangeInput, newEquipmentForm, NewEquipmentValues, saveEdit, toEquipmentEditInput, toNewEquipmentInput, turningOn,
+  canAddEquipment, canSaveEdit, decommissioningInvalid, editFormOf, EquipmentCreator, EquipmentEditApi, EquipmentEditValues, hasHoursInterval,
+  hoursTooLow, iconChangeInput, newEquipmentForm, NewEquipmentValues, saveEdit, saveNewEquipment, toEquipmentEditInput, toNewEquipmentInput, turningOn,
 } from '@/lib/equipmentForm'
 
 const utc = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d))
@@ -47,6 +47,38 @@ describe('Add equipment', () => {
 
   it('sends no reading without the hour-meter, whatever was typed', () => {
     expect(toNewEquipmentInput({ ...engine, tracksHours: false, hours: 50 }).hours).toBeUndefined()
+  })
+
+  describe('saveNewEquipment', () => {
+    function fakeApi(fail?: Error) {
+      const calls: Parameters<EquipmentCreator['createEquipment']>[0][] = []
+      const api: EquipmentCreator = {
+        createEquipment: async (req) => {
+          calls.push(req)
+          if (fail) throw fail
+        },
+      }
+      return { api, calls }
+    }
+
+    it('sends the request, and resolves to null', async () => {
+      const { api, calls } = fakeApi()
+
+      expect(await saveNewEquipment(engine, api)).toBeNull()
+      expect(calls).toEqual([{ equipmentInput: toNewEquipmentInput(engine) }])
+    })
+
+    it('resolves to the reason the backend gives', async () => {
+      const { api } = fakeApi(new ResponseError(new Response(JSON.stringify({ error: 'Hours cannot be negative' }), { status: 400 })))
+
+      expect(await saveNewEquipment(engine, api)).toBe('Hours cannot be negative')
+    })
+
+    it('resolves to a fallback without one', async () => {
+      const { api } = fakeApi(new Error('network'))
+
+      expect(await saveNewEquipment(engine, api)).toBe('Failed to add equipment')
+    })
   })
 })
 

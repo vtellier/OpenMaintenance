@@ -13,7 +13,7 @@ import { isDecommissioned } from '@/lib/decommissioning'
 import { cardStatusLine, lastInterventionText, tasksByEquipment } from '@/lib/equipmentCard'
 import { latestEquipmentIntervention } from '@/lib/interventions'
 import { hoursFromInput } from '@/lib/hoursForm'
-import { canAddEquipment, DEFAULT_ICON, NewEquipmentValues, newEquipmentForm, toNewEquipmentInput } from '@/lib/equipmentForm'
+import { canAddEquipment, DEFAULT_ICON, NewEquipmentValues, newEquipmentForm, saveNewEquipment } from '@/lib/equipmentForm'
 import { isCollapsed as isGroupCollapsed, readCollapsed, readShowDecommissioned, toggleCollapsed, writeCollapsed, writeShowDecommissioned } from '@/lib/equipmentsListPrefs'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -103,7 +103,11 @@ export const EquipmentsPage = component(() => {
     state.adding = true
     state.addError = null
     try {
-      await equipmentApi.createEquipment({ equipmentInput: toNewEquipmentInput(addForm()) })
+      const error = await saveNewEquipment(addForm(), equipmentApi)
+      if (error) {
+        state.addError = error
+        return
+      }
       const empty = newEquipmentForm()
       state.showAddModal = false
       state.addName = empty.name
@@ -114,8 +118,6 @@ export const EquipmentsPage = component(() => {
       state.addHours = empty.hours
       state.addGroupId = empty.groupId
       await load()
-    } catch (err) {
-      state.addError = await extractErrorMessage(err, 'Failed to add equipment')
     } finally {
       state.adding = false
     }

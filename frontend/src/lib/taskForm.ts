@@ -86,3 +86,31 @@ export function toTaskInput(form: TaskFormValues, equipmentId: number): TaskInpu
     ...kindFields(form),
   }
 }
+
+/** Which task a save is for: a task of this equipment, or a new one when taskId is null. */
+export interface TaskFormContext {
+  equipmentId: number
+  taskId: number | null
+}
+
+/** The part of the generated TaskApi that the task form saves through. */
+export interface TaskSaver {
+  createTask(req: { taskInput: TaskInput }): Promise<unknown>
+  updateTask(req: { id: number, taskInput: TaskInput }): Promise<unknown>
+}
+
+/**
+ * Saves Add task (no taskId) or Edit task. Resolves to null on success, or to
+ * a fixed message on failure: the backend's reason is not shown. Call only
+ * when canSaveTask.
+ */
+export async function saveTask(form: TaskFormValues, ctx: TaskFormContext, api: TaskSaver): Promise<string | null> {
+  const { equipmentId, taskId } = ctx
+  try {
+    if (taskId == null) await api.createTask({ taskInput: toTaskInput(form, equipmentId) })
+    else await api.updateTask({ id: taskId, taskInput: toTaskInput(form, equipmentId) })
+    return null
+  } catch {
+    return taskId == null ? 'Failed to add task' : 'Failed to update task'
+  }
+}

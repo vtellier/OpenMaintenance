@@ -15,7 +15,7 @@ import { iconPicker } from '@/components/IconPicker'
 import { isDecommissioned } from '@/lib/decommissioning'
 import { equipmentInterventions, interventionTaskLabel, lastInterventionOfTask, newestFirst } from '@/lib/interventions'
 import { DEFAULT_ICON, iconChangeInput } from '@/lib/equipmentForm'
-import { canSaveTask, intervalFromInput, intervalValue, newTaskForm, TaskFormValues, TaskKind, taskFormOf, toTaskInput } from '@/lib/taskForm'
+import { canSaveTask, intervalFromInput, intervalValue, newTaskForm, saveTask, TaskFormValues, TaskKind, taskFormOf } from '@/lib/taskForm'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -193,11 +193,13 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       state.addSaving = true
       state.addError = null
       try {
-        await taskApi.createTask({ taskInput: toTaskInput(addForm(), equipmentId) })
+        const error = await saveTask(addForm(), { equipmentId, taskId: null }, taskApi)
+        if (error) {
+          state.addError = error
+          return
+        }
         state.showAddTask = false
         await load()
-      } catch {
-        state.addError = 'Failed to add task'
       } finally {
         state.addSaving = false
       }
@@ -233,11 +235,13 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       state.editSaving = true
       state.editError = null
       try {
-        await taskApi.updateTask({ id: state.editTaskId, taskInput: toTaskInput(editForm(), equipmentId) })
+        const error = await saveTask(editForm(), { equipmentId, taskId: state.editTaskId }, taskApi)
+        if (error) {
+          state.editError = error
+          return
+        }
         state.showEditTask = false
         await load()
-      } catch {
-        state.editError = 'Failed to update task'
       } finally {
         state.editSaving = false
       }
