@@ -1,5 +1,6 @@
 import { component, html, reactive } from '@arrow-js/core'
 import { EquipmentApi } from '@generated/api'
+import { toEquipmentRow } from '@/lib/rows'
 import { apiConfig } from '@/api/config'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -19,7 +20,7 @@ export function EquipmentDeletePage(idParam: string) {
 
     async function load() {
       try {
-        const eq = await equipmentApi.getEquipment({ id: equipmentId })
+        const eq = toEquipmentRow(await equipmentApi.getEquipment({ id: equipmentId }))
         state.name = eq.name ?? ''
         state.loaded = true
       } catch {

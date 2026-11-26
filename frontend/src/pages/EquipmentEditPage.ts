@@ -5,7 +5,7 @@ import { iconPicker } from '@/components/IconPicker'
 import { groupPicker } from '@/components/GroupPicker'
 import { extractErrorMessage } from '@/lib/format'
 import { toApiDate, today } from '@/lib/calendar-date'
-import { GroupRow, toEquipmentRow, toGroupRow } from '@/lib/rows'
+import { GroupRow, toEquipmentRow, toGroupRow, toTaskRow } from '@/lib/rows'
 import { decommissioningDateAllowed } from '@/lib/decommissioning'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -79,7 +79,7 @@ export function EquipmentEditPage(idParam: string) {
 
       if (state.tracksHours && !state.originalTracksHours && !skipConfirmCheck) {
         try {
-          const tasks = await taskApi.listTasksByEquipment({ equipmentId })
+          const tasks = (await taskApi.listTasksByEquipment({ equipmentId })).map(toTaskRow)
           const hasHoursInterval = tasks.some(t => t.hoursInterval != null && t.hoursInterval > 0)
           if (hasHoursInterval) {
             state.showConfirmTracks = true
