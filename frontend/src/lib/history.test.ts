@@ -91,21 +91,21 @@ describe('historyList', () => {
   ]
 
   it('lists every intervention newest first with no filter', () => {
-    expect(ids(historyList(interventions, null, '', '', equipments, tasks))).toEqual([2, 3, 1, 4])
+    expect(ids(historyList(interventions, { filter: null, from: '', to: '' }, equipments, tasks))).toEqual([2, 3, 1, 4])
   })
 
   it('applies the equipment filter and the date range together', () => {
-    expect(ids(historyList(interventions, { equipmentId: 2 }, '2026-02-01', '', equipments, tasks))).toEqual([2])
-    expect(ids(historyList(interventions, { groupId: 10 }, '', '2026-03-31', equipments, tasks))).toEqual([1])
+    expect(ids(historyList(interventions, { filter: { equipmentId: 2 }, from: '2026-02-01', to: '' }, equipments, tasks))).toEqual([2])
+    expect(ids(historyList(interventions, { filter: { groupId: 10 }, from: '', to: '2026-03-31' }, equipments, tasks))).toEqual([1])
   })
 
   it('is empty when nothing matches, or nothing is logged', () => {
-    expect(historyList(interventions, { equipmentId: 2 }, '2026-06-01', '', equipments, tasks)).toEqual([])
-    expect(historyList([], null, '', '', equipments, tasks)).toEqual([])
+    expect(historyList(interventions, { filter: { equipmentId: 2 }, from: '2026-06-01', to: '' }, equipments, tasks)).toEqual([])
+    expect(historyList([], { filter: null, from: '', to: '' }, equipments, tasks)).toEqual([])
   })
 
   it('returns a new list and leaves the one given unchanged', () => {
-    const list = historyList(interventions, null, '', '', equipments, tasks)
+    const list = historyList(interventions, { filter: null, from: '', to: '' }, equipments, tasks)
     expect(list).not.toBe(interventions)
     expect(ids(interventions)).toEqual([1, 2, 3, 4])
   })

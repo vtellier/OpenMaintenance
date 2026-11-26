@@ -43,6 +43,13 @@ export function inDateRange<I extends HistoryIntervention>(interventions: I[], f
   return list
 }
 
+/** History's filters: the equipment filter and the date range ('' leaves an end open). */
+export type HistoryFilters = {
+  filter: HistoryFilter
+  from: CalendarDate | ''
+  to: CalendarDate | ''
+}
+
 /**
  * The History list: the interventions the equipment filter selects
  * (interventionsFor) and the date range keeps, newest first. Returns a new
@@ -50,9 +57,7 @@ export function inDateRange<I extends HistoryIntervention>(interventions: I[], f
  */
 export function historyList<I extends HistoryIntervention>(
   interventions: I[],
-  filter: HistoryFilter,
-  from: CalendarDate | '',
-  to: CalendarDate | '',
+  { filter, from, to }: HistoryFilters,
   equipments: Pick<Equipment, 'id' | 'groupId'>[],
   tasks: { id?: number; equipmentId?: number }[],
 ): I[] {

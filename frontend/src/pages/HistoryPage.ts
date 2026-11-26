@@ -167,7 +167,7 @@ export function HistoryPage() {
         let listContent = null as ReturnType<typeof html> | null
 
         if (loaded && !loadError) {
-          const list = historyList(interventions, filter, filterDateFrom, filterDateTo, equipments, tasks)
+          const list = historyList(interventions, { filter, from: filterDateFrom, to: filterDateTo }, equipments, tasks)
 
           if (list.length === 0) {
             listContent = equipments.length === 0
