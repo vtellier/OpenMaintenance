@@ -40,7 +40,7 @@ export default defineConfig({
   // Vitest unit tests (`pnpm test:unit`) sit next to the code they cover.
   // Playwright specs live in tests/ and must stay out of Vitest's reach.
   test: {
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}'],
     // Every unit test runs once in the machine's timezone ('local') and once
     // per timezone below, east and west of UTC, so date code cannot depend on
     // where it runs. TZ only takes effect for a whole process, hence the
