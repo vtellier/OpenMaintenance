@@ -1,6 +1,4 @@
-import { expect, test, type Page } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { apiPost, expect, test, type Page } from '../fixtures'
 
 /**
  * Flow, not a bug: the app shell's navigation (doc/gui/navigation.md).
@@ -51,9 +49,8 @@ test('each section is one click away in the navigation, and is highlighted once 
 })
 
 test('an equipment page highlights Equipments', async ({ page }) => {
-  const eq = await (await page.request.post(`${API}/equipments`, {
-    data: { name: 'Navigation Highlight Pump' },
-  })).json()
+  // Both projects create it: the page is found by its id, not its name.
+  const eq = await apiPost(page, '/equipments', { name: 'Navigation Highlight Pump' })
 
   await page.goto(`/equipments/${eq.id}`)
   await expect(page.getByRole('heading', { name: 'Navigation Highlight Pump', level: 1 })).toBeVisible()

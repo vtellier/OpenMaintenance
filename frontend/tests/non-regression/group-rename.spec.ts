@@ -1,6 +1,4 @@
-import { expect, failedRequest, test, type Page } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, apiPost, expect, failedRequest, type Page, test } from '../fixtures'
 
 /**
  * Flow, not a bug: renaming a group and changing its icon from its section's
@@ -9,20 +7,14 @@ const API = 'http://127.0.0.1:3001/api'
  * Issue: #150
  */
 
-async function post(page: Page, path: string, data: Record<string, unknown>) {
-  const res = await page.request.post(`${API}${path}`, { data })
-  expect(res.ok(), `POST ${path}: ${await res.text()}`).toBeTruthy()
-  return res.json()
-}
-
 function section(page: Page, groupName: string) {
   return page.locator('.equipment-group').filter({ hasText: groupName })
 }
 
 test('Rename saves the new name, and refuses a name another group has', async ({ page, expectErrors }) => {
-  const group = await post(page, '/groups', { name: 'Rename Group Ropes' })
-  await post(page, '/groups', { name: 'Rename Group Taken' })
-  await post(page, '/equipments', { name: 'Rename Group Halyard', group_id: group.id })
+  const group = await apiPost(page, '/groups', { name: 'Rename Group Ropes' })
+  await apiPost(page, '/groups', { name: 'Rename Group Taken' })
+  await apiPost(page, '/equipments', { name: 'Rename Group Halyard', group_id: group.id })
 
   await page.goto('/equipments')
   await section(page, 'Rename Group Ropes').getByRole('button', { name: 'Group actions' }).click()
@@ -49,7 +41,7 @@ test('Rename saves the new name, and refuses a name another group has', async ({
 })
 
 test('Cancel on Rename changes nothing', async ({ page }) => {
-  await post(page, '/groups', { name: 'Rename Group Unchanged' })
+  await apiPost(page, '/groups', { name: 'Rename Group Unchanged' })
 
   await page.goto('/equipments')
   await section(page, 'Rename Group Unchanged').getByRole('button', { name: 'Group actions' }).click()
@@ -64,7 +56,7 @@ test('Cancel on Rename changes nothing', async ({ page }) => {
 })
 
 test('Change icon saves the icon picked at once', async ({ page }) => {
-  const group = await post(page, '/groups', { name: 'Rename Group Icon', icon: '⛵' })
+  const group = await apiPost(page, '/groups', { name: 'Rename Group Icon', icon: '⛵' })
 
   await page.goto('/equipments')
   await section(page, 'Rename Group Icon').getByRole('button', { name: 'Group actions' }).click()

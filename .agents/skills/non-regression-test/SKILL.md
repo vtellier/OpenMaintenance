@@ -45,7 +45,7 @@ Playwright's `webServer` block starts both servers itself, or reuses them if the
 
 Keep specs short. Navigate, act, assert. No page objects, no helpers (until duplication actually hurts), and no fixtures besides the shared one.
 
-Import `test` and `expect` (and the `Page` type) from `../fixtures`, **never from `@playwright/test`**. See [Page errors and console errors fail the test](#page-errors-and-console-errors-fail-the-test).
+Import `test` and `expect` (and the `Page` type, and the `apiPost` helper for setting data up) from `../fixtures`, **never from `@playwright/test`**. See [Page errors and console errors fail the test](#page-errors-and-console-errors-fail-the-test).
 
 ```ts
 import { expect, test } from '../fixtures'
@@ -64,6 +64,26 @@ test('<short scenario>', async ({ page }) => {
   await expect(page.getByText('Expected text')).toBeVisible()
 })
 ```
+
+A spec that checks a `doc/gui/` flow rather than a bug has this header instead, and a row in the README's flow map as well as the index. Name its file after the flow or the screen (`equipment-delete.spec.ts`).
+
+```ts
+import { apiPost, expect, test } from '../fixtures'
+
+/**
+ * Flow, not a bug: <what it checks> (doc/gui/<file>.md, "<section>").
+ * <The specs that already pin the rest of the flow, if any.>
+ * Issue: #<the issue it came from>
+ */
+test('<the user-visible behaviour>', async ({ page }) => {
+  // Set data up through the API: apiPost fails the test when the backend refuses it.
+  const eq = await apiPost(page, '/equipments', { name: '<Unique Name>' })
+  await page.goto(`/equipments/${eq.id}`)
+  // ... act, assert
+})
+```
+
+A flow the app gets wrong against `doc/gui/` is a bug: open an issue and pin it as a `test.fixme`, with a comment that says what the app does and links the issue. Run it once as a plain `test` first, to see it fail for that reason.
 
 ## Page errors and console errors fail the test
 
@@ -102,6 +122,7 @@ The same fixture routes every request that leaves the app's hosts (`localhost`, 
 
 - File name = kebab-case description of the bug, ending in `.spec.ts`.
   Examples: `safedate-shows-nan.spec.ts`, `intervention-date-rfc3339.spec.ts`, `hours-updated-at-on-create.spec.ts`.
+  A flow spec is named after the flow or the screen: `equipment-delete.spec.ts`, `history-log-and-layout.spec.ts`.
 - Test title = the user-visible scenario, not the technical cause.
   Good: `'logging an intervention saves and closes the modal'`.
   Bad: `'POST /interventions accepts RFC3339 date'` (that's an API test, not a frontend non-regression).

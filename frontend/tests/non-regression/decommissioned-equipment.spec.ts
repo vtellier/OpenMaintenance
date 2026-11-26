@@ -1,6 +1,4 @@
-import { expect, test, type Page } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { apiPost, expect, test } from '../fixtures'
 
 /**
  * Feature, not a bug: a decommissioned equipment keeps its history, and its
@@ -9,18 +7,12 @@ const API = 'http://127.0.0.1:3001/api'
  * Issue: https://github.com/vtellier/OpenMaintenance/issues/113
  */
 
-async function post(page: Page, path: string, data: Record<string, unknown>) {
-  const res = await page.request.post(`${API}${path}`, { data })
-  expect(res.ok(), `POST ${path}: ${await res.text()}`).toBeTruthy()
-  return res.json()
-}
-
 test('decommissioning an equipment takes it off the Dashboard and the list, and keeps it for logging past work', async ({ page }) => {
-  const tenders = await post(page, '/groups', { name: 'Decom Tenders' })
-  const old = await post(page, '/equipments', { name: 'Decom Old Dinghy', group_id: tenders.id, tracks_hours: true, hours: 120 })
-  await post(page, '/equipments', { name: 'Decom New Dinghy', group_id: tenders.id })
+  const tenders = await apiPost(page, '/groups', { name: 'Decom Tenders' })
+  const old = await apiPost(page, '/equipments', { name: 'Decom Old Dinghy', group_id: tenders.id, tracks_hours: true, hours: 120 })
+  await apiPost(page, '/equipments', { name: 'Decom New Dinghy', group_id: tenders.id })
   // Never done, no commissioning date: overdue while in service.
-  await post(page, '/tasks', { equipment_id: old.id, name: 'Decom Hull check', months_interval: 12 })
+  await apiPost(page, '/tasks', { equipment_id: old.id, name: 'Decom Hull check', months_interval: 12 })
 
   await page.goto('/')
   await expect(page.locator('.equipment-block').filter({ hasText: 'Decom Old Dinghy' })).toBeVisible()

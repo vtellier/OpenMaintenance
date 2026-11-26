@@ -40,11 +40,17 @@ being unique.
 ## Adding a new test
 
 1. Name the file after the bug, kebab-case: `safedate-shows-nan.spec.ts`.
-2. Top of file, link to the ROADMAP item and commit that fixed it.
+   A spec for a `doc/gui/` flow is named after the flow or the screen:
+   `equipment-delete.spec.ts`.
+2. Top of file, link to the ROADMAP item and commit that fixed it. A flow
+   spec's header says "Flow, not a bug", names the `doc/gui/` sections it
+   checks and the issue it came from (see the template in the
+   non-regression-test skill), and gets a row in the [flow map](#flow-map).
 3. Import `test` and `expect` from `../fixtures`, never from
    `@playwright/test`.
 4. Keep it short: navigate, act, assert. No page objects, and no fixtures
-   besides the shared one.
+   besides the shared one. Set data up with `apiPost` from `../fixtures`,
+   which fails the test at once when the backend refuses it.
 5. Each test must create its own data and not depend on other tests.
 6. Find elements by role, label or text, or by a single class when the
    element has neither. No tag names (a locator that names the `select`
@@ -122,21 +128,22 @@ is blocked, which fails the test. Requests to the app itself are not touched.
 | `photo-upload-error-shows-reason.spec.ts` | A refused photo upload showed "Failed to upload photo" instead of the backend's reason, e.g. "file exceeds the 10 MB limit" or "only JPEG, PNG, WebP and GIF images are allowed"; the generic message stays when the response gives no reason (issue #129) | — |
 | `dashboard-no-same-hours-without-reading.spec.ts` | The dashboard hour-meter banner offered "Same hours" for an equipment with no reading yet, and one tap recorded 0 h the user never entered; its row now offers only Update (issue #130) | — |
 | `navigation.spec.ts` | Flow, not a bug: `/` lands on the Dashboard, each section is one click away in the navigation the viewport shows and is highlighted once open (Equipments on an equipment page too), the app name goes to the Dashboard. Runs in both projects (issue #150) | — |
-| `mobile-tab-bar.spec.ts` | Flow, not a bug, `mobile` project only: the bottom tab bar replaces the top navbar, has four tabs with an icon and a label, opens and highlights each section when tapped, and stays at the bottom while the page scrolls (issue #150) | — |
-| `mobile-layout.spec.ts` | Flow, not a bug, `mobile` project only: the add-equipment form fits a phone screen; History shows cards, the date under the task, with no table header. The floating + button is a `test.fixme` (issue #168) (issue #150) | — |
+| `mobile-tab-bar.spec.ts` | Flow, not a bug, `mobile` project only: the bottom tab bar replaces the top navbar, has four tabs with an icon and a label, opens and highlights each section when tapped, and stays at the bottom while the page scrolls. On a portrait tablet it is a `test.fixme` (issue #174) (issue #150) | — |
+| `mobile-layout.spec.ts` | Flow, not a bug, `mobile` project only: the add-equipment form, opened by whichever add control shows, fits a phone screen; History shows cards, the date under the task, with no table header. The floating + button is a `test.fixme` (issue #168) (issue #150) | — |
 | `equipment-delete.spec.ts` | Flow, not a bug: Delete in the equipment header asks first, then removes the equipment with its tasks, interventions and files and keeps its group; Cancel keeps it. The warning about attached files is a `test.fixme` (issue #169) (issue #150) | — |
 | `equipment-update-hours.spec.ts` | Flow, not a bug: Update hours from the header saves a higher reading; a lower one cannot be saved; the same one refreshes the freshness; Update on a stale Dashboard banner row opens the same form and the row leaves the stale list (issue #150) | — |
 | `equipment-correct-reading.spec.ts` | Flow, not a bug: Correct reading from the header starts empty, refuses empty or negative and can lower the reading; `?hours=` prefills it; Cancel changes nothing (issue #150) | — |
-| `equipment-list-and-detail.spec.ts` | Flow, not a bug: an equipment card shows its description, hour-meter, last intervention and most urgent task, and opens the Tasks tab; the History, Documents and Info tabs; the equipment name on a Dashboard block opens it (issue #150) | — |
-| `equipment-create-and-decommission.spec.ts` | Flow, not a bug: adding an equipment with an hour-meter starts it at its initial reading, fresh, with the default icon; the decommissioning date's limits, and clearing it puts the equipment back in service (issue #150) | — |
+| `equipment-list-and-detail.spec.ts` | Flow, not a bug: an equipment card shows its description, hour-meter, last intervention and most urgent task, and opens the Tasks tab; the History, Documents and Info tabs; the equipment name on a Dashboard block, and on an hour-meter banner row, opens it (issue #150) | — |
+| `equipment-create-and-decommission.spec.ts` | Flow, not a bug: adding an equipment with an hour-meter starts it at its initial reading, fresh, with the default icon (no floating + button on desktop); the decommissioning date's limits, the task rows' missing urgency indicator, and clearing it puts the equipment back in service; a decommissioned equipment's rows keep Done, Edit and Delete, and Done logs work dated after the decommissioning (issue #150) | — |
 | `equipment-documents.spec.ts` | Flow, not a bug: a document uploads to the real backend, downloads under its name, and is deleted after a confirmation (issue #150) | — |
 | `group-rename.spec.ts` | Flow, not a bug: Rename a group (a name another group has is refused, Cancel changes nothing) and Change icon from its section's menu (issue #150) | — |
+| `group-picker.spec.ts` | Flow, not a bug: the equipment form's Group picker lists No group, the groups by name, then + New group; "+ New group" refuses a name another group has. Its Cancel putting the picker back is a `test.fixme` (issue #175) (issue #150) | — |
 | `task-edit-delete.spec.ts` | Flow, not a bug: the Tasks tab's empty state and its call to add the first task, which needs an interval; Edit opens the form prefilled without the kind choice; Delete warns that the interventions go too (issue #150) | — |
-| `history-log-and-layout.spec.ts` | Flow, not a bug: a backdated and an exceptional intervention logged from History (the exceptional one leaves its task due); the date range filter; the table layout with its header row on a wide screen (issue #150) | — |
+| `history-log-and-layout.spec.ts` | Flow, not a bug: a backdated and an exceptional intervention logged from History (the exceptional one leaves its task due), the ⓘ tooltip, and an exceptional entry listed like a standard one; the date range filter; the table layout with its header row on a wide screen (issue #150) | — |
 | `intervention-photos-and-hours.spec.ts` | Flow, not a bug: a photo added to a past intervention shows in the grid and the history, opens full screen and is deleted; a reading lower than the equipment's is saved without lowering it. Its inline warning is a `test.fixme` (issue #172) (issue #150) | — |
-| `hour-meter-toggle.spec.ts` | Flow, not a bug: turned back on, the hour-meter is prefilled with its last reading and cannot go lower. The warning when turning it off is a `test.fixme` (issue #171) (issue #150) | — |
+| `hour-meter-toggle.spec.ts` | Flow, not a bug: turned back on, the hour-meter is prefilled with its last reading and cannot go lower. The warning when turning it off (confirm saves, Cancel keeps it on) is two `test.fixme` (issue #171) (issue #150) | — |
 | `settings.spec.ts` | Flow, not a bug: the theme follows the system until one is chosen, applies at once and stays after a reload; the Backup section (enabled with files, enabled with none, disabled); the About section (issue #150) | — |
-| `empty-states.spec.ts` | Flow, not a bug: the empty Dashboard, Equipments list and History, with their calls to action (lists stubbed: the run shares one database). History with equipments but nothing logged is a `test.fixme` (issue #170) (issue #150) | — |
+| `empty-states.spec.ts` | Flow, not a bug: the empty Dashboard, Equipments list (none at all, or none in service) and History, with their calls to action (lists stubbed: the run shares one database). History with equipments but nothing logged is a `test.fixme` (issue #170) (issue #150) | — |
 
 ## Flow map
 
@@ -151,6 +158,7 @@ is the bug.
 | `/` lands on the Dashboard | `navigation.spec.ts` |
 | Desktop top navbar: the four sections, the active one highlighted, the app name goes to the Dashboard | `navigation.spec.ts` |
 | Mobile bottom tab bar: four tabs with icon and label, active one highlighted, fixed to the bottom | `navigation.spec.ts` (`mobile` project), `mobile-tab-bar.spec.ts` |
+| Tablet portrait: the bottom tab bar | `mobile-tab-bar.spec.ts`: `test.fixme`, issue #174 (the app switches at 640 px; the doc may be what changes) |
 | Theme follows the system by default | `settings.spec.ts` |
 | Page title of each screen | `navigation.spec.ts` (Dashboard), `equipment-page-title.spec.ts` (equipment) |
 
@@ -160,6 +168,7 @@ is the bug.
 |---|---|
 | Hour-meter banner: hour-tracked equipments in service, hours, relative time, stale rows emphasized | `freshness-reminder-dismiss-immediate.spec.ts`, `equipment-update-hours.spec.ts`, `decommissioned-equipment.spec.ts` |
 | Banner: fresh rows folded away | `equipment-update-hours.spec.ts` |
+| Banner row: the equipment name opens its detail | `equipment-list-and-detail.spec.ts` |
 | Banner: rows oldest first | Uncovered here: the order is a rule in `src/lib/hourMeterFreshness.ts`, checked by its Vitest test; a spec would need several fixed timestamps |
 | Banner: Same hours, and none without a reading | `freshness-reminder-dismiss-immediate.spec.ts`, `dashboard-no-same-hours-without-reading.spec.ts` |
 | Flow: Update an hour-meter from the banner | `equipment-update-hours.spec.ts` |
@@ -181,21 +190,25 @@ is the bug.
 | Clicking a card opens the detail on the Tasks tab | `equipment-list-and-detail.spec.ts` |
 | Show decommissioned, dimmed cards | `decommissioned-equipment.spec.ts` |
 | Show decommissioned remembered per browser | Uncovered: the same per-browser storage as collapsed sections, which `equipment-groups.spec.ts` checks after a reload |
-| "+ Add equipment" on desktop | `equipment-create-and-decommission.spec.ts`, `equipment-groups.spec.ts` |
-| Floating action button on mobile | `mobile-layout.spec.ts`: `test.fixme`, issue #168 |
-| Empty state | `empty-states.spec.ts` |
+| "+ Add equipment" on desktop, no floating button there | `equipment-create-and-decommission.spec.ts`, `equipment-groups.spec.ts` |
+| Floating action button on mobile | `mobile-layout.spec.ts`: `test.fixme`, issue #168. Whether a phone keeps the header button too is open, so the passing phone test taps whichever add control shows |
+| Empty state: no equipment and no group | `empty-states.spec.ts` |
+| Empty state: every equipment decommissioned: "No equipments in service.", with Show decommissioned | `empty-states.spec.ts` |
 | Detail header: icon picker, Decommissioned badge, Edit / Delete, hours with Update hours and Correct reading | `equipment-groups.spec.ts`, `decommissioned-equipment.spec.ts`, `equipment-update-hours.spec.ts`, `equipment-correct-reading.spec.ts`, `equipment-delete.spec.ts` |
 | Tabs: Tasks (default), History, Documents, Info | `equipment-list-and-detail.spec.ts` |
 | Documents tab: list, upload, download, delete | `equipment-documents.spec.ts` |
 | Documents tab: refused upload, missing file | `equipment-upload-error-shows-reason.spec.ts`, `missing-file-says-so.spec.ts` |
 | Flow: Add an equipment (with an hour-meter) | `equipment-create-and-decommission.spec.ts`, `equipment-hours-error-shows-reason.spec.ts` |
 | Picking an emoji in the icon picker | Uncovered: the grid is the third-party `emoji-picker-element`, inside its shadow DOM; its Reset button, which saves the same way, is covered by `equipment-groups.spec.ts` and `group-rename.spec.ts` |
-| The Group picker | `equipment-groups.spec.ts` |
+| The Group picker: No group, the groups by name, + New group last | `group-picker.spec.ts` |
+| The Group picker: "+ New group" creates the group at once and selects it; it stays if the form is cancelled | `equipment-groups.spec.ts` |
+| The Group picker: a name another group has is refused | `group-picker.spec.ts` |
+| The Group picker: Cancel puts the picker back to its previous value | `group-picker.spec.ts`: `test.fixme`, issue #175 |
 | Flow: Decommission an equipment, its date limits, back in service | `decommissioned-equipment.spec.ts`, `equipment-create-and-decommission.spec.ts` |
 | Flow: Update hour-meter | `equipment-update-hours.spec.ts`, `equipment-hours-error-shows-reason.spec.ts` |
 | Flow: Correct the reading, `?hours=` prefill | `equipment-correct-reading.spec.ts`, `delete-intervention-asks-about-reading.spec.ts` |
 | Flow: Toggle hour-meter: turning it on | `equipment-edit-keeps-hour-meter.spec.ts`, `confirm-tracks-modal-no-loop.spec.ts`, `confirm-tracks-modal-only-on-toggle.spec.ts`, `hour-meter-toggle.spec.ts` |
-| Flow: Toggle hour-meter: turning it off warns | `hour-meter-toggle.spec.ts`: `test.fixme`, issue #171 |
+| Flow: Toggle hour-meter: turning it off warns about the tasks with an hours interval, saves once confirmed, Cancel keeps it on | `hour-meter-toggle.spec.ts`: `test.fixme`, issue #171 |
 | Editing an equipment leaves its reading alone | `equipment-edit-keeps-hour-meter.spec.ts` |
 | Flow: Change the icon | `equipment-groups.spec.ts` |
 | Flow: Delete an equipment | `equipment-delete.spec.ts`; its warning about files: `test.fixme`, issue #169 |
@@ -210,6 +223,7 @@ is the bug.
 | Row: name, trigger summary, urgency, last intervention | `interval-display-deduplication.spec.ts`, `task-last-date-updates-after-mark-done.spec.ts`, `expiry-task-happy-path.spec.ts` |
 | Urgency order | `tasks-ordered-by-urgency.spec.ts` |
 | Decommissioned equipment: no urgency indicator | `equipment-create-and-decommission.spec.ts` |
+| Decommissioned equipment: Done, Edit and Delete stay | `equipment-create-and-decommission.spec.ts` |
 | Decommissioned equipment: tasks in name order | Uncovered: the order is `byUrgency` in `src/lib/urgency.ts`, checked by its Vitest test |
 | Empty state | `task-edit-delete.spec.ts` |
 | Task form: kind, validation | `task-edit-delete.spec.ts`, `expiry-task-happy-path.spec.ts` |
@@ -227,8 +241,10 @@ is the bug.
 | Opened from "+ Log intervention" (equipment History tab, global History) | `equipment-history-appears-after-add.spec.ts`, `history-log-and-layout.spec.ts`, `intervention-form-keeps-input-on-data-load.spec.ts` |
 | Fields: equipment list with decommissioned last | `decommissioned-equipment.spec.ts` |
 | Fields: exceptional intervention, its label, Save disabled until required fields | `history-log-and-layout.spec.ts`, `history-edit-keeps-equipment.spec.ts`, `expiry-task-happy-path.spec.ts` |
+| Fields: the ⓘ next to Exceptional intervention shows its tooltip on hover | `history-log-and-layout.spec.ts` |
 | Fields: date defaults to today in the user's timezone | `intervention-date-uses-local-timezone.spec.ts`, `dashboard-done-defaults-to-local-date.spec.ts` |
 | Validation: date in the future refused with the reason | `intervention-save-error-shows-reason.spec.ts` |
+| Validation: no rule against the decommissioning date | `equipment-create-and-decommission.spec.ts` |
 | Validation: lower hours allowed, equipment not lowered | `intervention-photos-and-hours.spec.ts` |
 | Validation: lower hours show an inline warning | `intervention-photos-and-hours.spec.ts`: `test.fixme`, issue #172 |
 | Validation: warning when older than 5 years | Uncovered: optional in the doc, not built |
@@ -244,6 +260,7 @@ is the bug.
 | Flow | Spec |
 |---|---|
 | Rows: date, equipment, task, hours, location, comments, Edit, Delete | `history-log-and-layout.spec.ts`, `mobile-layout.spec.ts`, `history-edit-keeps-equipment.spec.ts`, `safedate-shows-nan.spec.ts` |
+| Exceptional interventions listed like any other entry | `history-log-and-layout.spec.ts` |
 | Table on a wide screen, full detail on hover | `history-log-and-layout.spec.ts` |
 | Cards on a phone | `mobile-layout.spec.ts` |
 | Filter: equipment | `history-filters-refresh.spec.ts` |
@@ -267,14 +284,34 @@ is the bug.
 
 ### Where the app and the doc word things differently
 
-Not bugs, and no spec depends on them: the specs check the behaviour, not
-these words.
+Not bugs: the meaning is the same. The specs use the app's words, so a port
+that keeps the app's texts keeps them passing; a change to one of these texts
+must change the specs that use it.
 
 - The Dashboard banner's button reads **Update**, not "Update hours".
+- Relative times are short: **updated 10d ago**, not "updated 3 days ago".
 - An equipment card with every task OK reads **OK · All clear!**, not "All tasks OK".
 - A task's trigger reads **Every 100h or 6mo**, not "Every 100 h or 6 months".
 - Deleting a document asks **Delete *name*? This cannot be undone.**, not "Delete this file?".
 - Deleting an equipment is a page (`/equipments/:id/delete`), not a modal.
-- The Equipments empty state's call is a link, **Add your first equipment**.
-- The hour-meter toggle is on the edit form; the Info tab only shows it.
+- The Equipments empty state's call is a link, **Add your first equipment**, not a "+ Add your first equipment" button.
 - The global History table's column reads **Equipment / Task**.
+
+### Where the doc is wrong
+
+Not bugs in the app, so no spec pins the doc's version. They are for the
+maintainer to fix in `doc/gui/`.
+
+- `equipments.md`, "Flow: Toggle hour-meter on an existing equipment", step 1
+  says the user goes to the Info tab. The toggle is on the edit form
+  (`/equipments/:id/edit`); the Info tab only shows it, as the same file's
+  "Tabs" section says.
+
+### Where the doc and the app disagree, undecided
+
+- `navigation.md` gives a portrait tablet the bottom tab bar; the app gives it
+  the top navbar, and `tasks.md` and `history.md` treat a tablet as a wide
+  screen. Issue #174 asks which one changes; its spec is a `test.fixme`.
+- `equipments.md` puts the add button "top-right on desktop, floating action
+  button on mobile", and does not say whether a phone keeps the header button
+  too. Issue #168 has the question; the passing phone spec accepts either.

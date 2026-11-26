@@ -1,6 +1,4 @@
-import { expect, test } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, apiPost, expect, test } from '../fixtures'
 
 /**
  * Flow, not a bug: uploading, downloading and deleting a document on the
@@ -12,7 +10,7 @@ const API = 'http://127.0.0.1:3001/api'
  */
 
 test('a document uploads into the list, downloads, and is deleted after a confirmation', async ({ page }) => {
-  const eq = await (await page.request.post(`${API}/equipments`, { data: { name: 'Docs Flow Watermaker' } })).json()
+  const eq = await apiPost(page, '/equipments', { name: 'Docs Flow Watermaker' })
   const content = '%PDF-1.4 Docs Flow manual'
 
   await page.goto(`/equipments/${eq.id}/documents`)

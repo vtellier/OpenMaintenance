@@ -1,6 +1,4 @@
-import { expect, test, type Page } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, apiPost, expect, test } from '../fixtures'
 
 /**
  * Flow, not a bug: the Tasks tab's empty state, and editing and deleting a
@@ -10,14 +8,8 @@ const API = 'http://127.0.0.1:3001/api'
  * Issue: #150
  */
 
-async function post(page: Page, path: string, data: Record<string, unknown>) {
-  const res = await page.request.post(`${API}${path}`, { data })
-  expect(res.ok(), `POST ${path}: ${await res.text()}`).toBeTruthy()
-  return res.json()
-}
-
 test('an equipment with no task says so, and its first task needs an interval before it can be saved', async ({ page }) => {
-  const eq = await post(page, '/equipments', { name: 'Task Empty Bilge Pump' })
+  const eq = await apiPost(page, '/equipments', { name: 'Task Empty Bilge Pump' })
 
   await page.goto(`/equipments/${eq.id}`)
   await expect(page.getByText('No maintenance tasks yet for this equipment.')).toBeVisible()
@@ -42,8 +34,8 @@ test('an equipment with no task says so, and its first task needs an interval be
 })
 
 test('Edit opens the task form prefilled, without the kind choice, and saves the change', async ({ page }) => {
-  const eq = await post(page, '/equipments', { name: 'Task Edit Outboard', tracks_hours: true, hours: 10 })
-  const task = await post(page, '/tasks', {
+  const eq = await apiPost(page, '/equipments', { name: 'Task Edit Outboard', tracks_hours: true, hours: 10 })
+  const task = await apiPost(page, '/tasks', {
     equipment_id: eq.id, name: 'Task Edit Impeller', description: 'Task Edit spare in locker', hours_interval: 100, months_interval: 6,
   })
 
@@ -72,10 +64,10 @@ test('Edit opens the task form prefilled, without the kind choice, and saves the
 })
 
 test('Delete warns that the task\'s interventions go too, then removes both', async ({ page }) => {
-  const eq = await post(page, '/equipments', { name: 'Task Delete Windlass' })
-  const task = await post(page, '/tasks', { equipment_id: eq.id, name: 'Task Delete Grease gypsy', months_interval: 12 })
-  await post(page, '/tasks', { equipment_id: eq.id, name: 'Task Delete Kept task', months_interval: 12 })
-  await post(page, '/interventions', { task_id: task.id, date: '2026-02-03T12:00:00Z' })
+  const eq = await apiPost(page, '/equipments', { name: 'Task Delete Windlass' })
+  const task = await apiPost(page, '/tasks', { equipment_id: eq.id, name: 'Task Delete Grease gypsy', months_interval: 12 })
+  await apiPost(page, '/tasks', { equipment_id: eq.id, name: 'Task Delete Kept task', months_interval: 12 })
+  await apiPost(page, '/interventions', { task_id: task.id, date: '2026-02-03T12:00:00Z' })
 
   await page.goto(`/equipments/${eq.id}`)
   const row = page.locator('.task-row').filter({ hasText: 'Task Delete Grease gypsy' })

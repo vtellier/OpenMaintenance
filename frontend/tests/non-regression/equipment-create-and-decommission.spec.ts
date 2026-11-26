@@ -1,6 +1,4 @@
-import { expect, test, type Page } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, apiPost, expect, test, type Page } from '../fixtures'
 
 /**
  * Flow, not a bug: adding an equipment with an hour-meter, and the rules of
@@ -21,6 +19,8 @@ function dayFromToday(page: Page, n: number): Promise<string> {
 
 test('an equipment added with an hour-meter starts with its initial reading, fresh, and the default icon', async ({ page }) => {
   await page.goto('/equipments')
+  // On a wide screen the add button is the header's; the floating one is for phones.
+  await expect(page.getByRole('button', { name: 'Add equipment', exact: true })).toBeHidden()
   await page.getByRole('button', { name: '+ Add equipment' }).click()
 
   const modal = page.locator('.modal')
@@ -53,12 +53,9 @@ test('an equipment added with an hour-meter starts with its initial reading, fre
 })
 
 test('the decommissioning date can be neither after today nor before commissioning, and clearing it puts the equipment back in service', async ({ page }) => {
-  const res = await page.request.post(`${API}/equipments`, {
-    data: { name: 'Decom Rules Dinghy', commissioned_at: '2024-04-01' },
-  })
-  const eq = await res.json()
+  const eq = await apiPost(page, '/equipments', { name: 'Decom Rules Dinghy', commissioned_at: '2024-04-01' })
   // Never done since commissioning more than a year ago: overdue while in service.
-  await page.request.post(`${API}/tasks`, { data: { equipment_id: eq.id, name: 'Decom Rules Hull check', months_interval: 12 } })
+  await apiPost(page, '/tasks', { equipment_id: eq.id, name: 'Decom Rules Hull check', months_interval: 12 })
 
   await page.goto(`/equipments/${eq.id}/edit`)
   const date = page.getByLabel('Decommissioned on')
@@ -75,7 +72,11 @@ test('the decommissioning date can be neither after today nor before commissioni
   await save.click()
   await page.waitForURL(`/equipments/${eq.id}`)
   await expect(page.locator('.detail-header')).toContainText('Decommissioned')
-  await expect(page.locator('.task-row').filter({ hasText: 'Decom Rules Hull check' })).not.toContainText('Overdue')
+  // No due status at all: no urgency indicator on the row.
+  const taskRow = page.locator('.task-row').filter({ hasText: 'Decom Rules Hull check' })
+  await expect(taskRow).toContainText('Last: never')
+  await expect(taskRow.locator('.due-indicator')).toHaveCount(0)
+  await expect(taskRow).not.toContainText(/Overdue|Due soon|\bOK\b/)
 
   // Back in service: no badge, the task is due again.
   await page.goto(`/equipments/${eq.id}/edit`)
@@ -86,4 +87,31 @@ test('the decommissioning date can be neither after today nor before commissioni
   await expect(page.getByRole('heading', { name: 'Decom Rules Dinghy', level: 1 })).toBeVisible()
   await expect(page.locator('.detail-header')).not.toContainText('Decommissioned')
   await expect(page.locator('.task-row').filter({ hasText: 'Decom Rules Hull check' })).toContainText('Overdue')
+})
+
+test('on a decommissioned equipment, the task rows keep Done, Edit and Delete, and Done logs work dated after the decommissioning', async ({ page }) => {
+  const eq = await apiPost(page, '/equipments', {
+    name: 'Decom Rows Outboard', commissioned_at: '2023-01-10', decommissioned_at: '2025-06-01',
+  })
+  const task = await apiPost(page, '/tasks', { equipment_id: eq.id, name: 'Decom Rows Flush', months_interval: 12 })
+
+  await page.goto(`/equipments/${eq.id}`)
+  await expect(page.locator('.detail-header')).toContainText('Decommissioned')
+  const row = page.locator('.task-row').filter({ hasText: 'Decom Rows Flush' })
+  await expect(row.locator('.due-indicator')).toHaveCount(0)
+  await expect(row.getByRole('button', { name: 'Edit' })).toBeVisible()
+  await expect(row.getByRole('button', { name: 'Del' })).toBeVisible()
+
+  // Today is after the decommissioning date; no rule refuses it.
+  await row.getByRole('button', { name: 'Done' }).click()
+  const modal = page.locator('.modal')
+  const today = await dayFromToday(page, 0)
+  await expect(modal.getByLabel('Date', { exact: true })).toHaveValue(today)
+  await modal.getByRole('button', { name: 'Save' }).click()
+
+  await expect(modal).toBeHidden()
+  await expect(row).toContainText(`Last: ${today}`)
+  await expect(row.locator('.due-indicator')).toHaveCount(0)
+  const interventions: { date: string }[] = await (await page.request.get(`${API}/tasks/${task.id}/interventions`)).json()
+  expect(interventions).toHaveLength(1)
 })

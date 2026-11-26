@@ -1,6 +1,4 @@
-import { expect, test, type Page } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, apiPost, expect, test, type Page } from '../fixtures'
 
 /**
  * Flow, not a bug: "Correct reading", the one way to set the reading lower
@@ -11,18 +9,12 @@ const API = 'http://127.0.0.1:3001/api'
  * Issue: #150
  */
 
-async function equipmentAt(page: Page, name: string, hours: number) {
-  const res = await page.request.post(`${API}/equipments`, { data: { name, tracks_hours: true, hours } })
-  expect(res.ok()).toBeTruthy()
-  return res.json()
-}
-
 async function reading(page: Page, id: number): Promise<{ hours: number; hours_updated_at: string }> {
   return (await page.request.get(`${API}/equipments/${id}`)).json()
 }
 
 test('Correct reading from the equipment header starts empty and can set a lower reading', async ({ page }) => {
-  const eq = await equipmentAt(page, 'Correct Reading Header Engine', 500)
+  const eq = await apiPost(page, '/equipments', { name: 'Correct Reading Header Engine', tracks_hours: true, hours: 500 })
 
   await page.goto(`/equipments/${eq.id}`)
   await page.locator('.detail-header').getByRole('link', { name: 'Correct reading' }).click()
@@ -52,7 +44,7 @@ test('Correct reading from the equipment header starts empty and can set a lower
 })
 
 test('opened with ?hours=, the field is prefilled with that reading and can be adjusted', async ({ page }) => {
-  const eq = await equipmentAt(page, 'Correct Reading Prefill Engine', 500)
+  const eq = await apiPost(page, '/equipments', { name: 'Correct Reading Prefill Engine', tracks_hours: true, hours: 500 })
 
   await page.goto(`/equipments/${eq.id}/edit/hours/correct?hours=300`)
   const field = page.getByLabel('Corrected reading')
@@ -68,7 +60,7 @@ test('opened with ?hours=, the field is prefilled with that reading and can be a
 })
 
 test('Cancel changes nothing, not even the freshness', async ({ page }) => {
-  const eq = await equipmentAt(page, 'Correct Reading Cancel Engine', 500)
+  const eq = await apiPost(page, '/equipments', { name: 'Correct Reading Cancel Engine', tracks_hours: true, hours: 500 })
   const before = await reading(page, eq.id)
 
   await page.goto(`/equipments/${eq.id}/edit/hours/correct?hours=300`)

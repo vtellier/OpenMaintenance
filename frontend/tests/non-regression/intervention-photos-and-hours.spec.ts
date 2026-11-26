@@ -1,6 +1,4 @@
-import { expect, test, type Page } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, apiPost, expect, test } from '../fixtures'
 
 /**
  * Flow, not a bug: a photo added to a past intervention, opened full screen
@@ -18,16 +16,10 @@ const PNG = Buffer.from(
   'base64',
 )
 
-async function post(page: Page, path: string, data: Record<string, unknown>) {
-  const res = await page.request.post(`${API}${path}`, { data })
-  expect(res.ok(), `POST ${path}: ${await res.text()}`).toBeTruthy()
-  return res.json()
-}
-
 test('a photo added to a past intervention shows in its grid and in the history, opens full screen, and is deleted after a confirmation', async ({ page }) => {
-  const eq = await post(page, '/equipments', { name: 'Photo Flow Winch' })
-  const task = await post(page, '/tasks', { equipment_id: eq.id, name: 'Photo Flow Service winch', months_interval: 12 })
-  await post(page, '/interventions', { task_id: task.id, date: '2026-02-03T12:00:00Z' })
+  const eq = await apiPost(page, '/equipments', { name: 'Photo Flow Winch' })
+  const task = await apiPost(page, '/tasks', { equipment_id: eq.id, name: 'Photo Flow Service winch', months_interval: 12 })
+  await apiPost(page, '/interventions', { task_id: task.id, date: '2026-02-03T12:00:00Z' })
 
   await page.goto('/history')
   const row = page.locator('.history-item').filter({ hasText: 'Photo Flow Service winch' })
@@ -63,8 +55,8 @@ test('a photo added to a past intervention shows in its grid and in the history,
 })
 
 test('a reading lower than the equipment\'s is saved with the intervention, and the equipment keeps its reading', async ({ page }) => {
-  const eq = await post(page, '/equipments', { name: 'Lower Hours Engine', tracks_hours: true, hours: 200 })
-  const task = await post(page, '/tasks', { equipment_id: eq.id, name: 'Lower Hours Oil service', hours_interval: 100 })
+  const eq = await apiPost(page, '/equipments', { name: 'Lower Hours Engine', tracks_hours: true, hours: 200 })
+  const task = await apiPost(page, '/tasks', { equipment_id: eq.id, name: 'Lower Hours Oil service', hours_interval: 100 })
   const before = await (await page.request.get(`${API}/equipments/${eq.id}`)).json()
 
   await page.goto(`/equipments/${eq.id}/history`)
@@ -90,15 +82,24 @@ test('a reading lower than the equipment\'s is saved with the intervention, and 
 // The form shows nothing for a lower reading.
 // Issue: https://github.com/vtellier/OpenMaintenance/issues/172
 test.fixme('a reading lower than the equipment\'s shows an inline warning in the intervention form', async ({ page }) => {
-  const eq = await post(page, '/equipments', { name: 'Lower Hours Warning Engine', tracks_hours: true, hours: 200 })
-  await post(page, '/tasks', { equipment_id: eq.id, name: 'Lower Hours Warning Filter', hours_interval: 100 })
+  const eq = await apiPost(page, '/equipments', { name: 'Lower Hours Warning Engine', tracks_hours: true, hours: 200 })
+  await apiPost(page, '/tasks', { equipment_id: eq.id, name: 'Lower Hours Warning Filter', hours_interval: 100 })
 
   await page.goto(`/equipments/${eq.id}/history`)
   await page.getByRole('button', { name: '+ Log intervention' }).click()
   const modal = page.locator('.modal')
   await modal.getByLabel('Task', { exact: true }).selectOption({ label: 'Lower Hours Warning Filter' })
-  await modal.getByLabel('Hours', { exact: true }).fill('150')
+  const hours = modal.getByLabel('Hours', { exact: true })
+  await expect(hours).toHaveValue('200')
+  // A warning that compares the reading with the equipment's 200 h.
+  const warning = modal.getByText(/\b(lower|less) than\b|\bbelow\b/i).filter({ hasText: /\b200\b/ })
+  await expect(warning).toHaveCount(0)
 
-  await expect(modal.getByText(/lower than|below/i)).toBeVisible()
+  await hours.fill('150')
+  await expect(warning).toBeVisible()
   await expect(modal.getByRole('button', { name: 'Save' })).toBeEnabled()
+
+  // Back to the equipment's reading, the warning goes.
+  await hours.fill('200')
+  await expect(warning).toHaveCount(0)
 })

@@ -1,7 +1,6 @@
-import { expect, test, type Page } from '../fixtures'
+import { API, apiPost, expect, test } from '../fixtures'
 
 const BACKEND = 'http://127.0.0.1:3001'
-const API = `${BACKEND}/api`
 
 /**
  * Flow, not a bug: deleting an equipment from its detail header
@@ -9,17 +8,11 @@ const API = `${BACKEND}/api`
  * Issue: #150
  */
 
-async function post(page: Page, path: string, data: Record<string, unknown>) {
-  const res = await page.request.post(`${API}${path}`, { data })
-  expect(res.ok(), `POST ${path}: ${await res.text()}`).toBeTruthy()
-  return res.json()
-}
-
 test('Delete asks first, then removes the equipment with its tasks, history and files, and keeps its group', async ({ page }) => {
-  const group = await post(page, '/groups', { name: 'Delete Eq Tenders' })
-  const eq = await post(page, '/equipments', { name: 'Delete Eq Dinghy', group_id: group.id })
-  const task = await post(page, '/tasks', { equipment_id: eq.id, name: 'Delete Eq Hull check', months_interval: 12 })
-  await post(page, '/interventions', { task_id: task.id, date: '2026-01-15T00:00:00Z' })
+  const group = await apiPost(page, '/groups', { name: 'Delete Eq Tenders' })
+  const eq = await apiPost(page, '/equipments', { name: 'Delete Eq Dinghy', group_id: group.id })
+  const task = await apiPost(page, '/tasks', { equipment_id: eq.id, name: 'Delete Eq Hull check', months_interval: 12 })
+  await apiPost(page, '/interventions', { task_id: task.id, date: '2026-01-15T00:00:00Z' })
   const upload = await page.request.post(`${API}/equipments/${eq.id}/files`, {
     multipart: { file: { name: 'dinghy-manual.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 manual') } },
   })
@@ -53,7 +46,7 @@ test('Delete asks first, then removes the equipment with its tasks, history and 
 })
 
 test('Cancel on the delete page keeps the equipment', async ({ page }) => {
-  const eq = await post(page, '/equipments', { name: 'Delete Eq Kept Canoe' })
+  const eq = await apiPost(page, '/equipments', { name: 'Delete Eq Kept Canoe' })
 
   await page.goto(`/equipments/${eq.id}/delete`)
   await expect(page.getByRole('heading', { name: 'Delete equipment' })).toBeVisible()
@@ -67,7 +60,7 @@ test('Cancel on the delete page keeps the equipment', async ({ page }) => {
 // The confirmation names the tasks and interventions, not the attached files.
 // Issue: https://github.com/vtellier/OpenMaintenance/issues/169
 test.fixme('the delete confirmation warns that the attached files are deleted too', async ({ page }) => {
-  const eq = await post(page, '/equipments', { name: 'Delete Eq Attachments Warning' })
+  const eq = await apiPost(page, '/equipments', { name: 'Delete Eq Attachments Warning' })
 
   await page.goto(`/equipments/${eq.id}/delete`)
   await expect(page.locator('.confirm-text')).toContainText('Delete Eq Attachments Warning')

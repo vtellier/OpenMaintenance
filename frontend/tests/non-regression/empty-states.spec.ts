@@ -53,6 +53,17 @@ test('with no equipment and no group, the Equipments list says so and its call o
   await expect(page.locator('.modal').getByRole('heading', { name: 'Add equipment' })).toBeVisible()
 })
 
+test('with every equipment decommissioned and no group, the Equipments list says none is in service, and Show decommissioned lists them', async ({ page }) => {
+  await stubLists(page, [{ ...STUB_EQUIPMENT, commissioned_at: '2020-01-01', decommissioned_at: '2025-01-01' }])
+
+  await page.goto('/equipments')
+  await expect(page.getByText('No equipments in service.')).toBeVisible()
+  await expect(page.getByText('No equipments yet.')).toHaveCount(0)
+  await page.getByLabel('Show decommissioned (1)').check()
+  await expect(page.locator('.equipment-card').filter({ hasText: STUB_EQUIPMENT.name })).toBeVisible()
+  await expect(page.getByText('No equipments in service.')).toHaveCount(0)
+})
+
 test('with no equipment, History says nothing is logged yet and offers to log one', async ({ page }) => {
   await stubLists(page)
 

@@ -1,6 +1,4 @@
-import { expect, test, type Page } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, apiPost, expect, test, type Page } from '../fixtures'
 
 /**
  * Flow, not a bug: "Update hours", from the equipment header and from the
@@ -11,18 +9,12 @@ const API = 'http://127.0.0.1:3001/api'
  * Issue: #150
  */
 
-async function equipmentAt(page: Page, name: string, hours: number) {
-  const res = await page.request.post(`${API}/equipments`, { data: { name, tracks_hours: true, hours } })
-  expect(res.ok()).toBeTruthy()
-  return res.json()
-}
-
 async function reading(page: Page, id: number): Promise<{ hours: number; hours_updated_at: string }> {
   return (await page.request.get(`${API}/equipments/${id}`)).json()
 }
 
 test('Update hours from the equipment header saves a higher reading and returns to the equipment', async ({ page }) => {
-  const eq = await equipmentAt(page, 'Update Hours Header Engine', 100)
+  const eq = await apiPost(page, '/equipments', { name: 'Update Hours Header Engine', tracks_hours: true, hours: 100 })
 
   await page.goto(`/equipments/${eq.id}`)
   await page.locator('.detail-header').getByRole('link', { name: 'Update hours' }).click()
@@ -44,7 +36,7 @@ test('Update hours from the equipment header saves a higher reading and returns 
 })
 
 test('a reading lower than the current one cannot be saved, and Cancel changes nothing', async ({ page }) => {
-  const eq = await equipmentAt(page, 'Update Hours Lower Engine', 100)
+  const eq = await apiPost(page, '/equipments', { name: 'Update Hours Lower Engine', tracks_hours: true, hours: 100 })
   const before = await reading(page, eq.id)
 
   await page.goto(`/equipments/${eq.id}/edit/hours`)
@@ -62,7 +54,7 @@ test('a reading lower than the current one cannot be saved, and Cancel changes n
 })
 
 test('saving the same reading confirms it: the reading stays and is fresh again', async ({ page }) => {
-  const eq = await equipmentAt(page, 'Update Hours Same Engine', 100)
+  const eq = await apiPost(page, '/equipments', { name: 'Update Hours Same Engine', tracks_hours: true, hours: 100 })
   const before = await reading(page, eq.id)
 
   await page.goto(`/equipments/${eq.id}/edit/hours`)
@@ -77,7 +69,7 @@ test('saving the same reading confirms it: the reading stays and is fresh again'
 
 test('Update on a stale Dashboard banner row opens the hours form, and the saved reading leaves the stale list', async ({ page }) => {
   const name = 'Update Hours Banner Engine'
-  const eq = await equipmentAt(page, name, 200)
+  const eq = await apiPost(page, '/equipments', { name, tracks_hours: true, hours: 200 })
 
   // Show the browser that first reading as 10 days old, as long as it is the
   // stored one: the reading saved below passes through unchanged.

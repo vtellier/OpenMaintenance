@@ -1,6 +1,4 @@
-import { expect, test } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { apiPost, expect, test } from '../fixtures'
 
 /**
  * Flow, not a bug: on a phone, a bottom tab bar replaces the top navbar
@@ -49,10 +47,7 @@ test('tapping a tab opens its section and highlights that tab', async ({ page })
 test('the tab bar stays at the bottom of the screen while the page scrolls', async ({ page }) => {
   // Enough cards for the Equipments list to be taller than the screen.
   for (let i = 1; i <= 8; i++) {
-    const res = await page.request.post(`${API}/equipments`, {
-      data: { name: `Mobile Tab Bar Scroll ${i}`, description: 'Long enough to need scrolling' },
-    })
-    expect(res.ok()).toBeTruthy()
+    await apiPost(page, '/equipments', { name: `Mobile Tab Bar Scroll ${i}`, description: 'Long enough to need scrolling' })
   }
 
   await page.goto('/equipments')
@@ -64,10 +59,24 @@ test('the tab bar stays at the bottom of the screen while the page scrolls', asy
     const box = await tabBar.boundingBox()
     return box ? Math.round(box.y + box.height) : null
   }
-  expect(await bottomOf()).toBe(screenHeight)
+  await expect.poll(bottomOf).toBe(screenHeight)
 
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
-  expect(await bottomOf()).toBe(screenHeight)
+  await expect.poll(bottomOf).toBe(screenHeight)
   await expect(tabBar.getByRole('link', { name: 'Settings' })).toBeInViewport()
+})
+
+test.describe('on a portrait tablet', () => {
+  test.use({ viewport: { width: 768, height: 1024 } })
+
+  // The tab bar replaces the navbar only up to 640 px wide; a portrait tablet
+  // is wider. The doc may be what changes instead (see the issue).
+  // Issue: https://github.com/vtellier/OpenMaintenance/issues/174
+  test.fixme('the tab bar replaces the top navbar', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
+    await expect(page.locator('.navbar-desktop')).toBeHidden()
+    await expect(page.locator('.navbar-mobile')).toBeVisible()
+  })
 })
