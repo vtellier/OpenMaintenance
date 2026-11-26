@@ -35,9 +35,9 @@ Conventions marked **(1.3)** are first drafts: sub-issue #157 reviews them on th
 - One named export per component, a function in PascalCase. Props are one typed object, destructured: `export function NotFound({ path }: { path: string })`. Name the type `<Name>Props` once it has more than two or three fields.
 - `page.tsx` parses the URL and passes plain values: `<EquipmentHoursPage equipmentId={Number(match[1])} />` **(1.3)**.
 - API clients are module-level constants, as before: `const equipmentApi = new EquipmentApi(apiConfig)`.
-- State lives in `useState`, and every change goes through its setter with a new value: `setForm(f => ({ ...f, newHours }))`, `setItems(items => items.filter(i => i.id !== id))`. The lint rule `react-hooks/immutability` catches a mutation.
+- State lives in `useState`, and every change goes through its setter with a new value: `setForm(f => ({ ...f, newHours }))`, `setItems(items => items.filter(i => i.id !== id))`. A mutated object keeps its identity, so React does not re-render.
 - Derive what can be derived during render (`const canSave = canUpdateHours(form)`), rather than storing it in a second state.
-- Define every component at module level. A component defined inside another is a new type on each render, so React remounts it and the input loses focus and content (`react-hooks/static-components`).
+- Define every component at module level. A component defined inside another is a new type on each render, so React remounts it and the input loses focus and content.
 
 ## Pages only render
 
@@ -162,7 +162,7 @@ Arrow removed an attribute whose value was `false`. React removes a boolean HTML
 
 ### 6. Code in the component body runs on every render
 
-The old page factories ran once, so their bodies loaded data, started timers and focused elements. A component's body runs on every render (twice per render in development), so a fetch or a `setTimeout` there runs again and again. Side effects go in `useEffect` or in event handlers; the `react-hooks/purity` and `react-hooks/set-state-in-render` rules catch some of these.
+The old page factories ran once, so their bodies loaded data, started timers and focused elements. A component's body runs on every render (twice per render in development), so a fetch or a `setTimeout` there runs again and again. Side effects go in `useEffect` or in event handlers. The linter does not catch these.
 
 ### 7. A controlled field shows the state, not what was typed
 
@@ -174,7 +174,7 @@ A number on the left of `&&` renders when it is `0`. Write a boolean: `{items.le
 
 ### 9. Lint warnings fail `pnpm lint`
 
-`pnpm lint` runs `eslint-plugin-react-hooks`' recommended rules with `--max-warnings=0`, so the `react-hooks/exhaustive-deps` warning fails CI. Fix the dependencies rather than silence the rule; when a rule must be turned off for one line, the `eslint-disable-next-line` comment gives the reason.
+`pnpm lint` runs two rules of `eslint-plugin-react-hooks`, `rules-of-hooks` and `exhaustive-deps`, both as errors and with `--max-warnings=0`, so either one fails CI. The plugin's other rules, backed by the React Compiler, are off (ADR 0005); 1.3's review decides whether any comes back. Fix the dependencies rather than silence the rule; when a rule must be turned off for one line, the `eslint-disable-next-line` comment gives the reason.
 
 ## References
 
