@@ -42,7 +42,7 @@ export interface HoursCorrector {
  * null on success, or to the reason it failed, as the backend gives it. Call
  * only when canCorrect.
  */
-export async function saveCorrection(equipmentId: number, hours: number, api: HoursCorrector): Promise<string | null> {
+export async function saveCorrection(hours: number, equipmentId: number, api: HoursCorrector): Promise<string | null> {
   try {
     await api.correctEquipmentHours({ id: equipmentId, equipmentHoursCorrectionInput: { hours } })
     return null
@@ -90,7 +90,7 @@ export interface HoursUpdater {
  * Saves the new reading. Resolves to null on success, or to the reason it
  * failed, as the backend gives it. Call only when canUpdateHours.
  */
-export async function saveHoursUpdate(equipmentId: number, form: HoursUpdateValues, api: HoursUpdater): Promise<string | null> {
+export async function saveHoursUpdate(form: HoursUpdateValues, equipmentId: number, api: HoursUpdater): Promise<string | null> {
   try {
     await api.updateEquipmentHours({ id: equipmentId, equipmentHoursInput: { hours: form.newHours } })
     return null

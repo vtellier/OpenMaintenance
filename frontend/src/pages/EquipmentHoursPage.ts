@@ -47,7 +47,7 @@ export function EquipmentHoursPage(idParam: string) {
       if (!canSave()) return
       state.saving = true
       state.error = null
-      const error = await saveHoursUpdate(equipmentId, state, equipmentApi)
+      const error = await saveHoursUpdate(state, equipmentId, equipmentApi)
       if (error == null) {
         window.location.href = backHref
         return

@@ -50,7 +50,7 @@ export function EquipmentCorrectHoursPage(idParam: string) {
       if (state.saving || !canCorrect(hours)) return
       state.saving = true
       state.error = null
-      const error = await saveCorrection(equipmentId, hours, equipmentApi)
+      const error = await saveCorrection(hours, equipmentId, equipmentApi)
       if (error == null) {
         window.location.href = backHref
         return

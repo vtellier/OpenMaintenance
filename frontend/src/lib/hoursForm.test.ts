@@ -62,20 +62,20 @@ describe('Correct reading', () => {
     it('sends the corrected reading, and resolves to null', async () => {
       const { api, calls } = fakeApi()
 
-      expect(await saveCorrection(3, 95, api)).toBeNull()
+      expect(await saveCorrection(95, 3, api)).toBeNull()
       expect(calls).toEqual([{ id: 3, equipmentHoursCorrectionInput: { hours: 95 } }])
     })
 
     it('resolves to the reason the backend gives', async () => {
       const { api } = fakeApi(backendError('Hours cannot be negative'))
 
-      expect(await saveCorrection(3, 95, api)).toBe('Hours cannot be negative')
+      expect(await saveCorrection(95, 3, api)).toBe('Hours cannot be negative')
     })
 
     it('resolves to a fallback without one', async () => {
       const { api } = fakeApi(new Error('network'))
 
-      expect(await saveCorrection(3, 95, api)).toBe('Failed to correct the reading')
+      expect(await saveCorrection(95, 3, api)).toBe('Failed to correct the reading')
     })
   })
 })
@@ -129,27 +129,27 @@ describe('Update hours', () => {
     it('sends the new reading, and resolves to null', async () => {
       const { api, calls } = fakeApi()
 
-      expect(await saveHoursUpdate(3, { currentHours: 120, newHours: 130 }, api)).toBeNull()
+      expect(await saveHoursUpdate({ currentHours: 120, newHours: 130 }, 3, api)).toBeNull()
       expect(calls).toEqual([{ id: 3, equipmentHoursInput: { hours: 130 } }])
     })
 
     it('sends the same reading, which confirms it', async () => {
       const { api, calls } = fakeApi()
 
-      await saveHoursUpdate(3, { currentHours: 120, newHours: 120 }, api)
+      await saveHoursUpdate({ currentHours: 120, newHours: 120 }, 3, api)
       expect(calls).toEqual([{ id: 3, equipmentHoursInput: { hours: 120 } }])
     })
 
     it('resolves to the reason the backend gives', async () => {
       const { api } = fakeApi(backendError('Hours cannot be lower than the current reading'))
 
-      expect(await saveHoursUpdate(3, { currentHours: 120, newHours: 130 }, api)).toBe('Hours cannot be lower than the current reading')
+      expect(await saveHoursUpdate({ currentHours: 120, newHours: 130 }, 3, api)).toBe('Hours cannot be lower than the current reading')
     })
 
     it('resolves to a fallback without one', async () => {
       const { api } = fakeApi(new Error('network'))
 
-      expect(await saveHoursUpdate(3, { currentHours: 120, newHours: 130 }, api)).toBe('Failed to update hours')
+      expect(await saveHoursUpdate({ currentHours: 120, newHours: 130 }, 3, api)).toBe('Failed to update hours')
     })
   })
 })
