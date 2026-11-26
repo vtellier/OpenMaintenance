@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
-import { AppShell } from '@/App'
+import { App, AppShell } from '@/App'
 import { NotFound } from '@/components/NotFound'
+import { SettingsPage } from '@/pages/SettingsPage'
 
 export interface Page {
   description: string
@@ -24,6 +25,14 @@ export interface Page {
  */
 export async function routeToPage(url: string): Promise<Page> {
   const pathname = new URL(url, 'http://localhost').pathname
+
+  if (pathname === '/settings') {
+    return {
+      description: 'App settings',
+      title: 'Settings | OpenMaintenance',
+      view: <App currentPath={pathname}><SettingsPage /></App>,
+    }
+  }
 
   // pre-react rendered a blank page here, with a page error (#184): Not Found
   // renders inside the shell instead, as its own <main>.
