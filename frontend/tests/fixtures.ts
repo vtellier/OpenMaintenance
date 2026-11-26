@@ -1,4 +1,4 @@
-import { test as base, expect, type BrowserContext, type Route } from '@playwright/test'
+import { test as base, expect, type BrowserContext, type Page, type Route } from '@playwright/test'
 
 /**
  * Every spec imports `test` and `expect` from here, not from
@@ -190,3 +190,17 @@ export const test = base.extend<Fixtures>({
 
 export { expect }
 export type { Page } from '@playwright/test'
+
+/** The backend's REST API, for the data a spec sets up. */
+export const API = 'http://127.0.0.1:3001/api'
+
+/**
+ * POSTs `data` to the API path (e.g. `/equipments`) and returns the JSON
+ * answer. A refused setup fails the test here, with the backend's reason,
+ * rather than later with a confusing error.
+ */
+export async function apiPost(page: Page, path: string, data: Record<string, unknown>) {
+  const res = await page.request.post(`${API}${path}`, { data })
+  expect(res.ok(), `POST ${path}: ${await res.text()}`).toBeTruthy()
+  return res.json()
+}

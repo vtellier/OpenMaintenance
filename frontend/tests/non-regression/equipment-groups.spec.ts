@@ -1,18 +1,10 @@
-import { expect, test, type Page } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, apiPost, expect, type Page, test } from '../fixtures'
 
 /**
  * Feature, not a bug: equipment groups organise the Equipments list
  * (doc/gui/equipments.md, doc/gui/history.md, ADR 0002).
  * Issue: https://github.com/vtellier/OpenMaintenance/issues/112
  */
-
-async function post(page: Page, path: string, data: Record<string, unknown>) {
-  const res = await page.request.post(`${API}${path}`, { data })
-  expect(res.ok(), `POST ${path}: ${await res.text()}`).toBeTruthy()
-  return res.json()
-}
 
 function section(page: Page, groupName: string) {
   return page.locator('.equipment-group').filter({ hasText: groupName })
@@ -42,7 +34,7 @@ test('a group created from the equipment form shows its equipments, its worst st
   // collapsed header: a collapsed group never hides an overdue equipment.
   const equipments = await (await page.request.get(`${API}/equipments`)).json()
   const portWinch = equipments.find((eq: { name: string }) => eq.name === 'Groups Port Winch')
-  await post(page, '/tasks', { equipment_id: portWinch.id, name: 'Groups Grease winch', months_interval: 12 })
+  await apiPost(page, '/tasks', { equipment_id: portWinch.id, name: 'Groups Grease winch', months_interval: 12 })
 
   await page.reload()
   await expect(header).toHaveAttribute('aria-expanded', 'false')
@@ -51,8 +43,8 @@ test('a group created from the equipment form shows its equipments, its worst st
 })
 
 test('deleting a group keeps its equipments, now ungrouped', async ({ page }) => {
-  const sails = await post(page, '/groups', { name: 'Groups Sails' })
-  await post(page, '/equipments', { name: 'Groups Genoa', group_id: sails.id })
+  const sails = await apiPost(page, '/groups', { name: 'Groups Sails' })
+  await apiPost(page, '/equipments', { name: 'Groups Genoa', group_id: sails.id })
 
   await page.goto('/equipments')
   await section(page, 'Groups Sails').getByRole('button', { name: 'Group actions' }).click()
@@ -68,8 +60,8 @@ test('deleting a group keeps its equipments, now ungrouped', async ({ page }) =>
 })
 
 test('changing the icon from the equipment header keeps its group', async ({ page }) => {
-  const safety = await post(page, '/groups', { name: 'Groups Safety' })
-  const jacket = await post(page, '/equipments', { name: 'Groups Life Jacket', icon: '⛵', group_id: safety.id })
+  const safety = await apiPost(page, '/groups', { name: 'Groups Safety' })
+  const jacket = await apiPost(page, '/equipments', { name: 'Groups Life Jacket', icon: '⛵', group_id: safety.id })
 
   await page.goto(`/equipments/${jacket.id}`)
   await page.getByTitle('Change icon').click()
@@ -82,13 +74,13 @@ test('changing the icon from the equipment header keeps its group', async ({ pag
 })
 
 test('the History filter shows the interventions of every equipment of a group', async ({ page }) => {
-  const deck = await post(page, '/groups', { name: 'Groups Deck' })
-  const windlass = await post(page, '/equipments', { name: 'Groups Windlass', group_id: deck.id })
-  const cleat = await post(page, '/equipments', { name: 'Groups Cleat', group_id: deck.id })
-  const engine = await post(page, '/equipments', { name: 'Groups Engine' })
+  const deck = await apiPost(page, '/groups', { name: 'Groups Deck' })
+  const windlass = await apiPost(page, '/equipments', { name: 'Groups Windlass', group_id: deck.id })
+  const cleat = await apiPost(page, '/equipments', { name: 'Groups Cleat', group_id: deck.id })
+  const engine = await apiPost(page, '/equipments', { name: 'Groups Engine' })
   for (const [eq, task] of [[windlass, 'Groups Service windlass'], [cleat, 'Groups Check cleat'], [engine, 'Groups Engine service']]) {
-    const t = await post(page, '/tasks', { equipment_id: eq.id, name: task, months_interval: 12 })
-    await post(page, '/interventions', { task_id: t.id, date: '2026-01-15T00:00:00Z' })
+    const t = await apiPost(page, '/tasks', { equipment_id: eq.id, name: task, months_interval: 12 })
+    await apiPost(page, '/interventions', { task_id: t.id, date: '2026-01-15T00:00:00Z' })
   }
 
   await page.goto('/history')
@@ -101,8 +93,8 @@ test('the History filter shows the interventions of every equipment of a group',
 })
 
 test('a group created from the form, then the form cancelled, shows as an empty section and keeps the list whole', async ({ page }) => {
-  await post(page, '/equipments', { name: 'Groups Anchor' })
-  await post(page, '/equipments', { name: 'Groups Zinc anode' })
+  await apiPost(page, '/equipments', { name: 'Groups Anchor' })
+  await apiPost(page, '/equipments', { name: 'Groups Zinc anode' })
 
   await page.goto('/equipments')
   await expect(page.locator('.equipment-card').filter({ hasText: 'Groups Zinc anode' })).toHaveCount(1)

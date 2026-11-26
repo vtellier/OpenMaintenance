@@ -538,7 +538,7 @@ export const EquipmentsPage = component(() => {
       <div class="toggle-row">
         <span class="toggle-row__label">This equipment has an hour-meter</span>
         <label class="toggle-switch">
-          <input type="checkbox" .checked="${() => state.addTracksHours}" @change="${onToggleHours}" />
+          <input type="checkbox" aria-label="This equipment has an hour-meter" .checked="${() => state.addTracksHours}" @change="${onToggleHours}" />
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -587,6 +587,6 @@ export const EquipmentsPage = component(() => {
     ${() => state.renameTarget ? renameModalHtml : null}
     ${() => state.deleteTarget ? deleteGroupModalHtml : null}
 
-    <button class="fab" @click="${onAddClick}">+</button>
+    <button class="fab" aria-label="Add equipment" @click="${onAddClick}">+</button>
   </section>`
 })

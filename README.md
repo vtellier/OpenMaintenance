@@ -163,7 +163,7 @@ Run the Playwright non-regression suite (it starts the backend and the dev serve
 cd frontend && pnpm test
 ```
 
-A test fails when the page throws an uncaught error or logs a console error it did not declare. The suite needs no internet access: it stubs the Google Fonts stylesheet and blocks any other outside request.
+A test fails when the page throws an uncaught error or logs a console error it did not declare. The suite needs no internet access: it stubs the Google Fonts stylesheet and blocks any other outside request. It runs on a desktop browser and, for the navigation and phone-layout specs, on a phone viewport. `frontend/tests/non-regression/README.md` maps every flow of `doc/gui/` to the specs that check it.
 
 Populate a running instance with a demo dataset (overdue / due-soon / OK statuses). It only runs on an empty database, and creates nothing on one that already holds data:
 
