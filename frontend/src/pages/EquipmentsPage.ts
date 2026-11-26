@@ -2,61 +2,22 @@ import { component, html, reactive } from '@arrow-js/core'
 import { EquipmentApi, TaskApi, InterventionApi, GroupApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { extractErrorMessage, formatHours } from '@/lib/format'
-import { dueTimingText } from '@/lib/dueTiming'
-import { byUrgency } from '@/lib/urgency'
 import { relativeTime, isHoursVeryStale } from '@/lib/timestamp'
-import { formatCalendarDate, compareCalendarDates, toApiDate } from '@/lib/calendar-date'
+import { formatCalendarDate, toApiDate } from '@/lib/calendar-date'
 import { EquipmentRow, GroupRow, InterventionRow, TaskRow, toEquipmentRow, toGroupRow, toInterventionRow, toTaskRow } from '@/lib/rows'
 import { equipmentAvatar } from '@/components/EquipmentAvatar'
 import { iconPicker } from '@/components/IconPicker'
 import { groupPicker } from '@/components/GroupPicker'
-import { DEFAULT_GROUP_ICON, EquipmentStatus, equipmentList, equipmentStatus, groupStatus } from '@/lib/equipmentGroups'
+import { DEFAULT_GROUP_ICON, EquipmentStatus, equipmentList, groupStatus } from '@/lib/equipmentGroups'
 import { isDecommissioned } from '@/lib/decommissioning'
+import { cardStatusLine, lastInterventionText, tasksByEquipment } from '@/lib/equipmentCard'
+import { latestEquipmentIntervention } from '@/lib/interventions'
+import { isCollapsed as isGroupCollapsed, readCollapsed, readShowDecommissioned, toggleCollapsed, writeCollapsed, writeShowDecommissioned } from '@/lib/equipmentsListPrefs'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
 const interventionApi = new InterventionApi(apiConfig)
 const groupApi = new GroupApi(apiConfig)
-
-// Collapsed sections are remembered per browser (doc/gui/equipments.md,
-// "Section header"): the ids of the collapsed groups.
-const COLLAPSED_KEY = 'openmaintenance.equipments.collapsedGroups'
-
-function readCollapsed(): Record<number, boolean> {
-  try {
-    const ids = JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? '[]')
-    const out: Record<number, boolean> = {}
-    if (Array.isArray(ids)) for (const id of ids) if (typeof id === 'number') out[id] = true
-    return out
-  } catch {
-    return {}
-  }
-}
-
-function writeCollapsed(collapsed: Record<number, boolean>) {
-  try {
-    const ids = Object.keys(collapsed).filter(k => collapsed[Number(k)]).map(Number)
-    localStorage.setItem(COLLAPSED_KEY, JSON.stringify(ids))
-  } catch { /* storage unavailable: the state lasts for this page only */ }
-}
-
-// "Show decommissioned" is remembered per browser too (doc/gui/equipments.md,
-// "Decommissioned equipments"). It starts unchecked.
-const SHOW_DECOMMISSIONED_KEY = 'openmaintenance.equipments.showDecommissioned'
-
-function readShowDecommissioned(): boolean {
-  try {
-    return localStorage.getItem(SHOW_DECOMMISSIONED_KEY) === 'true'
-  } catch {
-    return false
-  }
-}
-
-function writeShowDecommissioned(show: boolean) {
-  try {
-    localStorage.setItem(SHOW_DECOMMISSIONED_KEY, String(show))
-  } catch { /* storage unavailable: the state lasts for this page only */ }
-}
 
 const STATUS_BADGE: Record<EquipmentStatus, { label: string; cls: string }> = {
   overdue: { label: 'Overdue', cls: 'due-indicator--overdue' },
@@ -83,6 +44,7 @@ export const EquipmentsPage = component(() => {
     adding: false,
     addError: null as string | null,
 
+    // Remembered per browser (equipmentsListPrefs.ts).
     collapsed: readCollapsed(),
     showDecommissioned: readShowDecommissioned(),
     menuGroupId: null as number | null,
@@ -112,14 +74,7 @@ export const EquipmentsPage = component(() => {
       state.groups = groups.map(toGroupRow)
       state.equipments = equipments.map(toEquipmentRow)
       state.interventions = interventions.map(toInterventionRow)
-
-      const grouped: Record<number, TaskRow[]> = {}
-      for (const t of tasks) {
-        const eid = t.equipmentId ?? 0
-        if (!grouped[eid]) grouped[eid] = []
-        grouped[eid].push(toTaskRow(t))
-      }
-      state.tasksByEquipment = grouped
+      state.tasksByEquipment = tasksByEquipment(tasks.map(toTaskRow))
     } catch (err) {
       state.error = 'Failed to load equipments'
     } finally {
@@ -128,33 +83,6 @@ export const EquipmentsPage = component(() => {
   }
 
   load()
-
-  function latestIntervention(equipmentId: number): InterventionRow | null {
-    const tasks = state.tasksByEquipment[equipmentId] || []
-    const taskIds = new Set(tasks.map((t: TaskRow) => t.id))
-    let latest: InterventionRow | null = null
-    for (const inv of state.interventions) {
-      if (inv.taskId != null && taskIds.has(inv.taskId)) {
-        if (!latest || compareCalendarDates(inv.date, latest.date) > 0) {
-          latest = inv
-        }
-      }
-    }
-    return latest
-  }
-
-  function cropText(s: string, maxLen = 30): string {
-    const chars = [...s]
-    return chars.length > maxLen ? chars.slice(0, maxLen).join('') + '…' : s
-  }
-
-  function taskName(id: number | null | undefined): string {
-    for (const tasks of Object.values(state.tasksByEquipment)) {
-      const t = tasks.find((tt: TaskRow) => tt.id === id)
-      if (t) return t.name || ''
-    }
-    return ''
-  }
 
   async function addEquipment() {
     const name = state.addName.trim()
@@ -206,42 +134,22 @@ export const EquipmentsPage = component(() => {
     state.addTracksHours = !state.addTracksHours
   }
 
+  // Called by renderList, so on every run of the slot that renders the list:
+  // the card is computed afresh from the state each time.
   function renderCard(eq: EquipmentRow) {
-    const lastInv = latestIntervention(eq.id!)
     const tasks = state.tasksByEquipment[eq.id!] || []
     const decommissioned = isDecommissioned(eq)
     // A decommissioned equipment's hour-meter no longer matters: never stale.
     const hoursClass = !decommissioned && isHoursVeryStale(eq.hoursUpdatedAt) ? 'very-stale' : ''
     const cardClass = decommissioned ? 'equipment-card equipment-card--decommissioned' : 'equipment-card'
     const link = '/equipments/' + eq.id!
-    var metaHtml
-
-    if (lastInv) {
-      metaHtml = 'Last: ' + taskName(lastInv.taskId) + ', ' + formatCalendarDate(lastInv.date)
-    } else {
-      metaHtml = 'No intervention yet'
-    }
+    const metaHtml = lastInterventionText(latestEquipmentIntervention(state.interventions, tasks), tasks)
 
     // The badge follows the shared rule, which the section headers use too.
-    const status = equipmentStatus(tasks)
-    const statusLabel = status ? STATUS_BADGE[status].label : ''
-    const statusClass = status ? STATUS_BADGE[status].cls : ''
-    let statusText = ''
-
-    if (status === 'overdue' || status === 'due_soon') {
-      const due = tasks.filter((t: TaskRow) => t.dueStatus === status)
-      if (due.length === 1) {
-        const t = due[0]
-        const timing = dueTimingText(t)
-        statusText = cropText(t.name || '') + (timing ? ' \u2014 ' + timing : '')
-      } else {
-        const mostUrgent = [...due].sort(byUrgency)[0]
-        const timing = dueTimingText(mostUrgent)
-        statusText = due.length + ' tasks' + (timing ? ' \u2014 most urgent ' + timing : '')
-      }
-    } else if (status === 'ok') {
-      statusText = 'All clear!'
-    }
+    const statusLine = cardStatusLine(tasks)
+    const statusLabel = statusLine ? STATUS_BADGE[statusLine.status].label : ''
+    const statusClass = statusLine ? STATUS_BADGE[statusLine.status].cls : ''
+    const statusText = statusLine?.text ?? ''
 
     return html`
     <a href="${link}" class="${cardClass}">
@@ -276,7 +184,7 @@ export const EquipmentsPage = component(() => {
   // ── Groups ──
 
   function isCollapsed(groupId: number): boolean {
-    return !!state.collapsed[groupId]
+    return isGroupCollapsed(state.collapsed, groupId)
   }
 
   function decommissionedCount(): number {
@@ -289,7 +197,7 @@ export const EquipmentsPage = component(() => {
   }
 
   function onToggleGroup(groupId: number) {
-    state.collapsed = { ...state.collapsed, [groupId]: !isCollapsed(groupId) }
+    state.collapsed = toggleCollapsed(state.collapsed, groupId)
     writeCollapsed(state.collapsed)
   }
 
