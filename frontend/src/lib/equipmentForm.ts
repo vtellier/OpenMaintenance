@@ -10,7 +10,7 @@ import { EquipmentRow, toTaskRow } from '@/lib/rows'
 // becomes (doc/gui/equipments.md; doc/data-model.md, "Hour-meter behavior").
 
 /** The icon an equipment shows when none is picked. */
-const DEFAULT_ICON = '🔧'
+export const DEFAULT_ICON = '🔧'
 
 /** An optional date field's request value: none while it is empty. */
 function optionalApiDate(date: CalendarDate | ''): Date | undefined {

@@ -4,8 +4,7 @@ import 'emoji-picker-element'
 // self-hosted and may run with no internet, e.g. on a boat). `?url` makes Vite
 // emit the JSON as a same-origin asset instead of relying on the default CDN.
 import emojiDataUrl from 'emoji-picker-element-data/en/emojibase/data.json?url'
-
-export const DEFAULT_ICON = '🔧'
+import { DEFAULT_ICON } from '@/lib/equipmentForm'
 
 export interface IconPickerOptions {
   // 'button' (default): a labelled "Choose icon ▾" button, for forms.
@@ -13,7 +12,7 @@ export interface IconPickerOptions {
   // 'menuitem': a plain "Change icon" item, for a menu (a group's section header).
   variant?: 'button' | 'avatar' | 'menuitem'
   // The icon Reset restores and the trigger shows when there is none.
-  // Defaults to the equipment default, 🔧.
+  // Defaults to the equipment default, DEFAULT_ICON (🔧).
   defaultIcon?: string
 }
 

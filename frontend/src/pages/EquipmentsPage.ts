@@ -12,7 +12,7 @@ import { DEFAULT_GROUP_ICON, EquipmentStatus, equipmentList, groupStatus } from 
 import { isDecommissioned } from '@/lib/decommissioning'
 import { cardStatusLine, lastInterventionText, tasksByEquipment } from '@/lib/equipmentCard'
 import { latestEquipmentIntervention } from '@/lib/interventions'
-import { canAddEquipment, NewEquipmentValues, newEquipmentForm, toNewEquipmentInput } from '@/lib/equipmentForm'
+import { canAddEquipment, DEFAULT_ICON, NewEquipmentValues, newEquipmentForm, toNewEquipmentInput } from '@/lib/equipmentForm'
 import { isCollapsed as isGroupCollapsed, readCollapsed, readShowDecommissioned, toggleCollapsed, writeCollapsed, writeShowDecommissioned } from '@/lib/equipmentsListPrefs'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -37,7 +37,7 @@ export const EquipmentsPage = component(() => {
     showAddModal: false,
     addName: '',
     addDesc: '',
-    addIcon: '🔧',
+    addIcon: DEFAULT_ICON,
     addCommissionedAt: '',
     addTracksHours: false,
     addHours: 0,

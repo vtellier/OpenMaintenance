@@ -5,7 +5,7 @@ import { iconPicker } from '@/components/IconPicker'
 import { groupPicker } from '@/components/GroupPicker'
 import { today } from '@/lib/calendar-date'
 import { GroupRow, toEquipmentRow, toGroupRow } from '@/lib/rows'
-import { canSaveEdit, decommissioningInvalid, editFormOf, saveEdit, turningOn } from '@/lib/equipmentForm'
+import { canSaveEdit, decommissioningInvalid, DEFAULT_ICON, editFormOf, saveEdit, turningOn } from '@/lib/equipmentForm'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -19,7 +19,7 @@ export function EquipmentEditPage(idParam: string) {
     const state = reactive({
       name: '',
       description: '',
-      icon: '🔧',
+      icon: DEFAULT_ICON,
       groupId: null as number | null,
       groups: [] as GroupRow[],
       commissionedAt: '',

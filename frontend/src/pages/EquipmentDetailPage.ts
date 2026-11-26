@@ -11,10 +11,10 @@ import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { InterventionFormSource } from '@/lib/interventionForm'
 import { ReadingDoubt, readingDoubt } from '@/lib/readingDoubt'
 import { readingQuestion } from '@/components/ReadingDoubtModal'
-import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
+import { iconPicker } from '@/components/IconPicker'
 import { isDecommissioned } from '@/lib/decommissioning'
 import { equipmentInterventions, interventionTaskLabel, lastInterventionOfTask, newestFirst } from '@/lib/interventions'
-import { iconChangeInput } from '@/lib/equipmentForm'
+import { DEFAULT_ICON, iconChangeInput } from '@/lib/equipmentForm'
 import { canSaveTask, intervalFromInput, intervalValue, newTaskForm, TaskFormValues, TaskKind, taskFormOf, toTaskInput } from '@/lib/taskForm'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -633,7 +633,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           </div>
           <div class="form-field">
             <label class="form-field__label">Icon</label>
-            <p>${eq.icon || '🔧'} <span class="form-field__hint">— shown in lists and the dashboard</span></p>
+            <p>${eq.icon || DEFAULT_ICON} <span class="form-field__hint">— shown in lists and the dashboard</span></p>
           </div>
           ${eq.commissionedAt ? html`<div class="form-field">
             <label class="form-field__label">Date of commissioning</label>
