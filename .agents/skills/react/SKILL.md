@@ -1,6 +1,6 @@
 ---
 name: react
-description: Write or change OpenMaintenance frontend code in React (TSX pages, components, hooks), including porting a page from the pre-react Arrow.js code. Use for any change under frontend/src/ outside src/lib/.
+description: Write or change OpenMaintenance frontend code in React (TSX pages, components, hooks), including porting a page from the pre-react Arrow.js code. Use for any frontend code change.
 ---
 
 # React (frontend)
@@ -21,7 +21,7 @@ Conventions marked **(1.3)** are first drafts: sub-issue #157 reviews them on th
 
 | Path | Holds |
 |---|---|
-| `src/entry-client.tsx` | Renders `routeToPage(pathname).view` into `#app` under `<StrictMode>`; applies the theme |
+| `src/entry-client.tsx` | Awaits `routeToPage(pathname)` and renders its `view` into `#app` under `<StrictMode>`; applies the theme |
 | `src/page.tsx` | The route table: pathname → `{ title, description, view }` |
 | `src/App.tsx` | The shell around every page |
 | `src/pages/<Name>Page.tsx` | One component per screen **(1.3)** |
@@ -78,8 +78,47 @@ useEffect(() => {
 - Every generated API method takes `RequestInit` as its second argument, so `{ signal }` cancels the request. An aborted request rejects (the client wraps it in a `FetchError`) and logs no console error.
 - Check `signal.aborted` after every `await`, before any setter: a response that arrived just before the abort still resolves.
 - Loading and error states keep `pre-react`'s markup: `<p className="page__empty">Loading...</p>` until loaded, `<div className="flash flash--error">{error}</div>` on failure **(1.3)**.
-- A reload after a save is an async function the handler awaits, since what follows may need the fresh data; the page-load effect can call the same function with its signal **(1.3)**.
+- A reload after a save is an async function the handler awaits, since what follows may need the fresh data; the page-load effect calls the same function with its signal **(1.3)**. See [A reload shared by the effect and the handlers](#a-reload-shared-by-the-effect-and-the-handlers).
 - A late answer that must not overwrite a newer one (the page-load update status against a manual check, #165) is guarded with a `useRef` flag: an async callback reads the state of the render that created it, so a state flag would be stale.
+
+### A reload shared by the effect and the handlers
+
+A function declared in the component body is a new function on every render, so an effect that calls it must list it, and `exhaustive-deps` fails `pnpm lint` when it is missing. Wrap the reload in `useCallback` with the values it reads, and make the effect depend on `[reload]`:
+
+```tsx
+const reload = useCallback(async (signal?: AbortSignal) => {
+  try {
+    const eq = toEquipmentRow(await equipmentApi.getEquipment({ id: equipmentId }, { signal }))
+    if (signal?.aborted) return
+    setForm(hoursUpdateFormOf(eq))
+    setError(null)
+  } catch {
+    if (signal?.aborted) return
+    setError('Failed to load equipment')
+  }
+  setLoaded(true)
+}, [equipmentId])
+
+useEffect(() => {
+  const controller = new AbortController()
+  reload(controller.signal)
+  return () => controller.abort()
+}, [reload])
+
+async function onSave() {
+  if (!form) return
+  setSaving(true)
+  const failure = await saveHoursUpdate(form, equipmentId, equipmentApi)
+  if (failure === null) await reload()
+  else setError(failure)
+  setSaving(false)
+}
+```
+
+- `reload` changes only when `equipmentId` changes, so the effect runs once per page load, and again (aborting the previous request) if the id changes.
+- The effect passes its signal; a handler calls `reload()` with none, so its request is not cancelled by the effect's cleanup.
+- Under `<StrictMode>` in `pnpm dev`, the effect runs, its cleanup aborts the first request, and it runs again: two GETs go out, the first is aborted, and its result never reaches a setter thanks to the `signal?.aborted` checks. The production build sends one.
+- List in `useCallback`'s array every prop or state value the function reads; setters are stable and need not be listed. `exhaustive-deps` checks that array too.
 
 ## Forms
 
@@ -120,6 +159,7 @@ During the port (#146, branch `feat/issue-146-react`), `frontend/tests/` and `sr
 
 - Read the rendered DOM, not only the old template: open the screen in the reference app and compare `document.querySelector('main').outerHTML` with the port's.
 - `class` becomes `className`; a class computed in a template (`'tabbar__tab' + (active ? ' active' : '')`) stays computed the same way.
+- Not Found has no reference to match (`pre-react` rendered a blank page there, #184). The 1.2 placeholder nests `div.not-found` inside the padded `main.app-content`: at 640px and below, `.app-content`'s 16px side padding plus `.not-found`'s `width: min(720px, calc(100vw - 32px))` puts it 16px off-centre (x=32 to 390 at 390px wide), and the top padding grows by 24 to 32px. `style.css` stays frozen, so the real NotFound fixes this in its markup, for example by rendering as the shell's content rather than inside the extra padded box **(1.3)**.
 
 ## Comparing with the reference app
 
