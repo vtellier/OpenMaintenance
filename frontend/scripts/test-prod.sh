@@ -12,8 +12,7 @@
 #    database and files, no backups. The binary reads config.yaml from its own
 #    directory and resolves database.path against it, so the run never touches
 #    backend/maintenance.db, and it can run next to `make dev` (:3001, :5173).
-#    The directory is short on purpose: Settings shows it, and a long one runs
-#    off a phone screen (#176).
+#    A fresh directory keeps each run isolated.
 # 3. Starts it, refusing a port something already listens on and checking that
 #    /api/version answers with the version just built, so the suite can never
 #    test a server left over from older code.

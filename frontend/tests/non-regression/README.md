@@ -66,8 +66,7 @@ Arguments go to Playwright: `pnpm test:prod --project=mobile`,
 `pnpm test:prod tests/non-regression/smoke.spec.ts`. The CI job
 `test-frontend-prod` runs it on every pull request, next to `test-frontend`.
 
-The directory is short on purpose: Settings shows the backup directory, and a
-long one runs off a phone screen (#176).
+A fresh directory keeps each run isolated.
 
 ### Against any running server: `OM_TEST_BASE_URL`
 
@@ -212,6 +211,7 @@ is blocked, which fails the test. Requests to the app itself are not touched.
 | `hour-meter-toggle.spec.ts` | Flow, not a bug: turned back on, the hour-meter is prefilled with its last reading and cannot go lower. The warning when turning it off (confirm saves, Cancel keeps it on) is two `test.fixme` (issue #171) (issue #150) | — |
 | `settings.spec.ts` | Flow, not a bug: the theme follows the system until one is chosen, applies at once and stays after a reload; the Backup section (enabled with files, enabled with none, disabled); the About section (issue #150) | — |
 | `empty-states.spec.ts` | Flow, not a bug: the empty Dashboard, Equipments list (none at all, or none in service) and History, with their calls to action (lists stubbed: the run shares one database). History with equipments but nothing logged is a `test.fixme` (issue #170) (issue #150) | — |
+| `mobile-settings-long-backup-path.spec.ts` | `mobile` project only: a long, unbreakable backup directory ran off a phone screen, so Settings grew wider than the phone, the browser zoomed it out and the tab bar stopped taking taps; a long, unbreakable update version must wrap too (directory, file list and update status stubbed) (issue #176) | — |
 
 ## Flow map
 
@@ -348,7 +348,7 @@ is the bug.
 | Localisation: language, date, time and number formats, first day of the week | Uncovered: not built yet (the Settings screen has no Localisation section) |
 | About: version, repository link, license | `settings.spec.ts` |
 | About: update status and Check for updates | `manual-update-check.spec.ts`, `update-status-not-shown-when-check-pending.spec.ts` |
-| Backup: status, directory, retention, files | `settings.spec.ts` |
+| Backup: status, directory, retention, files | `settings.spec.ts`; a long directory on a phone: `mobile-settings-long-backup-path.spec.ts` |
 
 ### Where the app and the doc word things differently
 
