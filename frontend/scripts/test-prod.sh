@@ -37,7 +37,7 @@ port_busy() {
 }
 
 if port_busy; then
-  fail "something already listens on port $port; stop it, or set OM_PROD_PORT to a free port"
+  fail "something already listens on port $port. Identify it first (ss -ltnp | grep ':$port\b') and stop it if it is a leftover run; otherwise set OM_PROD_PORT to a free port"
 fi
 
 make -C "$repo" build
