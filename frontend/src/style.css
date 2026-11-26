@@ -376,6 +376,9 @@ code {
   margin: 0 0 4px;
   font-size: 14px;
   color: var(--muted);
+  /* A backup directory or a version can be one long word: wrap it anywhere
+     rather than let it widen the page on a phone (#176). */
+  overflow-wrap: anywhere;
 }
 
 .settings-about__line a {

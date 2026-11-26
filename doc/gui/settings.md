@@ -57,7 +57,7 @@ The backend, not the browser, asks GitHub for the latest release (`GET https://a
 Read-only section — shows the current backup configuration and lists existing backup files.
 
 - **Status**: Enabled / Disabled (reflects the `backup.enabled` config value)
-- **Backup directory**: Absolute path where backup files are stored
+- **Backup directory**: Absolute path where backup files are stored. A long path wraps inside the section, so the page is never wider than a phone screen
 - **Retention**: How many backups are kept (0 = unlimited)
 - **Backup files**: Table listing existing backups with name, size, and creation date (newest first). Backups are `.tar.gz` archives holding the database and the attached files; legacy `.bak` files left by older releases (database only) are listed too until rotation removes them. See [configuration.md — Backups](../configuration.md#backups). Shows "No backups yet" when the list is empty. Hidden when backup is disabled.
 
