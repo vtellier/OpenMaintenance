@@ -1,6 +1,4 @@
-import { expect, test, type Page } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, expect, test, type Page } from '../fixtures'
 
 /**
  * Bug: Dashboard and Equipment detail ordered tasks by status only, so within

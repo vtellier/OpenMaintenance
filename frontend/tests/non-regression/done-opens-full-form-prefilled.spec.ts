@@ -1,6 +1,4 @@
-import { expect, Page, test } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, expect, Page, test } from '../fixtures'
 
 /**
  * Feature: Done on a task row opens the full intervention form, prefilled

@@ -1,6 +1,4 @@
-import { expect, test } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, expect, test } from '../fixtures'
 
 /**
  * Bug: the dashboard hour-meter banner offered "Same hours" for an equipment

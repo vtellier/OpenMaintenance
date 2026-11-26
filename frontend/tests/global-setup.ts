@@ -5,8 +5,11 @@
  * the delete to tasks and interventions. Then delete every group, which an
  * equipment delete leaves in place. This fully empties user data without
  * touching the SQLite file or restarting the backend.
+ *
+ * The backend is the one `tests/target.ts` names: the dev backend by default,
+ * the server at `OM_TEST_BASE_URL` when that is set.
  */
-const API = process.env.API_BASE_URL ?? 'http://localhost:3001/api'
+import { API } from './target'
 
 async function wipeDb(): Promise<void> {
   const res = await fetch(`${API}/equipments`)

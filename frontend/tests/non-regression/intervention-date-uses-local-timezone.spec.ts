@@ -1,6 +1,4 @@
-import { expect, test } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, expect, test } from '../fixtures'
 
 /**
  * Bug: "Log intervention" pre-fills the date using new Date().toISOString()

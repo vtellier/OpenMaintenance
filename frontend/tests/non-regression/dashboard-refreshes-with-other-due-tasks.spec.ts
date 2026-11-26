@@ -1,6 +1,4 @@
-import { expect, Page, test } from '../fixtures'
-
-const API = 'http://127.0.0.1:3001/api'
+import { API, expect, Page, test } from '../fixtures'
 
 /**
  * Bug: after Done was saved on the Dashboard, the task stayed listed as
