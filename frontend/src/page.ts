@@ -12,6 +12,7 @@ import { EquipmentCorrectHoursPage } from '@/pages/EquipmentCorrectHoursPage'
 import { HistoryPage } from '@/pages/HistoryPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { EquipmentApi } from '@generated/api'
+import { toEquipmentRow } from '@/lib/rows'
 import { apiConfig } from '@/api/config'
 
 export interface Page {
@@ -99,7 +100,7 @@ export async function routeToPage(url: string): Promise<Page> {
     let equipmentName: string | null = null
     try {
       const equipmentApi = new EquipmentApi(apiConfig)
-      const eq = await equipmentApi.getEquipment({ id: parseInt(id, 10) })
+      const eq = toEquipmentRow(await equipmentApi.getEquipment({ id: parseInt(id, 10) }))
       equipmentName = eq.name ?? null
     } catch {
       // fallback to generic title

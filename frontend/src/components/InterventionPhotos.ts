@@ -1,8 +1,8 @@
 import { html, reactive } from '@arrow-js/core'
-import { FileInfo } from '@generated/api/models/FileInfo'
 import { InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { extractErrorMessage } from '@/lib/format'
+import { FileRow, toFileRow } from '@/lib/rows'
 
 const interventionApi = new InterventionApi(apiConfig)
 
@@ -16,22 +16,19 @@ const interventionApi = new InterventionApi(apiConfig)
 // asks for confirmation before a (non-undoable) delete.
 export function InterventionPhotos(interventionId: number) {
   const state = reactive({
-    photos: [] as FileInfo[],
+    photos: [] as FileRow[],
     loaded: false,
     error: null as string | null,
     uploading: false,
     deletingName: null as string | null,
-    confirmDelete: null as FileInfo | null,
-    viewing: null as FileInfo | null,
+    confirmDelete: null as FileRow | null,
+    viewing: null as FileRow | null,
   })
 
   async function load() {
     try {
       const files = await interventionApi.listInterventionFiles({ id: interventionId })
-      state.photos = files.map((f: any) => ({
-        ...f,
-        uploadedAt: f.uploadedAt?.toISOString?.() ?? f.uploadedAt,
-      }))
+      state.photos = files.map(toFileRow)
       state.error = null
     } catch {
       state.error = 'Failed to load photos'
@@ -61,7 +58,7 @@ export function InterventionPhotos(interventionId: number) {
     }
   }
 
-  function onDeleteClick(f: FileInfo) {
+  function onDeleteClick(f: FileRow) {
     state.confirmDelete = f
   }
 
@@ -96,7 +93,7 @@ export function InterventionPhotos(interventionId: number) {
   }
 
   // A photo missing on the server has nothing to show full-screen (#122).
-  function onView(f: FileInfo) {
+  function onView(f: FileRow) {
     if (f.missing) return
     state.viewing = f
   }

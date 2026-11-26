@@ -1,12 +1,9 @@
 import { component, html, reactive } from '@arrow-js/core'
-import { Equipment } from '@generated/api/models/Equipment'
-import { Task } from '@generated/api/models/Task'
-import { Intervention } from '@generated/api/models/Intervention'
-import { Group } from '@generated/api/models/Group'
 import { EquipmentApi, TaskApi, InterventionApi, GroupApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { buildInterventionMeta } from '@/lib/format'
-import { WithCalendarDates, formatCalendarDate, compareCalendarDates, fromApiDate, fromApiDateTime } from '@/lib/calendar-date'
+import { formatCalendarDate, compareCalendarDates } from '@/lib/calendar-date'
+import { EquipmentRow, GroupRow, InterventionRow, TaskRow, toEquipmentRow, toGroupRow, toInterventionRow, toTaskRow } from '@/lib/rows'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { InterventionFormSource } from '@/lib/interventionForm'
 import { ReadingDoubt, readingDoubt } from '@/lib/readingDoubt'
@@ -18,8 +15,6 @@ const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
 const interventionApi = new InterventionApi(apiConfig)
 const groupApi = new GroupApi(apiConfig)
-
-type EquipmentRow = WithCalendarDates<Equipment, 'decommissionedAt'>
 
 // The equipment filter's select values: "<id>" for an equipment, "g:<id>"
 // for a group, "" for all.
@@ -35,14 +30,12 @@ function parseFilterValue(value: string): HistoryFilter {
   return isGroup ? { groupId: id } : { equipmentId: id }
 }
 
-type InterventionRow = WithCalendarDates<Intervention, 'date' | 'expiryDate'>
-
 export function HistoryPage() {
   return component(() => {
     const state = reactive({
       equipments: [] as EquipmentRow[],
-      groups: [] as Group[],
-      tasks: [] as Task[],
+      groups: [] as GroupRow[],
+      tasks: [] as TaskRow[],
       interventions: [] as InterventionRow[],
       loaded: false,
       loadError: null as string | null,
@@ -69,34 +62,10 @@ export function HistoryPage() {
           groupApi.listGroups(),
         ])
 
-        state.groups = groups.map((g: any) => ({
-          ...g,
-          createdAt: g.createdAt?.toISOString(),
-          updatedAt: g.updatedAt?.toISOString(),
-        }))
-
-        state.equipments = eqs.map((e: any) => ({
-          ...e,
-          decommissionedAt: fromApiDate(e.decommissionedAt),
-          hoursUpdatedAt: e.hoursUpdatedAt?.toISOString(),
-          createdAt: e.createdAt?.toISOString(),
-          updatedAt: e.updatedAt?.toISOString(),
-        }))
-
-        state.tasks = ts.map((t: any) => ({
-          ...t,
-          nextDueDate: t.nextDueDate?.toISOString(),
-          createdAt: t.createdAt?.toISOString(),
-          updatedAt: t.updatedAt?.toISOString(),
-        }))
-
-        state.interventions = invs.map((inv: any) => ({
-          ...inv,
-          date: fromApiDateTime(inv.date),
-          expiryDate: fromApiDate(inv.expiryDate),
-          createdAt: inv.createdAt?.toISOString(),
-          updatedAt: inv.updatedAt?.toISOString(),
-        }))
+        state.groups = groups.map(toGroupRow)
+        state.equipments = eqs.map(toEquipmentRow)
+        state.tasks = ts.map(toTaskRow)
+        state.interventions = invs.map(toInterventionRow)
       } catch {
         state.loadError = 'Failed to load history'
       } finally {
@@ -113,7 +82,7 @@ export function HistoryPage() {
       return state.equipments.find(e => e.id === task.equipmentId)
     }
 
-    function getTask(taskId: number | undefined): Task | undefined {
+    function getTask(taskId: number | undefined): TaskRow | undefined {
       if (taskId == null) return undefined
       return state.tasks.find(t => t.id === taskId)
     }

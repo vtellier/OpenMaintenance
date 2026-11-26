@@ -3,6 +3,7 @@ import { EquipmentApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { extractErrorMessage, formatHours } from '@/lib/format'
 import { formatTimestampDate } from '@/lib/timestamp'
+import { toEquipmentRow } from '@/lib/rows'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 
@@ -36,10 +37,10 @@ export function EquipmentCorrectHoursPage(idParam: string) {
 
     async function load() {
       try {
-        const eq = await equipmentApi.getEquipment({ id: equipmentId })
+        const eq = toEquipmentRow(await equipmentApi.getEquipment({ id: equipmentId }))
         state.name = eq.name ?? ''
         state.currentHours = eq.hours ?? null
-        state.lastUpdated = eq.hoursUpdatedAt?.toISOString() ?? null
+        state.lastUpdated = eq.hoursUpdatedAt ?? null
       } catch {
         state.error = 'Failed to load equipment'
       } finally {

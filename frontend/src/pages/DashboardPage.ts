@@ -1,14 +1,11 @@
 import { component, html, reactive } from '@arrow-js/core'
-import { Equipment } from '@generated/api/models/Equipment'
-import { Task } from '@generated/api/models/Task'
-import { Intervention } from '@generated/api/models/Intervention'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { formatHours } from '@/lib/format'
 import { dueTimingText } from '@/lib/dueTiming'
 import { byUrgency } from '@/lib/urgency'
 import { relativeTime, isHoursStale, isHoursVeryStale } from '@/lib/timestamp'
-import { WithCalendarDates, fromApiDate, fromApiDateTime } from '@/lib/calendar-date'
+import { EquipmentRow, InterventionRow, TaskRow, toEquipmentRow, toInterventionRow, toTaskRow } from '@/lib/rows'
 import { equipmentAvatar } from '@/components/EquipmentAvatar'
 import { freshnessBannerEquipments, sameHoursReading } from '@/lib/hourMeterFreshness'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
@@ -16,10 +13,6 @@ import { FullInterventionModal } from '@/components/FullInterventionModal'
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
 const interventionApi = new InterventionApi(apiConfig)
-
-type EquipmentRow = WithCalendarDates<Equipment, 'decommissionedAt'>
-type TaskRow = WithCalendarDates<Task, 'nextDueDate'>
-type InterventionRow = WithCalendarDates<Intervention, 'date' | 'expiryDate'>
 
 export function DashboardPage() {
   return component(() => {
@@ -41,28 +34,9 @@ export function DashboardPage() {
           interventionApi.listInterventions(),
         ])
 
-        state.equipments = eqs.map((e: any) => ({
-          ...e,
-          decommissionedAt: fromApiDate(e.decommissionedAt),
-          hoursUpdatedAt: e.hoursUpdatedAt?.toISOString(),
-          createdAt: e.createdAt?.toISOString(),
-          updatedAt: e.updatedAt?.toISOString(),
-        }))
-
-        state.tasks = ts.map((t: any) => ({
-          ...t,
-          nextDueDate: fromApiDate(t.nextDueDate),
-          createdAt: t.createdAt?.toISOString(),
-          updatedAt: t.updatedAt?.toISOString(),
-        }))
-
-        state.interventions = invs.map((inv: any) => ({
-          ...inv,
-          date: fromApiDateTime(inv.date),
-          expiryDate: fromApiDate(inv.expiryDate),
-          createdAt: inv.createdAt?.toISOString(),
-          updatedAt: inv.updatedAt?.toISOString(),
-        }))
+        state.equipments = eqs.map(toEquipmentRow)
+        state.tasks = ts.map(toTaskRow)
+        state.interventions = invs.map(toInterventionRow)
       } catch {
         state.loadError = 'Failed to load data'
       } finally {
