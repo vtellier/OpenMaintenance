@@ -3,7 +3,7 @@ import { expect, test } from '../fixtures'
 /**
  * Bug: on a phone, a long backup directory runs off the screen and the page zooms out
  * Issue: #176
- * Fixed in: open
+ * Fixed in: d4c1e1c
  *
  * A directory with no break opportunity (no hyphen, no space) stayed on one
  * line, so Settings grew wider than the phone and the browser zoomed it out;
