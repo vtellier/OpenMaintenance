@@ -12,6 +12,7 @@ import { DEFAULT_GROUP_ICON, EquipmentStatus, equipmentList, groupStatus } from 
 import { isDecommissioned } from '@/lib/decommissioning'
 import { cardStatusLine, lastInterventionText, tasksByEquipment } from '@/lib/equipmentCard'
 import { latestEquipmentIntervention } from '@/lib/interventions'
+import { hoursFromInput } from '@/lib/hoursForm'
 import { canAddEquipment, DEFAULT_ICON, NewEquipmentValues, newEquipmentForm, toNewEquipmentInput } from '@/lib/equipmentForm'
 import { isCollapsed as isGroupCollapsed, readCollapsed, readShowDecommissioned, toggleCollapsed, writeCollapsed, writeShowDecommissioned } from '@/lib/equipmentsListPrefs'
 
@@ -430,7 +431,7 @@ export const EquipmentsPage = component(() => {
       ${() => state.addTracksHours ? html`
         <div class="form-field">
           <label class="form-field__label">Initial hours</label>
-          <input type="number" min="0" aria-label="Initial hours" .value="${() => String(state.addHours)}" @input="${(e: Event) => { state.addHours = Number((e.target as HTMLInputElement).value) }}" />
+          <input type="number" min="0" aria-label="Initial hours" .value="${() => String(state.addHours)}" @input="${(e: Event) => { state.addHours = hoursFromInput((e.target as HTMLInputElement).value) }}" />
         </div>
       ` : null}
       <div class="modal__actions">

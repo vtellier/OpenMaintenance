@@ -5,6 +5,7 @@ import { iconPicker } from '@/components/IconPicker'
 import { groupPicker } from '@/components/GroupPicker'
 import { today } from '@/lib/calendar-date'
 import { GroupRow, toEquipmentRow, toGroupRow } from '@/lib/rows'
+import { hoursFromInput } from '@/lib/hoursForm'
 import { canSaveEdit, decommissioningInvalid, DEFAULT_ICON, editFormOf, saveEdit, turningOn } from '@/lib/equipmentForm'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -126,7 +127,7 @@ export function EquipmentEditPage(idParam: string) {
             ${() => turningOn(state) ? html`
               <div class="form-field">
                 <label class="form-field__label">Current hours</label>
-                <input type="number" aria-label="Current hours" min="${() => String(state.minHours)}" .value="${() => String(state.hours)}" @input="${(e: Event) => { state.hours = Number((e.target as HTMLInputElement).value) }}" />
+                <input type="number" aria-label="Current hours" min="${() => String(state.minHours)}" .value="${() => String(state.hours)}" @input="${(e: Event) => { state.hours = hoursFromInput((e.target as HTMLInputElement).value) }}" />
                 ${() => state.minHours > 0 ? html`<p class="form-field__hint">Last reading: ${String(state.minHours)} h. The hour-meter cannot go backwards.</p>` : null}
               </div>
             ` : null}

@@ -64,7 +64,11 @@ export function hoursUpdateFormOf(eq: Pick<EquipmentRow, 'hours'>): HoursUpdateV
   return { currentHours: eq.hours ?? 0, newHours: eq.hours ?? 0 }
 }
 
-/** The New hours field as typed. An empty field reads as 0. */
+/**
+ * An hour-meter reading field as typed: New hours (Update hours), and the
+ * Current hours or Initial hours given when the hour-meter is turned on. An
+ * empty field reads as 0.
+ */
 export function hoursFromInput(raw: string): number {
   return Number(raw)
 }
