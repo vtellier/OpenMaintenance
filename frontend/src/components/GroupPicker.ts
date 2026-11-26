@@ -1,21 +1,21 @@
 import { html, reactive } from '@arrow-js/core'
-import { Group } from '@generated/api/models/Group'
 import { GroupApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { iconPicker } from '@/components/IconPicker'
 import { DEFAULT_GROUP_ICON, byName } from '@/lib/equipmentGroups'
 import { extractErrorMessage } from '@/lib/format'
+import { GroupRow, toGroupRow } from '@/lib/rows'
 
 const groupApi = new GroupApi(apiConfig)
 
 const NEW_GROUP = 'new'
 
 export interface GroupPickerProps {
-  groups: () => Group[]
+  groups: () => GroupRow[]
   current: () => number | null
   onSelect: (groupId: number | null) => void
   // Called with a group "+ New group" just created, before it is selected.
-  onCreated: (group: Group) => void
+  onCreated: (group: GroupRow) => void
 }
 
 // groupPicker is the Group field of the equipment create and edit forms
@@ -56,7 +56,7 @@ export function groupPicker(props: GroupPickerProps) {
     ui.error = null
     try {
       const group = await groupApi.createGroup({ groupInput: { name, icon: ui.icon } })
-      props.onCreated(group)
+      props.onCreated(toGroupRow(group))
       props.onSelect(group.id ?? null)
       ui.creating = false
     } catch (err) {

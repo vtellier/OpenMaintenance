@@ -1,15 +1,12 @@
 import { component, html, reactive } from '@arrow-js/core'
-import { Equipment } from '@generated/api/models/Equipment'
-import { Task } from '@generated/api/models/Task'
-import { Intervention } from '@generated/api/models/Intervention'
-import { Group } from '@generated/api/models/Group'
 import { EquipmentApi, TaskApi, InterventionApi, GroupApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { extractErrorMessage, formatHours } from '@/lib/format'
 import { dueTimingText } from '@/lib/dueTiming'
 import { byUrgency } from '@/lib/urgency'
 import { relativeTime, isHoursVeryStale } from '@/lib/timestamp'
-import { WithCalendarDates, formatCalendarDate, compareCalendarDates, fromApiDate, fromApiDateTime, toApiDate } from '@/lib/calendar-date'
+import { formatCalendarDate, compareCalendarDates, toApiDate } from '@/lib/calendar-date'
+import { EquipmentRow, GroupRow, InterventionRow, TaskRow, toEquipmentRow, toGroupRow, toInterventionRow, toTaskRow } from '@/lib/rows'
 import { equipmentAvatar } from '@/components/EquipmentAvatar'
 import { iconPicker } from '@/components/IconPicker'
 import { groupPicker } from '@/components/GroupPicker'
@@ -67,14 +64,10 @@ const STATUS_BADGE: Record<EquipmentStatus, { label: string; cls: string }> = {
   ok: { label: 'OK', cls: 'due-indicator--ok' },
 }
 
-type EquipmentRow = WithCalendarDates<Equipment, 'decommissionedAt'>
-type TaskRow = WithCalendarDates<Task, 'nextDueDate'>
-type InterventionRow = WithCalendarDates<Intervention, 'date' | 'expiryDate'>
-
 export const EquipmentsPage = component(() => {
   const state = reactive({
     equipments: [] as EquipmentRow[],
-    groups: [] as Group[],
+    groups: [] as GroupRow[],
     tasksByEquipment: {} as Record<number, TaskRow[]>,
     interventions: [] as InterventionRow[],
     loading: true,
@@ -94,12 +87,12 @@ export const EquipmentsPage = component(() => {
     showDecommissioned: readShowDecommissioned(),
     menuGroupId: null as number | null,
 
-    renameTarget: null as Group | null,
+    renameTarget: null as GroupRow | null,
     renameName: '',
     renameSaving: false,
     renameError: null as string | null,
 
-    deleteTarget: null as Group | null,
+    deleteTarget: null as GroupRow | null,
     deleteSaving: false,
     deleteError: null as string | null,
 
@@ -116,34 +109,15 @@ export const EquipmentsPage = component(() => {
         interventionApi.listInterventions(),
         groupApi.listGroups(),
       ])
-      state.groups = groups.map((g: any) => ({
-        ...g,
-        createdAt: g.createdAt?.toISOString(),
-        updatedAt: g.updatedAt?.toISOString(),
-      }))
-      state.equipments = equipments.map((eq: any) => ({
-        ...eq,
-        decommissionedAt: fromApiDate(eq.decommissionedAt),
-        hoursUpdatedAt: eq.hoursUpdatedAt?.toISOString(),
-        createdAt: eq.createdAt?.toISOString(),
-        updatedAt: eq.updatedAt?.toISOString(),
-      }))
-      state.interventions = interventions.map((inv: any) => ({
-        ...inv,
-        date: fromApiDateTime(inv.date),
-        expiryDate: fromApiDate(inv.expiryDate),
-        createdAt: inv.createdAt?.toISOString(),
-        updatedAt: inv.updatedAt?.toISOString(),
-      }))
+      state.groups = groups.map(toGroupRow)
+      state.equipments = equipments.map(toEquipmentRow)
+      state.interventions = interventions.map(toInterventionRow)
 
       const grouped: Record<number, TaskRow[]> = {}
       for (const t of tasks) {
         const eid = t.equipmentId ?? 0
         if (!grouped[eid]) grouped[eid] = []
-        grouped[eid].push({
-          ...t,
-          nextDueDate: fromApiDate(t.nextDueDate),
-        })
+        grouped[eid].push(toTaskRow(t))
       }
       state.tasksByEquipment = grouped
     } catch (err) {
@@ -327,7 +301,7 @@ export const EquipmentsPage = component(() => {
     state.menuGroupId = null
   }
 
-  function onRenameClick(group: Group) {
+  function onRenameClick(group: GroupRow) {
     state.menuGroupId = null
     state.renameTarget = group
     state.renameName = group.name ?? ''
@@ -351,7 +325,7 @@ export const EquipmentsPage = component(() => {
     }
   }
 
-  async function onChangeGroupIcon(group: Group, icon: string) {
+  async function onChangeGroupIcon(group: GroupRow, icon: string) {
     state.menuGroupId = null
     if (group.id == null || icon === group.icon) return
     state.groupError = null
@@ -363,7 +337,7 @@ export const EquipmentsPage = component(() => {
     }
   }
 
-  function onDeleteGroupClick(group: Group) {
+  function onDeleteGroupClick(group: GroupRow) {
     state.menuGroupId = null
     state.deleteTarget = group
     state.deleteError = null
@@ -393,7 +367,7 @@ export const EquipmentsPage = component(() => {
     return n === 1 ? '1 equipment' : n + ' equipments'
   }
 
-  function deleteGroupText(group: Group): string {
+  function deleteGroupText(group: GroupRow): string {
     const n = state.equipments.filter(eq => eq.groupId === group.id).length
     const question = 'Delete the group "' + (group.name ?? '') + '"? '
     if (n === 0) return question + 'It has no equipment.'
@@ -403,7 +377,7 @@ export const EquipmentsPage = component(() => {
   }
 
   // hidden: how many of its equipments are decommissioned and not shown.
-  function renderSection(group: Group, equipments: EquipmentRow[], hidden: number) {
+  function renderSection(group: GroupRow, equipments: EquipmentRow[], hidden: number) {
     const groupId = group.id!
     const status = groupStatus(equipments.map(eq => state.tasksByEquipment[eq.id!] || []))
     const badge = status ? STATUS_BADGE[status] : null

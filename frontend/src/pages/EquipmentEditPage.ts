@@ -1,11 +1,11 @@
 import { component, html, reactive } from '@arrow-js/core'
 import { EquipmentApi, TaskApi, GroupApi } from '@generated/api'
-import { Group } from '@generated/api/models/Group'
 import { apiConfig } from '@/api/config'
 import { iconPicker } from '@/components/IconPicker'
 import { groupPicker } from '@/components/GroupPicker'
 import { extractErrorMessage } from '@/lib/format'
-import { fromApiDate, toApiDate, today } from '@/lib/calendar-date'
+import { toApiDate, today } from '@/lib/calendar-date'
+import { GroupRow, toEquipmentRow, toGroupRow } from '@/lib/rows'
 import { decommissioningDateAllowed } from '@/lib/decommissioning'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -22,7 +22,7 @@ export function EquipmentEditPage(idParam: string) {
       description: '',
       icon: '🔧',
       groupId: null as number | null,
-      groups: [] as Group[],
+      groups: [] as GroupRow[],
       commissionedAt: '',
       // '' while the equipment is in service.
       decommissionedAt: '',
@@ -40,21 +40,18 @@ export function EquipmentEditPage(idParam: string) {
 
     async function load() {
       try {
-        const [eq, groups] = await Promise.all([
+        const [equipment, groups] = await Promise.all([
           equipmentApi.getEquipment({ id: equipmentId }),
           groupApi.listGroups(),
         ])
-        state.groups = groups.map((g: any) => ({
-          ...g,
-          createdAt: g.createdAt?.toISOString(),
-          updatedAt: g.updatedAt?.toISOString(),
-        }))
+        const eq = toEquipmentRow(equipment)
+        state.groups = groups.map(toGroupRow)
         state.groupId = eq.groupId ?? null
         state.name = eq.name ?? ''
         state.description = eq.description ?? ''
         state.icon = eq.icon || '🔧'
-        state.commissionedAt = fromApiDate(eq.commissionedAt) ?? ''
-        state.decommissionedAt = fromApiDate(eq.decommissionedAt) ?? ''
+        state.commissionedAt = eq.commissionedAt ?? ''
+        state.decommissionedAt = eq.decommissionedAt ?? ''
         state.tracksHours = eq.tracksHours ?? false
         state.originalTracksHours = state.tracksHours
         state.hours = eq.hours ?? 0

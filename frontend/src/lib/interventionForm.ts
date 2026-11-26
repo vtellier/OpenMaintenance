@@ -1,10 +1,10 @@
 import { Equipment } from '@generated/api/models/Equipment'
-import { Intervention } from '@generated/api/models/Intervention'
 import { InterventionInput } from '@generated/api/models/InterventionInput'
 import { Task } from '@generated/api/models/Task'
 import { extractErrorMessage } from '@/lib/format'
-import { CalendarDate, WithCalendarDates, today, toApiDate, toApiDateTime } from '@/lib/calendar-date'
+import { CalendarDate, today, toApiDate, toApiDateTime } from '@/lib/calendar-date'
 import { DecommissionableEquipment, equipmentLabel, isDecommissioned } from '@/lib/decommissioning'
+import { InterventionRow } from '@/lib/rows'
 
 // The intervention form (to log, to mark a task done, and to edit): its
 // values, how it is prefilled, when it can be saved and the request it
@@ -26,8 +26,6 @@ export interface InterventionFormValues {
   performedBy: string
   comments: string
 }
-
-export type InterventionRow = WithCalendarDates<Intervention, 'date' | 'expiryDate'>
 
 export interface InterventionFormContext {
   equipments: Pick<Equipment, 'id' | 'tracksHours' | 'hours'>[]

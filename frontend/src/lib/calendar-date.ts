@@ -7,7 +7,9 @@
  * <input type="date">, and 'YYYY-MM-DD' strings compare and sort in calendar
  * order, so pages keep calendar dates in this form, in their state and in
  * their forms. They convert only when talking to the API, through the
- * functions at the bottom of this file.
+ * functions at the bottom of this file: what they load goes through the
+ * display rows of rows.ts, and what they send through toApiDate and
+ * toApiDateTime.
  *
  * Timestamps (upload time, hour-meter freshness) are moments in time, not
  * calendar dates: see timestamp.ts.
@@ -15,13 +17,6 @@
 
 /** A day on the calendar, 'YYYY-MM-DD'. */
 export type CalendarDate = string
-
-/**
- * An API model whose calendar-date fields `K` are held as CalendarDate
- * strings. Pages keep these in reactive state: a Date there loses its methods
- * (Arrow.js wraps it in a Proxy), and a string keeps the day exactly.
- */
-export type WithCalendarDates<T, K extends keyof T> = Omit<T, K> & { [P in K]?: CalendarDate }
 
 const PATTERN = /^\d{4}-\d{2}-\d{2}$/
 

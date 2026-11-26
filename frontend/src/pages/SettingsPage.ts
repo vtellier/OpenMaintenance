@@ -5,6 +5,7 @@ import { SystemApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { formatFileSize } from '@/lib/format'
 import { relativeTime } from '@/lib/timestamp'
+import { BackupFileRow, toBackupFileRow } from '@/lib/rows'
 import { UpdateCheck } from '@/components/UpdateCheck'
 
 const systemApi = new SystemApi(apiConfig)
@@ -16,7 +17,7 @@ const backupState = reactive({
   enabled: false,
   path: '',
   keep: 0,
-  files: [] as Array<{ name: string; size: number; createdAt: string }>,
+  files: [] as BackupFileRow[],
 })
 
 systemApi.getBackupStatus()
@@ -24,11 +25,7 @@ systemApi.getBackupStatus()
     backupState.enabled = status.enabled
     backupState.path = status.path
     backupState.keep = status.keep
-    backupState.files = (status.files ?? []).map(f => {
-      const d = f.createdAt as unknown // generated client deserializes date-time fields as Date objects, not strings
-      const createdAt = d instanceof Date ? d.toISOString() : String(d ?? '')
-      return { name: f.name, size: f.size, createdAt }
-    })
+    backupState.files = (status.files ?? []).map(toBackupFileRow)
     backupState.loaded = true
   })
   .catch(() => {

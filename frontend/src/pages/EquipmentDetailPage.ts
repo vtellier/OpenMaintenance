@@ -1,15 +1,12 @@
 import { component, html, reactive } from '@arrow-js/core'
-import { Equipment } from '@generated/api/models/Equipment'
-import { Task } from '@generated/api/models/Task'
-import { Intervention } from '@generated/api/models/Intervention'
-import { FileInfo } from '@generated/api/models/FileInfo'
 import { EquipmentApi, TaskApi, InterventionApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { formatHours, formatFileSize, buildInterventionMeta, extractErrorMessage } from '@/lib/format'
 import { dueTimingText } from '@/lib/dueTiming'
 import { byUrgency } from '@/lib/urgency'
 import { relativeTime, formatTimestampDate, isHoursVeryStale } from '@/lib/timestamp'
-import { WithCalendarDates, formatCalendarDate, compareCalendarDates, fromApiDate, fromApiDateTime, toApiDate } from '@/lib/calendar-date'
+import { formatCalendarDate, compareCalendarDates, toApiDate } from '@/lib/calendar-date'
+import { EquipmentRow, FileRow, InterventionRow, TaskRow, toEquipmentRow, toFileRow, toInterventionRow, toTaskRow } from '@/lib/rows'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { InterventionFormSource } from '@/lib/interventionForm'
 import { ReadingDoubt, readingDoubt } from '@/lib/readingDoubt'
@@ -17,21 +14,7 @@ import { readingQuestion } from '@/components/ReadingDoubtModal'
 import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
 import { isDecommissioned } from '@/lib/decommissioning'
 
-type EquipmentRow = WithCalendarDates<Equipment, 'commissionedAt' | 'decommissionedAt'>
-type TaskRow = WithCalendarDates<Task, 'nextDueDate' | 'currentExpiryDate'>
 type TaskKind = 'interval' | 'expiry'
-type InterventionRow = WithCalendarDates<Intervention, 'date' | 'expiryDate'>
-
-function mapEquipment(eq: any): EquipmentRow {
-  return {
-    ...eq,
-    commissionedAt: fromApiDate(eq.commissionedAt),
-    decommissionedAt: fromApiDate(eq.decommissionedAt),
-    hoursUpdatedAt: eq.hoursUpdatedAt?.toISOString(),
-    createdAt: eq.createdAt?.toISOString(),
-    updatedAt: eq.updatedAt?.toISOString(),
-  }
-}
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -84,7 +67,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
       iconError: null as string | null,
 
-      documents: [] as FileInfo[],
+      documents: [] as FileRow[],
       documentsLoaded: false,
       documentsError: null as string | null,
       uploading: false,
@@ -105,34 +88,17 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           taskApi.listTasks(),
         ])
 
-        const newTasks = ts.map((t: any) => ({
-          ...t,
-          nextDueDate: fromApiDate(t.nextDueDate),
-          currentExpiryDate: fromApiDate(t.currentExpiryDate),
-          updatedAt: t.updatedAt?.toISOString(),
-        }))
+        const newTasks = ts.map(toTaskRow)
+        const newAllTasks = allTs.map(toTaskRow)
 
-        const newAllTasks = allTs.map((t: any) => ({
-          ...t,
-          nextDueDate: fromApiDate(t.nextDueDate),
-          currentExpiryDate: fromApiDate(t.currentExpiryDate),
-          updatedAt: t.updatedAt?.toISOString(),
-        }))
-
-        const taskIds = new Set(ts.map((t: Task) => t.id))
+        const taskIds = new Set(ts.map(t => t.id))
         const newInterventions = interventionsResponse.filter(
-          (inv: Intervention) =>
+          inv =>
             (inv.taskId != null && taskIds.has(inv.taskId)) ||
             (inv.taskId == null && inv.equipmentId === equipmentId)
-        ).map((inv: any) => ({
-          ...inv,
-          date: fromApiDateTime(inv.date),
-          expiryDate: fromApiDate(inv.expiryDate),
-          createdAt: inv.createdAt?.toISOString(),
-          updatedAt: inv.updatedAt?.toISOString(),
-        }))
+        ).map(toInterventionRow)
 
-        const newEquipment = mapEquipment(eq)
+        const newEquipment = toEquipmentRow(eq)
 
         state.tasks = newTasks
         state.allTasks = newAllTasks
@@ -148,10 +114,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
     async function loadDocuments() {
       try {
         const files = await equipmentApi.listEquipmentFiles({ equipmentId })
-        state.documents = files.map((f: any) => ({
-          ...f,
-          uploadedAt: f.uploadedAt?.toISOString?.() ?? f.uploadedAt,
-        }))
+        state.documents = files.map(toFileRow)
         state.documentsError = null
       } catch {
         state.documentsError = 'Failed to load documents'
@@ -472,7 +435,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       }
     }
 
-    function onDeleteDoc(f: FileInfo) {
+    function onDeleteDoc(f: FileRow) {
       state.showDeleteDoc = true
       state.deleteDocName = f.name
       state.deleteDocOriginal = f.originalName
