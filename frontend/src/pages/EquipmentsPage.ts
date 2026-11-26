@@ -143,7 +143,7 @@ export const EquipmentsPage = component(() => {
     const hoursClass = !decommissioned && isHoursVeryStale(eq.hoursUpdatedAt) ? 'very-stale' : ''
     const cardClass = decommissioned ? 'equipment-card equipment-card--decommissioned' : 'equipment-card'
     const link = '/equipments/' + eq.id!
-    const metaHtml = lastInterventionText(latestEquipmentIntervention(state.interventions, tasks), tasks)
+    const lastText = lastInterventionText(latestEquipmentIntervention(state.interventions, tasks), tasks)
 
     // The badge follows the shared rule, which the section headers use too.
     const statusLine = cardStatusLine(tasks)
@@ -164,7 +164,7 @@ export const EquipmentsPage = component(() => {
           <span class="${hoursClass}">\u2022 ${relativeTime(eq.hoursUpdatedAt)}</span>
         </div>
       ` : null}
-      <div class="equipment-card__meta">${metaHtml}</div>
+      <div class="equipment-card__meta">${lastText}</div>
       ${decommissioned ? html`
         <div class="equipment-card__due">
           <span class="due-indicator due-indicator--decommissioned">Decommissioned</span>
