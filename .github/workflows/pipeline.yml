@@ -175,8 +175,73 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  # The same suite against the production build: the binary `make build`
+  # produces, with the built frontend embedded, rather than the Vite dev
+  # server. React's dev mode behaves differently from production, so the
+  # cutover (#146) has to pass both. It runs in parallel with test-frontend.
+  test-frontend-prod:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generate OpenAPI Go stubs
+        run: make generate-openapi
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate TypeScript API client
+        working-directory: frontend
+        run: pnpm run generate:api
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+
+      - name: Install Playwright Chromium
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps chromium
+
+      # scripts/test-prod.sh runs `make build`, starts the binary from its own
+      # directory with its own config.yaml (port 3201, its own database), and
+      # runs the suite against it with OM_TEST_BASE_URL.
+      - name: Run Playwright suite against the production build
+        working-directory: frontend
+        run: pnpm test:prod
+
+      - name: Upload Playwright results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results-prod
+          path: frontend/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
   build-backend:
-    needs: [build-frontend, test-backend, test-frontend]
+    needs: [build-frontend, test-backend, test-frontend, test-frontend-prod]
     runs-on: ubuntu-24.04
     strategy:
       matrix:
