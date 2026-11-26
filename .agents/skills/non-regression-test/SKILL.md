@@ -23,7 +23,8 @@ The branching decision itself is Step 3.5 of [`.agents/skills/bug-fix/SKILL.md`]
 - Shared fixture (fails a test on any page error or console error): `frontend/tests/fixtures.ts`
 - Specs: `frontend/tests/non-regression/*.spec.ts`
 - Index and flow map (must be kept in sync): `frontend/tests/non-regression/README.md`. A spec for a `doc/gui/` flow goes in the flow map too.
-- Run command: `pnpm test` from `frontend/`
+- Run command: `pnpm test` from `frontend/`; `pnpm test:prod` runs the same suite against the binary `make build` produces (see [Running](#running))
+- Where the suite runs: `frontend/tests/target.ts`. Specs take `API` (and `BACKEND_URL` for a stored file's URL) from `../fixtures`: never write a host or a port in a spec, or the production-build run misses it.
 
 Playwright's `webServer` block starts both servers itself, or reuses them if they are already running:
 - backend on `http://localhost:3001` (`go run .` from `backend/`)
@@ -246,6 +247,11 @@ Keep the table in roughly chronological order (newest at the bottom).
 pnpm test            # headless, all specs
 pnpm test:ui         # interactive UI mode (debug)
 pnpm test <file>     # single spec
+pnpm test:prod       # all specs against the production build (make build, then the binary on :3201)
 ```
 
-Exit code is 0 on pass, non-zero on fail — used as-is by the `test-frontend` job in CI (`.github/workflows/pipeline.yml`).
+Exit code is 0 on pass, non-zero on fail — used as-is by the `test-frontend` and `test-frontend-prod` jobs in CI (`.github/workflows/pipeline.yml`).
+
+`OM_TEST_BASE_URL=http://127.0.0.1:<port> pnpm test` runs the suite against a server that is already running and serves the app and `/api` together (the binary, or the reference app of #155). Playwright then starts and reuses nothing. The global setup wipes that server's data. See "Against the production build" in `frontend/tests/non-regression/README.md`.
+
+A spec that passes under `pnpm test` but fails under `pnpm test:prod` is either a production-only bug (open an issue, do not weaken the spec) or a spec that hard-codes the dev server's host or port.

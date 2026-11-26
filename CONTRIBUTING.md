@@ -60,6 +60,7 @@ Put each test next to the module it covers, named `<module>.test.ts` (e.g. `src/
 | Regen TS API client | `pnpm run generate:api` | `frontend/` |
 | Run frontend unit tests | `pnpm test:unit` | `frontend/` |
 | Run frontend tests | `pnpm test` | `frontend/` |
+| Run frontend tests against the production build | `pnpm test:prod` | `frontend/` |
 | Run backend tests | `go test ./...` | `backend/` |
 | Seed demo data into a running, empty backend | `make seed` | repo root |
 

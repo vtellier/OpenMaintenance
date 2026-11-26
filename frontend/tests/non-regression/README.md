@@ -37,6 +37,56 @@ same servers and database:
 in both projects runs twice on one database, so it must not rely on a name
 being unique.
 
+### Against the production build
+
+```sh
+cd frontend && pnpm test:prod
+```
+
+`pnpm test` runs against the Vite dev server, but users run the Go binary with
+the built frontend embedded, and React's dev mode behaves differently from
+production. `pnpm test:prod` (`frontend/scripts/test-prod.sh`) runs the same
+suite, both projects, against the binary:
+
+1. It runs `make build`, so the binary is always built from the code checked
+   out now.
+2. It copies the binary into a fresh directory, `/tmp/om-test-prod.XXXXXX`,
+   with its own `config.yaml`: port 3201 (set `OM_PROD_PORT` for another), its
+   own database and files, no backups. The binary reads `config.yaml` from its
+   own directory, so the run never touches `backend/maintenance.db`, and it can
+   run next to `make dev` (:3001, :5173).
+3. It refuses to start when something already listens on that port, and checks
+   that `/api/version` answers with the version just built, so the suite never
+   tests a server left over from older code.
+4. It runs the suite with `OM_TEST_BASE_URL` set to the binary, then stops it
+   and deletes its directory. The binary's log is kept as
+   `test-results/prod-server.log`.
+
+Arguments go to Playwright: `pnpm test:prod --project=mobile`,
+`pnpm test:prod tests/non-regression/smoke.spec.ts`. The CI job
+`test-frontend-prod` runs it on every pull request, next to `test-frontend`.
+
+The directory is short on purpose: Settings shows the backup directory, and a
+long one runs off a phone screen (#176).
+
+### Against any running server: `OM_TEST_BASE_URL`
+
+`OM_TEST_BASE_URL` is the one setting that moves the whole suite. When it is
+set to an origin, Playwright starts no server and reuses none: the pages, the
+global setup's wipe and every `API` call in the specs go to that origin, which
+must serve the app and its `/api` together, as the binary does.
+`frontend/tests/target.ts` reads it; specs take `API` and `BACKEND_URL` from
+`../fixtures` and never write a host or a port.
+
+```sh
+OM_TEST_BASE_URL=http://127.0.0.1:3101 pnpm test
+```
+
+Step 1.1 of the React migration (#155) points the suite at the reference app,
+the binary built from `pre-react`, this way. The global setup deletes every
+equipment on the server it targets, so never point it at a server whose data
+you want to keep.
+
 ## Adding a new test
 
 1. Name the file after the bug, kebab-case: `safedate-shows-nan.spec.ts`.
