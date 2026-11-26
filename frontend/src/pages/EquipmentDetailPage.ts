@@ -5,17 +5,17 @@ import { formatHours, formatFileSize, buildInterventionMeta, extractErrorMessage
 import { dueTimingText } from '@/lib/dueTiming'
 import { byUrgency } from '@/lib/urgency'
 import { relativeTime, formatTimestampDate, isHoursVeryStale } from '@/lib/timestamp'
-import { formatCalendarDate, toApiDate } from '@/lib/calendar-date'
+import { formatCalendarDate } from '@/lib/calendar-date'
 import { EquipmentRow, FileRow, InterventionRow, TaskRow, toEquipmentRow, toFileRow, toInterventionRow, toTaskRow } from '@/lib/rows'
 import { FullInterventionModal } from '@/components/FullInterventionModal'
 import { InterventionFormSource } from '@/lib/interventionForm'
 import { ReadingDoubt, readingDoubt } from '@/lib/readingDoubt'
 import { readingQuestion } from '@/components/ReadingDoubtModal'
-import { iconPicker, DEFAULT_ICON } from '@/components/IconPicker'
+import { iconPicker } from '@/components/IconPicker'
 import { isDecommissioned } from '@/lib/decommissioning'
 import { equipmentInterventions, interventionTaskLabel, lastInterventionOfTask, newestFirst } from '@/lib/interventions'
-
-type TaskKind = 'interval' | 'expiry'
+import { DEFAULT_ICON, iconChangeInput } from '@/lib/equipmentForm'
+import { canSaveTask, intervalFromInput, intervalValue, newTaskForm, saveTask, TaskFormValues, TaskKind, taskFormOf } from '@/lib/taskForm'
 
 const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
@@ -149,14 +149,34 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
     // ── Add Task ──
 
+    // The task forms' values, read from the state on each call, so a slot
+    // that calls them updates.
+    const addForm = (): TaskFormValues => ({
+      name: state.addName,
+      description: state.addDescription,
+      kind: state.addKind,
+      hoursInterval: state.addHoursInterval,
+      monthsInterval: state.addMonthsInterval,
+      currentExpiryDate: state.addCurrentExpiryDate,
+    })
+    const editForm = (): TaskFormValues => ({
+      name: state.editName,
+      description: state.editDescription,
+      kind: state.editKind,
+      hoursInterval: state.editHoursInterval,
+      monthsInterval: state.editMonthsInterval,
+      currentExpiryDate: state.editCurrentExpiryDate,
+    })
+
     function onAddTask() {
+      const form = newTaskForm()
       state.showAddTask = true
-      state.addName = ''
-      state.addDescription = ''
-      state.addHoursInterval = 0
-      state.addMonthsInterval = 0
-      state.addKind = 'interval'
-      state.addCurrentExpiryDate = ''
+      state.addName = form.name
+      state.addDescription = form.description
+      state.addHoursInterval = form.hoursInterval
+      state.addMonthsInterval = form.monthsInterval
+      state.addKind = form.kind
+      state.addCurrentExpiryDate = form.currentExpiryDate
       state.addError = null
     }
 
@@ -168,41 +188,18 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       if ((e.target as HTMLElement).classList.contains('modal-overlay')) onCancelAdd()
     }
 
-    /** A name always; at least one interval for an interval task. An expiry task's current expiry date is optional. */
-    function canSaveTask(name: string, kind: TaskKind, hoursInterval: number, monthsInterval: number): boolean {
-      if (!name.trim()) return false
-      return kind === 'expiry' || hoursInterval > 0 || monthsInterval > 0
-    }
-
-    /** The kind-specific fields of a task request: the intervals, or the current expiry date. */
-    function kindFields(kind: TaskKind, hoursInterval: number, monthsInterval: number, currentExpiryDate: string) {
-      if (kind === 'expiry') {
-        return { hoursInterval: undefined, monthsInterval: undefined, currentExpiryDate: currentExpiryDate ? toApiDate(currentExpiryDate) : undefined }
-      }
-      return {
-        hoursInterval: hoursInterval > 0 ? hoursInterval : undefined,
-        monthsInterval: monthsInterval > 0 ? monthsInterval : undefined,
-      }
-    }
-
     async function onSaveAdd() {
-      if (!canSaveTask(state.addName, state.addKind, state.addHoursInterval, state.addMonthsInterval)) return
+      if (!canSaveTask(addForm())) return
       state.addSaving = true
       state.addError = null
       try {
-        await taskApi.createTask({
-          taskInput: {
-            equipmentId,
-            name: state.addName.trim(),
-            description: state.addDescription.trim() || undefined,
-            kind: state.addKind,
-            ...kindFields(state.addKind, state.addHoursInterval, state.addMonthsInterval, state.addCurrentExpiryDate),
-          },
-        })
+        const error = await saveTask(addForm(), { equipmentId, taskId: null }, taskApi)
+        if (error) {
+          state.addError = error
+          return
+        }
         state.showAddTask = false
         await load()
-      } catch {
-        state.addError = 'Failed to add task'
       } finally {
         state.addSaving = false
       }
@@ -211,14 +208,15 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
     // ── Edit Task ──
 
     function onEditTask(task: TaskRow) {
+      const form = taskFormOf(task)
       state.showEditTask = true
       state.editTaskId = task.id ?? null
-      state.editName = task.name ?? ''
-      state.editDescription = task.description ?? ''
-      state.editHoursInterval = task.hoursInterval ?? 0
-      state.editMonthsInterval = task.monthsInterval ?? 0
-      state.editKind = task.kind === 'expiry' ? 'expiry' : 'interval'
-      state.editCurrentExpiryDate = task.currentExpiryDate ?? ''
+      state.editName = form.name
+      state.editDescription = form.description
+      state.editHoursInterval = form.hoursInterval
+      state.editMonthsInterval = form.monthsInterval
+      state.editKind = form.kind
+      state.editCurrentExpiryDate = form.currentExpiryDate
       state.editHasIntervention = getLastIntervention(task.id) != null
       state.editError = null
     }
@@ -233,24 +231,17 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
 
     async function onSaveEdit() {
       if (state.editTaskId == null) return
-      if (!canSaveTask(state.editName, state.editKind, state.editHoursInterval, state.editMonthsInterval)) return
+      if (!canSaveTask(editForm())) return
       state.editSaving = true
       state.editError = null
       try {
-        await taskApi.updateTask({
-          id: state.editTaskId,
-          taskInput: {
-            equipmentId,
-            name: state.editName.trim(),
-            description: state.editDescription.trim() || undefined,
-            kind: state.editKind,
-            ...kindFields(state.editKind, state.editHoursInterval, state.editMonthsInterval, state.editCurrentExpiryDate),
-          },
-        })
+        const error = await saveTask(editForm(), { equipmentId, taskId: state.editTaskId }, taskApi)
+        if (error) {
+          state.editError = error
+          return
+        }
         state.showEditTask = false
         await load()
-      } catch {
-        state.editError = 'Failed to update task'
       } finally {
         state.editSaving = false
       }
@@ -378,20 +369,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
       // Optimistic: reflect the new icon immediately, revert if the save fails.
       state.equipment = { ...eq, icon }
       try {
-        await equipmentApi.updateEquipment({
-          id: equipmentId,
-          equipmentInput: {
-            name: eq.name!,
-            description: eq.description || undefined,
-            icon,
-            // An edit replaces the group: send the current one back.
-            groupId: eq.groupId ?? null,
-            commissionedAt: eq.commissionedAt ? toApiDate(eq.commissionedAt) : undefined,
-            // An edit replaces the decommissioning date too: send it back.
-            decommissionedAt: eq.decommissionedAt ? toApiDate(eq.decommissionedAt) : undefined,
-            tracksHours: eq.tracksHours,
-          },
-        })
+        await equipmentApi.updateEquipment({ id: equipmentId, equipmentInput: iconChangeInput(eq, icon) })
       } catch {
         state.equipment = { ...eq, icon: prev }
         state.iconError = 'Failed to update icon'
@@ -659,7 +637,7 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
           </div>
           <div class="form-field">
             <label class="form-field__label">Icon</label>
-            <p>${eq.icon || '🔧'} <span class="form-field__hint">— shown in lists and the dashboard</span></p>
+            <p>${eq.icon || DEFAULT_ICON} <span class="form-field__hint">— shown in lists and the dashboard</span></p>
           </div>
           ${eq.commissionedAt ? html`<div class="form-field">
             <label class="form-field__label">Date of commissioning</label>
@@ -723,18 +701,18 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
                 ${() => tracksHours() ? html`
                   <div class="form-field">
                     <label class="form-field__label">Hours interval</label>
-                    <input type="number" min="1" placeholder="e.g. 100" .value="${() => state.addHoursInterval > 0 ? String(state.addHoursInterval) : ''}" @input="${(e: Event) => { state.addHoursInterval = parseInt((e.target as HTMLInputElement).value) || 0 }}" />
+                    <input type="number" min="1" placeholder="e.g. 100" .value="${() => intervalValue(state.addHoursInterval)}" @input="${(e: Event) => { state.addHoursInterval = intervalFromInput((e.target as HTMLInputElement).value) }}" />
                   </div>
                 ` : null}
                 <div class="form-field">
                   <label class="form-field__label">Months interval</label>
-                  <input type="number" min="1" placeholder="e.g. 6" .value="${() => state.addMonthsInterval > 0 ? String(state.addMonthsInterval) : ''}" @input="${(e: Event) => { state.addMonthsInterval = parseInt((e.target as HTMLInputElement).value) || 0 }}" />
+                  <input type="number" min="1" placeholder="e.g. 6" .value="${() => intervalValue(state.addMonthsInterval)}" @input="${(e: Event) => { state.addMonthsInterval = intervalFromInput((e.target as HTMLInputElement).value) }}" />
                 </div>
               </div>
             `}
             <div class="modal__actions">
               <button class="btn" @click="${onCancelAdd}">Cancel</button>
-              <button class="btn btn--accent" @click="${onSaveAdd}" disabled="${() => state.addSaving || !canSaveTask(state.addName, state.addKind, state.addHoursInterval, state.addMonthsInterval)}">
+              <button class="btn btn--accent" @click="${onSaveAdd}" disabled="${() => state.addSaving || !canSaveTask(addForm())}">
                 ${() => state.addSaving ? 'Saving...' : 'Save'}
               </button>
             </div>
@@ -770,18 +748,18 @@ export function EquipmentDetailPage(idParam: string, tabParam: string) {
                 ${() => tracksHours() ? html`
                   <div class="form-field">
                     <label class="form-field__label">Hours interval</label>
-                    <input type="number" min="1" placeholder="e.g. 100" .value="${() => state.editHoursInterval > 0 ? String(state.editHoursInterval) : ''}" @input="${(e: Event) => { state.editHoursInterval = parseInt((e.target as HTMLInputElement).value) || 0 }}" />
+                    <input type="number" min="1" placeholder="e.g. 100" .value="${() => intervalValue(state.editHoursInterval)}" @input="${(e: Event) => { state.editHoursInterval = intervalFromInput((e.target as HTMLInputElement).value) }}" />
                   </div>
                 ` : null}
                 <div class="form-field">
                   <label class="form-field__label">Months interval</label>
-                  <input type="number" min="1" placeholder="e.g. 6" .value="${() => state.editMonthsInterval > 0 ? String(state.editMonthsInterval) : ''}" @input="${(e: Event) => { state.editMonthsInterval = parseInt((e.target as HTMLInputElement).value) || 0 }}" />
+                  <input type="number" min="1" placeholder="e.g. 6" .value="${() => intervalValue(state.editMonthsInterval)}" @input="${(e: Event) => { state.editMonthsInterval = intervalFromInput((e.target as HTMLInputElement).value) }}" />
                 </div>
               </div>
             `}
             <div class="modal__actions">
               <button class="btn" @click="${onCancelEdit}">Cancel</button>
-              <button class="btn btn--accent" @click="${onSaveEdit}" disabled="${() => state.editSaving || !canSaveTask(state.editName, state.editKind, state.editHoursInterval, state.editMonthsInterval)}">
+              <button class="btn btn--accent" @click="${onSaveEdit}" disabled="${() => state.editSaving || !canSaveTask(editForm())}">
                 ${() => state.editSaving ? 'Saving...' : 'Save'}
               </button>
             </div>

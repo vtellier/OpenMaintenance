@@ -3,7 +3,7 @@ import { EquipmentApi, TaskApi, InterventionApi, GroupApi } from '@generated/api
 import { apiConfig } from '@/api/config'
 import { extractErrorMessage, formatHours } from '@/lib/format'
 import { relativeTime, isHoursVeryStale } from '@/lib/timestamp'
-import { formatCalendarDate, toApiDate } from '@/lib/calendar-date'
+import { formatCalendarDate } from '@/lib/calendar-date'
 import { EquipmentRow, GroupRow, InterventionRow, TaskRow, toEquipmentRow, toGroupRow, toInterventionRow, toTaskRow } from '@/lib/rows'
 import { equipmentAvatar } from '@/components/EquipmentAvatar'
 import { iconPicker } from '@/components/IconPicker'
@@ -12,6 +12,8 @@ import { DEFAULT_GROUP_ICON, EquipmentStatus, equipmentList, groupStatus } from 
 import { isDecommissioned } from '@/lib/decommissioning'
 import { cardStatusLine, lastInterventionText, tasksByEquipment } from '@/lib/equipmentCard'
 import { latestEquipmentIntervention } from '@/lib/interventions'
+import { hoursFromInput } from '@/lib/hoursForm'
+import { canAddEquipment, DEFAULT_ICON, NewEquipmentValues, newEquipmentForm, saveNewEquipment } from '@/lib/equipmentForm'
 import { isCollapsed as isGroupCollapsed, readCollapsed, readShowDecommissioned, toggleCollapsed, writeCollapsed, writeShowDecommissioned } from '@/lib/equipmentsListPrefs'
 
 const equipmentApi = new EquipmentApi(apiConfig)
@@ -36,7 +38,7 @@ export const EquipmentsPage = component(() => {
     showAddModal: false,
     addName: '',
     addDesc: '',
-    addIcon: '🔧',
+    addIcon: DEFAULT_ICON,
     addCommissionedAt: '',
     addTracksHours: false,
     addHours: 0,
@@ -84,34 +86,38 @@ export const EquipmentsPage = component(() => {
 
   load()
 
+  // The Add equipment form's values, read from the state on each call, so a
+  // slot that calls it updates.
+  const addForm = (): NewEquipmentValues => ({
+    name: state.addName,
+    description: state.addDesc,
+    icon: state.addIcon,
+    groupId: state.addGroupId,
+    commissionedAt: state.addCommissionedAt,
+    tracksHours: state.addTracksHours,
+    hours: state.addHours,
+  })
+
   async function addEquipment() {
-    const name = state.addName.trim()
-    if (!name) return
+    if (!canAddEquipment(addForm())) return
     state.adding = true
     state.addError = null
     try {
-      await equipmentApi.createEquipment({
-        equipmentInput: {
-          name,
-          description: state.addDesc.trim() || undefined,
-          icon: state.addIcon.trim() || undefined,
-          groupId: state.addGroupId,
-          commissionedAt: state.addCommissionedAt ? toApiDate(state.addCommissionedAt) : undefined,
-          tracksHours: state.addTracksHours,
-          hours: state.addTracksHours ? state.addHours : undefined,
-        },
-      })
+      const error = await saveNewEquipment(addForm(), equipmentApi)
+      if (error) {
+        state.addError = error
+        return
+      }
+      const empty = newEquipmentForm()
       state.showAddModal = false
-      state.addName = ''
-      state.addDesc = ''
-      state.addIcon = '🔧'
-      state.addCommissionedAt = ''
-      state.addTracksHours = false
-      state.addHours = 0
-      state.addGroupId = null
+      state.addName = empty.name
+      state.addDesc = empty.description
+      state.addIcon = empty.icon
+      state.addCommissionedAt = empty.commissionedAt
+      state.addTracksHours = empty.tracksHours
+      state.addHours = empty.hours
+      state.addGroupId = empty.groupId
       await load()
-    } catch (err) {
-      state.addError = await extractErrorMessage(err, 'Failed to add equipment')
     } finally {
       state.adding = false
     }
@@ -427,12 +433,12 @@ export const EquipmentsPage = component(() => {
       ${() => state.addTracksHours ? html`
         <div class="form-field">
           <label class="form-field__label">Initial hours</label>
-          <input type="number" min="0" aria-label="Initial hours" .value="${() => String(state.addHours)}" @input="${(e: Event) => { state.addHours = Number((e.target as HTMLInputElement).value) }}" />
+          <input type="number" min="0" aria-label="Initial hours" .value="${() => String(state.addHours)}" @input="${(e: Event) => { state.addHours = hoursFromInput((e.target as HTMLInputElement).value) }}" />
         </div>
       ` : null}
       <div class="modal__actions">
         <button class="btn" @click="${onCancelAdd}">Cancel</button>
-        <button class="btn btn--accent" @click="${addEquipment}" disabled="${() => state.adding || !state.addName.trim()}">
+        <button class="btn btn--accent" @click="${addEquipment}" disabled="${() => state.adding || !canAddEquipment(addForm())}">
           ${() => state.adding ? 'Saving...' : 'Save'}
         </button>
       </div>

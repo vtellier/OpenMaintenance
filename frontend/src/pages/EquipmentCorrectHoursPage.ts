@@ -1,19 +1,12 @@
 import { component, html, reactive } from '@arrow-js/core'
 import { EquipmentApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
-import { extractErrorMessage, formatHours } from '@/lib/format'
+import { formatHours } from '@/lib/format'
 import { formatTimestampDate } from '@/lib/timestamp'
 import { toEquipmentRow } from '@/lib/rows'
+import { canCorrect, prefilledReading, readingFromInput, saveCorrection } from '@/lib/hoursForm'
 
 const equipmentApi = new EquipmentApi(apiConfig)
-
-/** The prefill from `?hours=` (set by the "Reading in doubt" question), or null. */
-function prefilledReading(): number | null {
-  const raw = new URLSearchParams(window.location.search).get('hours')
-  if (raw == null || raw === '') return null
-  const value = Number(raw)
-  return Number.isFinite(value) ? value : null
-}
 
 /**
  * "Correct reading": the deliberate way to fix a wrong reading, the only one
@@ -22,7 +15,7 @@ function prefilledReading(): number | null {
 export function EquipmentCorrectHoursPage(idParam: string) {
   const equipmentId = parseInt(idParam, 10)
   const backHref = '/equipments/' + equipmentId
-  const initial = prefilledReading()
+  const initial = prefilledReading(window.location.search)
 
   return component(() => {
     const state = reactive({
@@ -50,27 +43,24 @@ export function EquipmentCorrectHoursPage(idParam: string) {
 
     load()
 
-    const canSave = () => !state.saving && state.newHours != null && state.newHours >= 0
+    const canSave = () => !state.saving && canCorrect(state.newHours)
 
     async function onSubmit() {
-      if (!canSave()) return
+      const hours = state.newHours
+      if (state.saving || !canCorrect(hours)) return
       state.saving = true
       state.error = null
-      try {
-        await equipmentApi.correctEquipmentHours({
-          id: equipmentId,
-          equipmentHoursCorrectionInput: { hours: state.newHours as number },
-        })
+      const error = await saveCorrection(hours, equipmentId, equipmentApi)
+      if (error == null) {
         window.location.href = backHref
-      } catch (err: unknown) {
-        state.error = await extractErrorMessage(err, 'Failed to correct the reading')
-        state.saving = false
+        return
       }
+      state.error = error
+      state.saving = false
     }
 
     function onInput(e: Event) {
-      const value = (e.target as HTMLInputElement).value
-      state.newHours = value === '' ? null : Number(value)
+      state.newHours = readingFromInput((e.target as HTMLInputElement).value)
     }
 
     return html`<section class="page">

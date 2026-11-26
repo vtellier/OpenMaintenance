@@ -8,8 +8,9 @@
  * order, so pages keep calendar dates in this form, in their state and in
  * their forms. They convert only when talking to the API, through the
  * functions at the bottom of this file: what they load goes through the
- * display rows of rows.ts, and what they send through toApiDate and
- * toApiDateTime.
+ * display rows of rows.ts, and what they send through the form modules
+ * (interventionForm.ts, taskForm.ts, equipmentForm.ts), which call toApiDate,
+ * optionalApiDate and toApiDateTime.
  *
  * Timestamps (upload time, hour-meter freshness) are moments in time, not
  * calendar dates: see timestamp.ts.
@@ -58,6 +59,11 @@ export function fromApiDate(value: Date | null | undefined): CalendarDate | unde
  */
 export function toApiDate(date: CalendarDate): Date {
   return utcMidnight(date)
+}
+
+/** An optional date field's request value: none while it is empty or missing. */
+export function optionalApiDate(date: CalendarDate | null | undefined): Date | undefined {
+  return date ? toApiDate(date) : undefined
 }
 
 /**
