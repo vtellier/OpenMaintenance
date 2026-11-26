@@ -17,7 +17,7 @@ test('creating an equipment with negative hours shows the reason', async ({ page
 
   const modal = page.locator('.modal')
   await modal.getByPlaceholder('e.g. Main Engine').fill('Negative Hours Engine')
-  await modal.locator('.toggle-row').locator('.toggle-slider').click()
+  await modal.getByRole('checkbox', { name: 'This equipment has an hour-meter' }).check()
   await modal.getByLabel('Initial hours').fill('-5')
   await modal.getByRole('button', { name: 'Save' }).click()
 

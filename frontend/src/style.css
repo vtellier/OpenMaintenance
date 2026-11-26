@@ -1217,10 +1217,17 @@ code {
   flex-shrink: 0;
 }
 
+/* The real checkbox, transparent, over the whole switch: it takes the click
+   itself, so it is the control a user (or a test) reaches by its name. */
 .toggle-switch input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
   opacity: 0;
-  width: 0;
-  height: 0;
+  cursor: pointer;
 }
 
 .toggle-slider {

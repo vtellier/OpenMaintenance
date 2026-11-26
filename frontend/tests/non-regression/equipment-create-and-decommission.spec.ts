@@ -31,7 +31,7 @@ test('an equipment added with an hour-meter starts with its initial reading, fre
   await modal.getByPlaceholder('Optional description').fill('Create Flow 2-stroke outboard')
   await modal.getByLabel('Date of commissioning').fill('2023-05-02')
   await expect(modal.getByLabel('Initial hours')).toHaveCount(0)
-  await modal.locator('.toggle-row').locator('.toggle-slider').click()
+  await modal.getByRole('checkbox', { name: 'This equipment has an hour-meter' }).check()
   const hours = modal.getByLabel('Initial hours')
   await expect(hours).toHaveValue('0')
   await hours.fill('12')

@@ -25,7 +25,7 @@ test('turned back on, the hour-meter is prefilled with its last reading and cann
 
   await page.goto(`/equipments/${eq.id}/edit`)
   await expect(page.getByPlaceholder('e.g. Main Engine')).toHaveValue('Toggle Hours Again Engine')
-  await page.locator('.toggle-slider').click()
+  await page.getByRole('checkbox', { name: 'This equipment has an hour-meter' }).check()
   const hours = page.getByLabel('Current hours')
   await expect(hours).toHaveValue('120')
 
@@ -47,7 +47,7 @@ test.fixme('turning the hour-meter off asks first when a task uses an hours inte
 
   await page.goto(`/equipments/${eq.id}/edit`)
   await expect(page.getByPlaceholder('e.g. Main Engine')).toHaveValue('Toggle Hours Off Engine')
-  await page.locator('.toggle-slider').click()
+  await page.getByRole('checkbox', { name: 'This equipment has an hour-meter' }).uncheck()
   await page.getByRole('button', { name: 'Save' }).click()
 
   // The app warns that the tasks using an hours interval are affected, and

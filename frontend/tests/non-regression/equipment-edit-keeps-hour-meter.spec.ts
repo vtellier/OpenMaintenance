@@ -44,7 +44,7 @@ test('turning the hour-meter on asks for the initial reading', async ({ page }) 
   await expect(page.getByPlaceholder('e.g. Main Engine')).toHaveValue('Turn On Hour-meter')
   await expect(page.getByText('Current hours')).toHaveCount(0)
 
-  await page.locator('.toggle-slider').click()
+  await page.getByRole('checkbox', { name: 'This equipment has an hour-meter' }).check()
   const hours = page.getByLabel('Current hours')
   await expect(hours).toHaveValue('0')
   await hours.fill('42')

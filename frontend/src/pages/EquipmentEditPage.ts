@@ -164,7 +164,7 @@ export function EquipmentEditPage(idParam: string) {
             <div class="toggle-row">
               <span class="toggle-row__label">This equipment has an hour-meter</span>
               <label class="toggle-switch">
-                <input type="checkbox" .checked="${() => state.tracksHours}" @change="${() => { state.tracksHours = !state.tracksHours }}" />
+                <input type="checkbox" aria-label="This equipment has an hour-meter" .checked="${() => state.tracksHours}" @change="${() => { state.tracksHours = !state.tracksHours }}" />
                 <span class="toggle-slider"></span>
               </label>
             </div>
