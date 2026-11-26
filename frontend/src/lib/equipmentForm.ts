@@ -1,6 +1,6 @@
 import { EquipmentInput } from '@generated/api/models/EquipmentInput'
 import { Task } from '@generated/api/models/Task'
-import { CalendarDate, toApiDate } from '@/lib/calendar-date'
+import { CalendarDate, optionalApiDate } from '@/lib/calendar-date'
 import { decommissioningDateAllowed } from '@/lib/decommissioning'
 import { extractErrorMessage } from '@/lib/format'
 import { EquipmentRow, toTaskRow } from '@/lib/rows'
@@ -11,11 +11,6 @@ import { EquipmentRow, toTaskRow } from '@/lib/rows'
 
 /** The icon an equipment shows when none is picked. */
 export const DEFAULT_ICON = '🔧'
-
-/** An optional date field's request value: none while it is empty. */
-function optionalApiDate(date: CalendarDate | ''): Date | undefined {
-  return date ? toApiDate(date) : undefined
-}
 
 // ── Add equipment ──
 
@@ -194,8 +189,8 @@ export function iconChangeInput(eq: EquipmentRow, icon: string): EquipmentInput 
     description: eq.description || undefined,
     icon,
     groupId: eq.groupId ?? null,
-    commissionedAt: eq.commissionedAt ? toApiDate(eq.commissionedAt) : undefined,
-    decommissionedAt: eq.decommissionedAt ? toApiDate(eq.decommissionedAt) : undefined,
+    commissionedAt: optionalApiDate(eq.commissionedAt),
+    decommissionedAt: optionalApiDate(eq.decommissionedAt),
     tracksHours: eq.tracksHours,
   }
 }

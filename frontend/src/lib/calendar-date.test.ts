@@ -4,6 +4,7 @@ import {
   formatCalendarDate,
   fromApiDate,
   fromApiDateTime,
+  optionalApiDate,
   today,
   toApiDate,
   toApiDateTime,
@@ -144,6 +145,15 @@ describe('request values', () => {
       expect(() => toApiDate(bad)).toThrow(RangeError)
       expect(() => toApiDateTime(bad)).toThrow(RangeError)
     }
+  })
+
+  it('send an optional date as the picked day, or none while it is empty or missing', () => {
+    for (const day of DAYS) {
+      expect(wire.date(optionalApiDate(day)!)).toBe(day)
+    }
+    expect(optionalApiDate('')).toBeUndefined()
+    expect(optionalApiDate(null)).toBeUndefined()
+    expect(optionalApiDate(undefined)).toBeUndefined()
   })
 })
 

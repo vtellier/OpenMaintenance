@@ -1,5 +1,5 @@
 import { TaskInput } from '@generated/api/models/TaskInput'
-import { CalendarDate, toApiDate } from '@/lib/calendar-date'
+import { CalendarDate, optionalApiDate } from '@/lib/calendar-date'
 import { TaskRow } from '@/lib/rows'
 
 // The task form on Equipment detail (Add task and Edit task): its values, how
@@ -68,7 +68,7 @@ export function canSaveTask(form: TaskFormValues): boolean {
  */
 export function kindFields(form: TaskFormValues): Pick<TaskInput, 'hoursInterval' | 'monthsInterval' | 'currentExpiryDate'> {
   if (form.kind === 'expiry') {
-    return { hoursInterval: undefined, monthsInterval: undefined, currentExpiryDate: form.currentExpiryDate ? toApiDate(form.currentExpiryDate) : undefined }
+    return { hoursInterval: undefined, monthsInterval: undefined, currentExpiryDate: optionalApiDate(form.currentExpiryDate) }
   }
   return {
     hoursInterval: form.hoursInterval > 0 ? form.hoursInterval : undefined,
