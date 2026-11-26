@@ -10,6 +10,31 @@ type LinkedIntervention = DatedIntervention & { taskId?: number | null; equipmen
 type NamedTask = { id?: number; name?: string }
 
 /**
+ * The equipments, and their tasks, that interventions are checked against
+ * (belongsTo). Build it once per list.
+ */
+export type InterventionOwner = {
+  equipmentIds: ReadonlySet<number | undefined>
+  taskIds: ReadonlySet<number | undefined>
+}
+
+/** The owner made of these equipments and these tasks (theirs). */
+export function interventionOwner(equipmentIds: (number | undefined)[], tasks: { id?: number }[]): InterventionOwner {
+  return { equipmentIds: new Set(equipmentIds), taskIds: new Set(tasks.map(t => t.id)) }
+}
+
+/**
+ * Whether an intervention belongs to the owner: a standard one through its
+ * task, an exceptional one (no task) through its own equipment. The one rule
+ * the Equipments cards, the Equipment detail and History filter with.
+ */
+export function belongsTo(inv: { taskId?: number | null; equipmentId?: number | null }, owner: InterventionOwner): boolean {
+  return inv.taskId != null
+    ? owner.taskIds.has(inv.taskId)
+    : owner.equipmentIds.has(inv.equipmentId ?? undefined)
+}
+
+/**
  * The equipment's interventions: the standard ones logged on one of its
  * tasks, and the exceptional ones (no task) logged on the equipment itself.
  * `equipmentTasks` are the equipment's tasks.
@@ -19,10 +44,8 @@ export function equipmentInterventions<I extends LinkedIntervention>(
   equipmentId: number,
   equipmentTasks: { id?: number }[],
 ): I[] {
-  const taskIds = new Set(equipmentTasks.map(t => t.id))
-  return interventions.filter(inv => inv.taskId != null
-    ? taskIds.has(inv.taskId)
-    : inv.equipmentId === equipmentId)
+  const owner = interventionOwner([equipmentId], equipmentTasks)
+  return interventions.filter(inv => belongsTo(inv, owner))
 }
 
 /**
@@ -50,8 +73,8 @@ export function lastInterventionOfTask<I extends LinkedIntervention>(interventio
  * (#179). `equipmentTasks` are the equipment's tasks.
  */
 export function latestEquipmentIntervention<I extends LinkedIntervention>(interventions: I[], equipmentTasks: { id?: number }[]): I | null {
-  const taskIds = new Set(equipmentTasks.map(t => t.id))
-  return latestIntervention(interventions.filter(inv => inv.taskId != null && taskIds.has(inv.taskId)))
+  const owner = interventionOwner([], equipmentTasks)
+  return latestIntervention(interventions.filter(inv => inv.taskId != null && belongsTo(inv, owner)))
 }
 
 /** The name of the task with this id; '' when it is unknown or has no name. */

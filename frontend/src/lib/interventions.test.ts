@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  equipmentInterventions, interventionTaskLabel, lastInterventionOfTask, latestEquipmentIntervention,
+  belongsTo, equipmentInterventions, interventionOwner, interventionTaskLabel, lastInterventionOfTask, latestEquipmentIntervention,
   latestIntervention, newestFirst, taskName,
 } from '@/lib/interventions'
 
@@ -11,6 +11,33 @@ const engineTasks = [oilChange, impeller]
 const allTasks = [oilChange, impeller, greaseHubs]
 
 const ids = (list: { id?: number }[]) => list.map(inv => inv.id)
+
+describe('belongsTo', () => {
+  const owner = interventionOwner([1], engineTasks)
+
+  it('takes a standard intervention through its task, whatever its equipmentId', () => {
+    expect(belongsTo({ taskId: 10, equipmentId: 1 }, owner)).toBe(true)
+    expect(belongsTo({ taskId: 11, equipmentId: 99 }, owner)).toBe(true)
+    expect(belongsTo({ taskId: 20, equipmentId: 1 }, owner)).toBe(false)
+  })
+
+  it('takes an exceptional intervention through its own equipment', () => {
+    expect(belongsTo({ equipmentId: 1 }, owner)).toBe(true)
+    expect(belongsTo({ taskId: null, equipmentId: 1 }, owner)).toBe(true)
+    expect(belongsTo({ equipmentId: 2 }, owner)).toBe(false)
+  })
+
+  it('keeps an exceptional intervention with no equipment out', () => {
+    expect(belongsTo({}, owner)).toBe(false)
+    expect(belongsTo({ equipmentId: null }, owner)).toBe(false)
+  })
+
+  it('keeps everything out of an empty owner', () => {
+    const none = interventionOwner([], [])
+    expect(belongsTo({ taskId: 10 }, none)).toBe(false)
+    expect(belongsTo({ equipmentId: 1 }, none)).toBe(false)
+  })
+})
 
 describe('equipmentInterventions', () => {
   const interventions = [

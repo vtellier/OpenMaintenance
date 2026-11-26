@@ -1,6 +1,7 @@
 import { Equipment } from '@generated/api/models/Equipment'
 import { Group } from '@generated/api/models/Group'
 import { DecommissionableEquipment, isDecommissioned } from '@/lib/decommissioning'
+import { belongsTo, interventionOwner } from '@/lib/interventions'
 
 // Groups organise the Equipments list (doc/data-model.md, "Group";
 // doc/gui/equipments.md, "Layout"). This module holds the rules the list
@@ -111,11 +112,10 @@ export function interventionsFor<I extends FilteredIntervention>(
   tasks: { id?: number; equipmentId?: number }[],
 ): I[] {
   if (filter == null) return interventions
-  const equipmentIds = new Set<number | undefined>('groupId' in filter
+  const equipmentIds = 'groupId' in filter
     ? equipments.filter(eq => eq.groupId === filter.groupId).map(eq => eq.id)
-    : [filter.equipmentId])
-  const taskIds = new Set(tasks.filter(t => equipmentIds.has(t.equipmentId)).map(t => t.id))
-  return interventions.filter(inv => inv.taskId != null
-    ? taskIds.has(inv.taskId)
-    : equipmentIds.has(inv.equipmentId ?? undefined))
+    : [filter.equipmentId]
+  const selected = new Set(equipmentIds)
+  const owner = interventionOwner(equipmentIds, tasks.filter(t => selected.has(t.equipmentId)))
+  return interventions.filter(inv => belongsTo(inv, owner))
 }
