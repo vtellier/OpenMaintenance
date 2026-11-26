@@ -66,8 +66,9 @@ Arguments go to Playwright: `pnpm test:prod --project=mobile`,
 `pnpm test:prod tests/non-regression/smoke.spec.ts`. The CI job
 `test-frontend-prod` runs it on every pull request, next to `test-frontend`.
 
-The directory is short on purpose: Settings shows the backup directory, and a
-long one runs off a phone screen (#176).
+The fresh directory keeps each run isolated. It used to be short on purpose,
+because Settings shows the backup directory and a long one ran off a phone
+screen; since #176 a long one wraps.
 
 ### Against any running server: `OM_TEST_BASE_URL`
 
