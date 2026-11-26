@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { formatTimestampDate, isHoursStale, isHoursVeryStale, relativeTime } from '@/lib/timestamp'
+import { formatTimestampDate, fromApiTimestamp, isHoursStale, isHoursVeryStale, relativeTime } from '@/lib/timestamp'
 
 // This file runs once per timezone (Vitest projects in vite.config.ts).
 const TZ = process.env.TZ
@@ -40,6 +40,19 @@ describe('formatTimestampDate', () => {
     expect(formatTimestampDate(undefined)).toBe('')
     expect(formatTimestampDate(null)).toBe('')
     expect(formatTimestampDate('not a date')).toBe('')
+  })
+})
+
+describe('fromApiTimestamp', () => {
+  it('keeps the moment, as an ISO string in UTC', () => {
+    expect(fromApiTimestamp(new Date(LATE_UTC))).toBe('2026-06-21T22:30:00.000Z')
+    expect(formatTimestampDate(fromApiTimestamp(new Date(LATE_UTC)))).toBe(formatTimestampDate(LATE_UTC))
+  })
+
+  it('reads a missing or invalid value as no timestamp', () => {
+    expect(fromApiTimestamp(undefined)).toBeUndefined()
+    expect(fromApiTimestamp(null)).toBeUndefined()
+    expect(fromApiTimestamp(new Date('not a date'))).toBeUndefined()
   })
 })
 
