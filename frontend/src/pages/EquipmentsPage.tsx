@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { MouseEvent, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { EquipmentApi, GroupApi, InterventionApi, TaskApi } from '@generated/api'
 import { apiConfig } from '@/api/config'
 import { EquipmentAvatar } from '@/components/EquipmentAvatar'
@@ -172,7 +172,10 @@ export function EquipmentsPage() {
     setDeleteSaving(false)
   }
 
-  const onAddClick = () => setShowAddModal(true)
+  function onAddClick() {
+    setShowAddModal(true)
+  }
+
   const decommissioned = decommissionedCount(equipments)
 
   return (
@@ -402,11 +405,6 @@ function EquipmentCard({ eq, tasks, interventions }: EquipmentCardProps) {
   )
 }
 
-/** Closes a modal on a click on its overlay, not on its content. */
-function onOverlay(close: () => void) {
-  return (e: MouseEvent) => { if (e.target === e.currentTarget) close() }
-}
-
 interface AddEquipmentModalProps {
   form: NewEquipmentValues
   groups: GroupRow[]
@@ -423,7 +421,7 @@ function AddEquipmentModal({ form, groups, error, adding, onChange, onGroupCreat
   const set = (fields: Partial<NewEquipmentValues>) => onChange({ ...form, ...fields })
 
   return (
-    <div className="modal-overlay" onClick={onOverlay(onCancel)}>
+    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onCancel() }}>
       <div className="modal">
         <h2 className="modal__title">Add equipment</h2>
         {error && <div className="flash flash--error">{error}</div>}
@@ -489,7 +487,7 @@ interface RenameGroupModalProps {
 /** A group's Rename, from its menu. */
 function RenameGroupModal({ name, error, saving, onChange, onCancel, onSave }: RenameGroupModalProps) {
   return (
-    <div className="modal-overlay" onClick={onOverlay(onCancel)}>
+    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onCancel() }}>
       <div className="modal">
         <h2 className="modal__title">Rename group</h2>
         {error && <div className="flash flash--error">{error}</div>}
@@ -520,7 +518,7 @@ interface DeleteGroupModalProps {
 /** A group's Delete, from its menu: its equipments are kept, with no group. */
 function DeleteGroupModal({ text, error, deleting, onCancel, onDelete }: DeleteGroupModalProps) {
   return (
-    <div className="modal-overlay" onClick={onOverlay(onCancel)}>
+    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onCancel() }}>
       <div className="modal">
         <h2 className="modal__title">Delete group</h2>
         {error && <div className="flash flash--error">{error}</div>}
