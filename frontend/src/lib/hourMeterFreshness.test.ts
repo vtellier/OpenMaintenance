@@ -94,7 +94,6 @@ describe('sameHoursReading', () => {
 // A stale row is emphasized, its "updated …" text more once very stale
 // (doc/gui/dashboard.md, "Hour-meter freshness banner").
 describe('bannerRowClasses', () => {
-  afterEach(() => vi.useRealTimers())
   const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
 
   it('a fresh reading is not emphasized', () => {
