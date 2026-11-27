@@ -3,11 +3,26 @@ import { ResponseError } from '@generated/api/runtime'
 import { EquipmentInput } from '@generated/api/models/EquipmentInput'
 import { Task } from '@generated/api/models/Task'
 import {
-  canAddEquipment, canSaveEdit, decommissioningInvalid, editFormOf, EquipmentCreator, EquipmentEditApi, EquipmentEditValues, hasHoursInterval,
-  hoursTooLow, iconChangeInput, newEquipmentForm, NewEquipmentValues, saveEdit, saveNewEquipment, toEquipmentEditInput, toNewEquipmentInput, turningOn,
+  canAddEquipment, canSaveEdit, decommissioningInvalid, deleteEquipment, editFormOf, EquipmentCreator, EquipmentDeleter, EquipmentEditApi, EquipmentEditValues,
+  hasHoursInterval, hoursTooLow, iconChangeInput, lastReadingHint, newEquipmentForm, NewEquipmentValues, saveEdit, saveNewEquipment, shownIcon,
+  toEquipmentEditInput, toNewEquipmentInput, turningOn,
 } from '@/lib/equipmentForm'
 
 const utc = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d))
+
+describe('shownIcon', () => {
+  it('shows the icon picked', () => {
+    expect(shownIcon('⛵')).toBe('⛵')
+    expect(shownIcon('⚙️', '🗂️')).toBe('⚙️')
+  })
+
+  it('shows the default when none is picked: 🔧, or the one given', () => {
+    expect(shownIcon(undefined)).toBe('🔧')
+    expect(shownIcon(null)).toBe('🔧')
+    expect(shownIcon('')).toBe('🔧')
+    expect(shownIcon('', '🗂️')).toBe('🗂️')
+  })
+})
 
 describe('Add equipment', () => {
   const engine: NewEquipmentValues = {
@@ -129,6 +144,16 @@ describe('turningOn', () => {
     expect(turningOn(tracking)).toBe(false)
     // Turning it off (#171: no warning) is not turning it on.
     expect(turningOn({ ...tracking, tracksHours: false })).toBe(false)
+  })
+})
+
+describe('lastReadingHint', () => {
+  it('names the reading kept, which the hour-meter cannot go below', () => {
+    expect(lastReadingHint({ minHours: 120 })).toBe('Last reading: 120 h. The hour-meter cannot go backwards.')
+  })
+
+  it('gives no hint when no reading is kept', () => {
+    expect(lastReadingHint({ minHours: 0 })).toBeNull()
   })
 })
 
@@ -321,5 +346,31 @@ describe('iconChangeInput', () => {
 
   it('sends the description as it stands, untrimmed', () => {
     expect(iconChangeInput({ id: 1, name: 'Dinghy', description: ' Tender ' }, '⛵').description).toBe(' Tender ')
+  })
+})
+
+describe('deleteEquipment', () => {
+  function fakeApi(failure?: Error) {
+    const calls: { id: number }[] = []
+    const api: EquipmentDeleter = {
+      async deleteEquipment(req) {
+        calls.push(req)
+        if (failure) throw failure
+      },
+    }
+    return { api, calls }
+  }
+
+  it('deletes the equipment, and resolves to null', async () => {
+    const { api, calls } = fakeApi()
+
+    expect(await deleteEquipment(7, api)).toBeNull()
+    expect(calls).toEqual([{ id: 7 }])
+  })
+
+  it('says it failed, whatever the backend gives as the reason', async () => {
+    const response = new Response(JSON.stringify({ error: 'database is locked' }), { status: 500 })
+    expect(await deleteEquipment(7, fakeApi(new ResponseError(response)).api)).toBe('Failed to delete equipment')
+    expect(await deleteEquipment(7, fakeApi(new Error('network')).api)).toBe('Failed to delete equipment')
   })
 })

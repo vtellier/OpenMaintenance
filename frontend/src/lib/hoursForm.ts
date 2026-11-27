@@ -1,6 +1,6 @@
 import { EquipmentHoursCorrectionInput } from '@generated/api/models/EquipmentHoursCorrectionInput'
 import { EquipmentHoursInput } from '@generated/api/models/EquipmentHoursInput'
-import { extractErrorMessage } from '@/lib/format'
+import { extractErrorMessage, formatHours } from '@/lib/format'
 import { EquipmentRow } from '@/lib/rows'
 
 // The two hour-meter forms: "Update hours", which only moves the reading up
@@ -20,6 +20,11 @@ export function prefilledReading(search: string): number | null {
   if (raw == null || raw === '') return null
   const value = Number(raw)
   return Number.isFinite(value) ? value : null
+}
+
+/** Correct reading's "Current reading": the reading, or "No reading" when there is none. */
+export function currentReadingText(hours: number | null | undefined): string {
+  return hours == null ? 'No reading' : formatHours(hours)
 }
 
 /** The Corrected reading as typed: null while the field is empty. */

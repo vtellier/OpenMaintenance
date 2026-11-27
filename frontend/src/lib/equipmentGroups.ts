@@ -9,6 +9,11 @@ import { belongsTo, interventionOwner } from '@/lib/interventions'
 
 export const DEFAULT_GROUP_ICON = '🗂️'
 
+/** A group as a picker lists it: its icon (the default when it has none), a space, its name. */
+export function groupOptionLabel(group: Pick<Group, 'icon' | 'name'>): string {
+  return (group.icon || DEFAULT_GROUP_ICON) + ' ' + group.name
+}
+
 type NamedGroup = Pick<Group, 'id' | 'name'>
 type GroupedEquipment = Pick<Equipment, 'id' | 'name' | 'groupId'> & DecommissionableEquipment
 

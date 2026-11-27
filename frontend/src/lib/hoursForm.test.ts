@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ResponseError } from '@generated/api/runtime'
 import {
-  canCorrect, canUpdateHours, HoursCorrector, hoursFromInput, HoursUpdater, hoursUpdateFormOf, prefilledReading, readingFromInput,
+  canCorrect, canUpdateHours, currentReadingText, HoursCorrector, hoursFromInput, HoursUpdater, hoursUpdateFormOf, prefilledReading, readingFromInput,
   saveCorrection, saveHoursUpdate,
 } from '@/lib/hoursForm'
 
@@ -24,6 +24,15 @@ describe('Correct reading', () => {
       ['?hours=+', 0],
     ])('%j prefills %j', (search, expected) => {
       expect(prefilledReading(search)).toBe(expected)
+    })
+  })
+
+  describe('currentReadingText', () => {
+    it('shows the reading in hours, and says when there is none', () => {
+      expect(currentReadingText(512)).toBe('512 h')
+      expect(currentReadingText(0)).toBe('0 h')
+      expect(currentReadingText(null)).toBe('No reading')
+      expect(currentReadingText(undefined)).toBe('No reading')
     })
   })
 
