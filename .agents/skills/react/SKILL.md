@@ -66,8 +66,11 @@ Text the screen chooses between is a rule too, and comes from the lib: `retentio
 
 Fetch in an effect, never in the component body: the body runs on every render. In development, `<StrictMode>` mounts every component twice (mount, cleanup, mount), so every effect runs twice and its cleanup runs in between. The cleanup must undo what the effect started: abort the request, and ignore any result that arrives after the abort. With the generated client, the first run's request never reaches the network: `BaseAPI.request` awaits before it calls `fetch` (`generated/api/runtime.ts`), so the cleanup has already aborted the signal, and `fetch` is called with it aborted. The Network panel and `page.route` see one GET per endpoint in `pnpm dev`, as in the production build; `window.fetch` is called twice. The rule makes either case safe, so do not rely on the timing.
 
+From `EquipmentHoursPage.tsx` (its `lastUpdated` left out):
+
 ```tsx
-const [form, setForm] = useState<HoursUpdateValues | null>(null)
+const [name, setName] = useState('')
+const [form, setForm] = useState<HoursUpdateValues>({ currentHours: 0, newHours: 0 })
 const [loaded, setLoaded] = useState(false)
 const [error, setError] = useState<string | null>(null)
 
@@ -78,6 +81,7 @@ useEffect(() => {
     try {
       const eq = toEquipmentRow(await equipmentApi.getEquipment({ id: equipmentId }, { signal }))
       if (signal.aborted) return
+      setName(eq.name ?? '')
       setForm(hoursUpdateFormOf(eq))
     } catch {
       if (signal.aborted) return
@@ -120,13 +124,14 @@ return (
 
 ### A reload shared by the effect and the handlers
 
-A function declared in the component body is a new function on every render, so an effect that calls it must list it, and `exhaustive-deps` fails `pnpm lint` when it is missing. Wrap the reload in `useCallback` with the values it reads, and make the effect depend on `[reload]`:
+A function declared in the component body is a new function on every render, so an effect that calls it must list it, and `exhaustive-deps` fails `pnpm lint` when it is missing. Wrap the reload in `useCallback` with the values it reads, and make the effect depend on `[reload]`. No page needs one yet (the #158 pages navigate after a save), so the example is the Update hours page as if it stayed on the page after a save; 1.5 and 1.6 bring the first real ones:
 
 ```tsx
 const reload = useCallback(async (signal?: AbortSignal) => {
   try {
     const eq = toEquipmentRow(await equipmentApi.getEquipment({ id: equipmentId }, { signal }))
     if (signal?.aborted) return
+    setName(eq.name ?? '')
     setForm(hoursUpdateFormOf(eq))
     setError(null)
   } catch {
@@ -143,8 +148,9 @@ useEffect(() => {
 }, [reload])
 
 async function onSave() {
-  if (!form) return
+  if (saving || !canSave) return
   setSaving(true)
+  setError(null)
   const failure = await saveHoursUpdate(form, equipmentId, equipmentApi)
   if (failure === null) await reload()
   else setError(failure)
@@ -187,6 +193,8 @@ A change that also lives outside React is made in the handler that sets the stat
 
 Every field is controlled: `value` (or `checked`) from state, `onChange` back into it. React's `onChange` fires on every keystroke, like the native `input` event the old `@input` listened to.
 
+From `EquipmentHoursPage.tsx`, where `const canSave = canUpdateHours(form)` is computed during render:
+
 ```tsx
 <input
   type="number"
@@ -195,7 +203,7 @@ Every field is controlled: `value` (or `checked`) from state, `onChange` back in
   value={String(form.newHours)}
   onChange={e => setForm({ ...form, newHours: hoursFromInput(e.target.value) })}
 />
-<button className="btn btn--accent" onClick={onSubmit} disabled={saving || !canUpdateHours(form)}>
+<button className="btn btn--accent" onClick={onSubmit} disabled={saving || !canSave}>
   {saving ? 'Saving...' : 'Update hours'}
 </button>
 ```
@@ -246,7 +254,7 @@ The class names, the text, the accessible names (`aria-label`, label text, butto
 
 During the port (#146, branch `feat/issue-146-react`), `frontend/tests/` and `src/style.css` are frozen, so a ported screen renders exactly what `pre-react` rendered: the same elements, classes, text and attributes, in the same order. When a spec seems to need a change, stop and report it.
 
-- Read the rendered DOM, not only the old template: open the screen in the reference app and compare `document.querySelector('main').outerHTML` with the port's. Three differences are Arrow's, not the port's: Arrow wrote every `.value` / `.checked` property binding as a stray attribute too (`.value="<!--¤-->"`), it wrote `disabled="true"` where React writes `disabled=""`, and it kept the template's whitespace inside text nodes (`<button> Delete </button>`).
+- Read the rendered DOM, not only the old template: open the screen in the reference app and compare `document.querySelector('main').outerHTML` with the port's. Four differences are Arrow's, not the port's: Arrow wrote every `.value` / `.checked` property binding as a stray attribute too (`.value="<!--¤-->"`), it wrote `disabled="true"` where React writes `disabled=""`, it kept the template's whitespace inside text nodes (`<button> Delete </button>`), and a slot could render a function's source in place of its value (`e=>at(n,e)` where the Delete page's failure flash should be). The port renders the text the template meant ("Failed to delete equipment" in `EquipmentDeletePage`). That is not a behaviour change; note it under Decisions in the PR.
 - `class` becomes `className`; a class computed in a template (`'tabbar__tab' + (active ? ' active' : '')`) stays computed the same way.
 - Not Found has no reference to match (`pre-react` rendered a blank page there, #184): it keeps the markup of `pre-react`'s `NotFound.ts`, as the shell's content, without the starter's sentence about `src/App.ts` (dropped with the maintainer's approval) (see [Routes and the shell](#routes-and-the-shell)).
 
