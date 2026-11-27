@@ -7,7 +7,7 @@ description: Write or change OpenMaintenance frontend code in React (TSX pages, 
 
 The web UI is plain React 19 in TSX, built by Vite ([ADR 0005](../../../doc/adr/0005-react-web-ui.md)). Nothing else at runtime: no router (every page is a full page load), no state library, no component kit.
 
-Settings is the reference page (#157): `src/pages/SettingsPage.tsx`, `src/components/UpdateCheck.tsx`, `src/components/NavBar.tsx` and `src/App.tsx` show in working code the file layout, the routes and the shell, data loading, the loading states, the three lib call points and the event handlers. The equipment pages of #158 show what Settings does not exercise: the `flash--error` path and [Forms](#forms) (`src/pages/EquipmentHoursPage.tsx`, `EquipmentCorrectHoursPage.tsx`, `EquipmentEditPage.tsx`, `EquipmentDeletePage.tsx`), a page-only modal (`ConfirmTracksModal` in `EquipmentEditPage.tsx`), [the pickers](#pickers) and [a custom element](#custom-elements) (`src/components/IconPicker.tsx`, `GroupPicker.tsx`). [The shared reload](#a-reload-shared-by-the-effect-and-the-handlers) and the shared [Modals](#modals) are first applied in 1.5 and 1.6.
+Settings is the reference page (#157): `src/pages/SettingsPage.tsx`, `src/components/UpdateCheck.tsx`, `src/components/NavBar.tsx` and `src/App.tsx` show in working code the file layout, the routes and the shell, data loading, the loading states, the three lib call points and the event handlers. The equipment pages of #158 show what Settings does not exercise: the `flash--error` path and [Forms](#forms) (`src/pages/EquipmentHoursPage.tsx`, `EquipmentCorrectHoursPage.tsx`, `EquipmentEditPage.tsx`, `EquipmentDeletePage.tsx`), a page-only modal (`ConfirmTracksModal` in `EquipmentEditPage.tsx`), [the pickers](#pickers) and [a custom element](#custom-elements) (`src/components/IconPicker.tsx`, `GroupPicker.tsx`). The list pages of #159 show [the shared reload](#a-reload-shared-by-the-effect-and-the-handlers), [Lists](#lists) and the shared [Modals](#modals) (`src/pages/DashboardPage.tsx`, `EquipmentsPage.tsx`, `HistoryPage.tsx`; `src/components/FullInterventionModal.tsx`, `DeleteInterventionModal.tsx`, `ReadingDoubtModal.tsx`, `HistoryList.tsx`).
 
 ## Quick workflow
 
@@ -124,7 +124,7 @@ return (
 
 ### A reload shared by the effect and the handlers
 
-A function declared in the component body is a new function on every render, so an effect that calls it must list it, and `exhaustive-deps` fails `pnpm lint` when it is missing. Wrap the reload in `useCallback` with the values it reads, and make the effect depend on `[reload]`. No page needs one yet (the #158 pages navigate after a save), so the example is the Update hours page as if it stayed on the page after a save; 1.5 and 1.6 bring the first real ones:
+A function declared in the component body is a new function on every render, so an effect that calls it must list it, and `exhaustive-deps` fails `pnpm lint` when it is missing. Wrap the reload in `useCallback` with the values it reads, and make the effect depend on `[reload]`. The Dashboard, Equipments and History pages have one; the example is the Update hours page as if it stayed on the page after a save:
 
 ```tsx
 const reload = useCallback(async (signal?: AbortSignal) => {
@@ -162,6 +162,8 @@ async function onSave() {
 - The effect passes its signal; a handler calls `reload()` with none, so its request is not cancelled by the effect's cleanup.
 - Under `<StrictMode>` in `pnpm dev`, the effect runs, its cleanup aborts the first request, and it runs again. The generated client aborts that first request before it is sent, so the network shows one GET, as in the production build; if one were sent, the `signal?.aborted` checks would keep its result from any setter.
 - List in `useCallback`'s array every prop or state value the function reads; setters are stable and need not be listed. `exhaustive-deps` checks that array too.
+- When the handler needs the fresh data after the reload, the reload resolves to it, since the state the handler reads is its render's: History's `reload` resolves to the equipments it loaded (null on failure), and the reading question is checked against them, or against the ones held when the reload failed: `setDoubt(stillInDoubt(before, (await reload()) ?? equipments))`.
+- Keep `pre-react`'s reload as it was, even where it looks odd: the Equipments list shows "Loading equipments..." in place of the list on every reload, and the Dashboard and History never clear a load error once set.
 
 ## Event handlers
 
@@ -188,6 +190,14 @@ async function onCheck() {
 4. Set what it resolved to, then clear the busy state.
 
 A change that also lives outside React is made in the handler that sets the state: `chooseTheme` sets `theme`, writes it to `localStorage` and applies it to `<html>` in one go, with no effect watching `theme`.
+
+- React clears `e.currentTarget` once the handler returns. An async handler that needs the element after an `await` reads it first: `const input = e.currentTarget` and `Array.from(input.files)`, before `input.value = ''` empties the live `FileList` (`InterventionPhotos`).
+
+## Lists
+
+- A list mixing two kinds of rows keys each by kind and id: the Equipments list keys a group's section `'group-' + id` and a run of ungrouped cards `'cards-' + <its first equipment's id>`. A layout step `pre-react` did while rendering, such as grouping consecutive ungrouped cards into one grid, is a lib rule (`listBlocks` in `lib/equipmentGroups.ts`).
+- A row's markup that two screens share is a component with the row's variable parts as props: `HistoryList` takes the second column's heading and a `labelOf(intervention)` (`historyItemLabel` on History, `interventionTaskLabel` on an equipment's tab).
+- State `pre-react` kept per browser is read once, in `useState`'s initializer, and written by the handler that sets it, through the lib: `useState(readCollapsed)`, then `const next = toggleCollapsed(collapsed, id); setCollapsed(next); writeCollapsed(next)`. Filters `pre-react` kept in the page (History's equipment and dates) stay plain state: not in the URL, not in storage.
 
 ## Forms
 
@@ -242,9 +252,10 @@ A pure port keeps `pre-react`'s known bugs, which are fixed after the cutover. W
 
 A modal is rendered only while open: `{doubt && <ReadingDoubtModal doubt={doubt} onKeep={() => setDoubt(null)} />}`. Its state (open or not, and what it is about) belongs to the page that opens it.
 
-- A modal that only one page opens stays in that page's file, as a module-level component (`ConfirmTracksModal` in `EquipmentEditPage.tsx`); one that several pages open goes in `src/components/` (`ReadingDoubtModal`).
+- A modal that only one page opens stays in that page's file, as a module-level component (`ConfirmTracksModal` in `EquipmentEditPage.tsx`, the group modals in `EquipmentsPage.tsx`); one that several pages open goes in `src/components/` (`ReadingDoubtModal`, `FullInterventionModal`, `DeleteInterventionModal`).
+- A modal opened from a list row holds what it is about in the page, the row or a source: `{deleteTarget && <DeleteInterventionModal intervention={deleteTarget} … />}`, `{formSource && <FullInterventionModal source={formSource} … />}`. A shared modal that saves owns its busy and error state, calls the lib's flow itself and resolves through a callback with what the page needs next: `onSaved(doubt)`, `onDeleted(doubt)`. The page then closes it, reloads, and asks the reading question. Equipment detail passes `equipmentIdFixed` to `FullInterventionModal` and its one equipment as the equipments.
 - Markup as `pre-react` had it, modal by modal: `div.modal-overlay` > `div.modal`, a `h2.modal__title`, and `div.modal__actions`. Only `ReadingDoubtModal` has `role="dialog"` and `aria-modal="true"` on `pre-react`; the others have neither, and keep neither in the port.
-- Most `pre-react` overlays close on a click on the overlay itself: `onClick={e => { if (e.target === e.currentTarget) onClose() }}`. The Edit page's "Enable hour-meter tracking?" closes on any click inside it too, the modal's text included, since the click bubbles up to its overlay: `ConfirmTracksModal` keeps that (`onClick={onCancel}` on the overlay). Read each modal's overlay handler in `pre-react` before porting it.
+- Most `pre-react` overlays close on a click on the overlay itself: `onClick={e => { if (e.target === e.currentTarget) onClose() }}`. The Edit page's "Enable hour-meter tracking?" closes on any click inside it too, the modal's text included, since the click bubbles up to its overlay: `ConfirmTracksModal` keeps that (`onClick={onCancel}` on the overlay). `FullInterventionModal` keeps `pre-react`'s class check (`classList.contains('modal-overlay')`): the photo delete confirmation is an overlay inside it, and a click on that one closes both. Read each modal's overlay handler in `pre-react` before porting it.
 - To focus a default button when it opens, use `autoFocus` on it.
 - Where a modal's form state lives decides what reopening shows: state inside the modal component is dropped when it closes (it unmounts), state in the page stays. Match what `pre-react` shows when the modal opens again.
 
@@ -254,7 +265,7 @@ The class names, the text, the accessible names (`aria-label`, label text, butto
 
 During the port (#146, branch `feat/issue-146-react`), `frontend/tests/` and `src/style.css` are frozen, so a ported screen renders exactly what `pre-react` rendered: the same elements, classes, text and attributes, in the same order. When a spec seems to need a change, stop and report it.
 
-- Read the rendered DOM, not only the old template: open the screen in the reference app and compare `document.querySelector('main').outerHTML` with the port's. Four differences are Arrow's, not the port's: Arrow wrote every `.value` / `.checked` property binding as a stray attribute too (`.value="<!--¤-->"`), it wrote `disabled="true"` where React writes `disabled=""`, it kept the template's whitespace inside text nodes (`<button> Delete </button>`), and a slot could render a function's source in place of its value (`e=>at(n,e)` where the Delete page's failure flash should be). The port renders the text the template meant ("Failed to delete equipment" in `EquipmentDeletePage`). That is not a behaviour change; note it under Decisions in the PR.
+- Read the rendered DOM, not only the old template: open the screen in the reference app and compare `document.querySelector('main').outerHTML` with the port's. Five differences are Arrow's, not the port's: Arrow wrote every `.value` / `.checked` property binding as a stray attribute too (`.value="<!--¤-->"`), it wrote `disabled="true"` where React writes `disabled=""`, it kept the template's whitespace inside text nodes (`<button> Delete </button>`), a slot could render a function's source in place of its value (`e=>at(n,e)` where the Delete page's failure flash should be), and a template mounted a second time could render its bindings as `undefined` (Add equipment opened again: `value="undefined"`, no pickers, an empty Save). The port renders what the template meant ("Failed to delete equipment" in `EquipmentDeletePage`; the Add equipment form with what was typed before Cancel). That is not a behaviour change; note it under Decisions in the PR.
 - `class` becomes `className`; a class computed in a template (`'tabbar__tab' + (active ? ' active' : '')`) stays computed the same way.
 - Not Found has no reference to match (`pre-react` rendered a blank page there, #184): it keeps the markup of `pre-react`'s `NotFound.ts`, as the shell's content, without the starter's sentence about `src/App.ts` (dropped with the maintainer's approval) (see [Routes and the shell](#routes-and-the-shell)).
 
@@ -291,7 +302,7 @@ JSX removes whitespace that contains a line break between an element and text, s
 
 ### 4. `false` on an `aria-*` attribute renders `"false"`
 
-Arrow removed an attribute whose value was `false`. React removes a boolean HTML attribute (`disabled={false}`), but writes any `aria-*` or `data-*` value as a string: `aria-busy={false}` renders `aria-busy="false"`. Write `aria-busy={checking ? 'true' : undefined}` where `pre-react` left the attribute out, and `aria-expanded={String(open)}` where it wrote `"false"`.
+Arrow removed an attribute whose value was `false`. React removes a boolean HTML attribute (`disabled={false}`), but writes any `aria-*` or `data-*` value as a string: `aria-busy={false}` renders `aria-busy="false"`. Write `aria-busy={checking ? 'true' : undefined}` where `pre-react` left the attribute out, and `aria-expanded={open}` where it wrote `"false"`: React writes a boolean `aria-*` as `"true"` / `"false"`, and the types refuse a plain `string` there.
 
 ### 5. Every effect runs twice in development
 
