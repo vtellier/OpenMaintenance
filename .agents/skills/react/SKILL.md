@@ -7,7 +7,7 @@ description: Write or change OpenMaintenance frontend code in React (TSX pages, 
 
 The web UI is plain React 19 in TSX, built by Vite ([ADR 0005](../../../doc/adr/0005-react-web-ui.md)). Nothing else at runtime: no router (every page is a full page load), no state library, no component kit.
 
-Settings is the reference page (#157): `src/pages/SettingsPage.tsx`, `src/components/UpdateCheck.tsx`, `src/components/NavBar.tsx` and `src/App.tsx` show each convention below in working code.
+Settings is the reference page (#157): `src/pages/SettingsPage.tsx`, `src/components/UpdateCheck.tsx`, `src/components/NavBar.tsx` and `src/App.tsx` show in working code the file layout, the routes and the shell, data loading, the loading states, the three lib call points and the event handlers. The sections Settings does not exercise (the `flash--error` path, [the shared reload](#a-reload-shared-by-the-effect-and-the-handlers), [Forms](#forms) and [Modals](#modals)) are first applied in 1.4 to 1.6.
 
 ## Quick workflow
 
@@ -25,7 +25,7 @@ Settings is the reference page (#157): `src/pages/SettingsPage.tsx`, `src/compon
 | `src/page.tsx` | The route table: pathname → `{ title, description, view }` (see [Routes and the shell](#routes-and-the-shell)) |
 | `src/App.tsx` | The shell: `App` (the navigation, then the page in `main.app-content`) and `AppShell` (the navigation only, for Not Found) |
 | `src/pages/<Name>Page.tsx` | One component per screen |
-| `src/components/<Name>.tsx` | One component per file: those several pages share (modals included), and the self-contained parts `pre-react` kept there (`NavBar`, `UpdateCheck`) |
+| `src/components/<Name>.tsx` | One component per file: components several pages share (modals included), and the self-contained parts `pre-react` kept there (`NavBar`, `UpdateCheck`) |
 | `src/hooks/use<Name>.ts` | A hook that two or more components share (none yet). A hook one component uses stays in that component's file |
 | `src/lib/*.ts` | The rules, plain TypeScript with no React import, each with a `*.test.ts` |
 | `src/theme.ts`, `src/api/config.ts` | Browser helpers that hold no rule: the theme in `localStorage` and on `<html>`, the API client's base path |
@@ -39,6 +39,7 @@ A port keeps `pre-react`'s file name with `.tsx` (`pages/SettingsPage.ts` → `p
 - Each route in `page.tsx` matches the pathname with `pre-react`'s test (same regex, same order), parses what it needs and passes it as plain typed props: `<EquipmentHoursPage equipmentId={Number(match[1])} />`. A page reads the query string itself, once, through the lib: `useState(() => prefilledReading(window.location.search))`.
 - The view is the page inside the shell, `<App currentPath={pathname}><SettingsPage /></App>`; `NavBar` highlights the section from `currentPath` (`isActiveSection` in `lib/navigation.ts`).
 - The title and the description are `pre-react`'s strings. `entry-client.tsx` sets `document.title` from the route before rendering; a page leaves the title alone (a `<title>` rendered by a component would sit next to `index.html`'s).
+- A route whose title needs data keeps `pre-react`'s awaited GET in `routeToPage`, outside React: Equipment detail awaits `getEquipment` there for `"<name> | OpenMaintenance"` and its description, falling back to `Equipment #<id>` when it fails. The page still loads its own data in its effect.
 - Not Found is the one page that brings its own `<main>`: `<AppShell currentPath={pathname}><NotFound path={pathname} /></AppShell>`. `main.not-found` sets its own width and padding, so inside the padded `main.app-content` it sat 16px off-centre on a phone (the 1.2 placeholder did).
 
 ## Components and props
@@ -63,7 +64,7 @@ Text the screen chooses between is a rule too, and comes from the lib: `retentio
 
 ## Loading data
 
-Fetch in an effect, never in the component body: the body runs on every render. In development, `<StrictMode>` mounts every component twice (mount, cleanup, mount), so every effect runs twice and its cleanup runs in between. The cleanup must undo what the effect started; a page-load GET therefore goes out twice in `pnpm dev`, and the first one is aborted.
+Fetch in an effect, never in the component body: the body runs on every render. In development, `<StrictMode>` mounts every component twice (mount, cleanup, mount), so every effect runs twice and its cleanup runs in between. The cleanup must undo what the effect started: abort the request, and ignore any result that arrives after the abort. With the generated client, the first run's request never reaches the network: `BaseAPI.request` awaits before it calls `fetch` (`generated/api/runtime.ts`), so the cleanup has already aborted the signal, and `fetch` is called with it aborted. The Network panel and `page.route` see one GET per endpoint in `pnpm dev`, as in the production build; `window.fetch` is called twice. The rule makes either case safe, so do not rely on the timing.
 
 ```tsx
 const [form, setForm] = useState<HoursUpdateValues | null>(null)
@@ -153,12 +154,12 @@ async function onSave() {
 
 - `reload` changes only when `equipmentId` changes, so the effect runs once per page load, and again (aborting the previous request) if the id changes.
 - The effect passes its signal; a handler calls `reload()` with none, so its request is not cancelled by the effect's cleanup.
-- Under `<StrictMode>` in `pnpm dev`, the effect runs, its cleanup aborts the first request, and it runs again: two GETs go out, the first is aborted, and its result never reaches a setter thanks to the `signal?.aborted` checks. The production build sends one.
+- Under `<StrictMode>` in `pnpm dev`, the effect runs, its cleanup aborts the first request, and it runs again. The generated client aborts that first request before it is sent, so the network shows one GET, as in the production build; if one were sent, the `signal?.aborted` checks would keep its result from any setter.
 - List in `useCallback`'s array every prop or state value the function reads; setters are stable and need not be listed. `exhaustive-deps` checks that array too.
 
 ## Event handlers
 
-A handler is a plain function declared in the component body and named `on<Action>` (`onCheck`, `onSave`), or a short inline arrow when it passes an argument: `onChange={() => chooseTheme(o.value)}`. `useCallback` is only for a function an effect depends on (the shared reload above).
+A handler is a plain function declared in the component body and named `on<Action>` (`onCheck`, `onSave`), or a short inline arrow when it passes an argument: `onChange={() => chooseTheme(o.value)}`. The function such an arrow calls takes an argument and is named for what it does (`chooseTheme`), not `on…`. `useCallback` is only for a function an effect depends on (the shared reload above).
 
 An async handler runs in this order, as `onCheck` in `UpdateCheck` does:
 
@@ -260,7 +261,7 @@ Arrow removed an attribute whose value was `false`. React removes a boolean HTML
 
 ### 5. Every effect runs twice in development
 
-`<StrictMode>` runs each effect, its cleanup, then the effect again, in `pnpm dev` only. An effect without a cleanup adds two listeners, two timers or two requests. Return a cleanup that undoes what the effect did (`removeEventListener`, `clearTimeout`, `controller.abort()`). A spec that holds or answers "the first request" sees two in development and one in the production build: run `pnpm test:prod` as well.
+`<StrictMode>` runs each effect, its cleanup, then the effect again, in `pnpm dev` only. An effect without a cleanup adds two listeners, two timers or two requests (a bare `fetch` called synchronously in the effect does go out twice). Return a cleanup that undoes what the effect did (`removeEventListener`, `clearTimeout`, `controller.abort()`). A page-load GET through the generated client with `{ signal }` is the exception you will see: the first run's request is aborted before it is sent, so a spec that holds or answers "the first request" sees one request in development, as in the production build, and the abort shows only as a rejected promise, never on the network. Run `pnpm test:prod` as well: timing still differs between the two.
 
 ### 6. Code in the component body runs on every render
 
