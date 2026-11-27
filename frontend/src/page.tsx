@@ -13,6 +13,11 @@ export interface Page {
   view: ReactNode
 }
 
+const equipmentEditRe = /^\/equipments\/(\d+)\/edit$/
+const equipmentDeleteRe = /^\/equipments\/(\d+)\/delete$/
+const equipmentHoursRe = /^\/equipments\/(\d+)\/edit\/hours$/
+const equipmentCorrectHoursRe = /^\/equipments\/(\d+)\/edit\/hours\/correct$/
+
 /**
  * The page for a URL, chosen by its pathname. Pages are full page loads (no
  * router), so `entry-client.tsx` calls this once, sets `document.title` to
@@ -27,11 +32,6 @@ export interface Page {
  * routes back from `git show pre-react:frontend/src/page.ts`, in the same
  * order and with the same titles and descriptions.
  */
-const equipmentEditRe = /^\/equipments\/(\d+)\/edit$/
-const equipmentDeleteRe = /^\/equipments\/(\d+)\/delete$/
-const equipmentHoursRe = /^\/equipments\/(\d+)\/edit\/hours$/
-const equipmentCorrectHoursRe = /^\/equipments\/(\d+)\/edit\/hours\/correct$/
-
 export async function routeToPage(url: string): Promise<Page> {
   const pathname = new URL(url, 'http://localhost').pathname
 
