@@ -277,7 +277,7 @@ A number on the left of `&&` renders when it is `0`. Write a boolean: `{items.le
 
 ### 9. Lint warnings fail `pnpm lint`
 
-`pnpm lint` runs two rules of `eslint-plugin-react-hooks`, `rules-of-hooks` and `exhaustive-deps`, both as errors and with `--max-warnings=0`, so either one fails CI. The plugin's other rules, backed by the React Compiler, stay off (ADR 0005, checked in #157): `set-state-in-effect` rejects the shared reload. Fix the dependencies rather than silence the rule; when a rule must be turned off for one line, the `eslint-disable-next-line` comment gives the reason.
+`pnpm lint` runs three rules of `eslint-plugin-react-hooks`, `rules-of-hooks`, `exhaustive-deps` and `static-components`, all as errors and with `--max-warnings=0`, so any one fails CI. `static-components` catches a component defined inside another component, whose state resets on every render because each render makes it a new component; define it at module level and pass what it needs as props. The plugin's other rules, backed by the React Compiler, stay off (ADR 0005, checked in #157): `set-state-in-effect` rejects the shared reload. Fix the dependencies rather than silence the rule; when a rule must be turned off for one line, the `eslint-disable-next-line` comment gives the reason.
 
 ## References
 
