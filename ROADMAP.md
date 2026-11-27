@@ -231,6 +231,7 @@ _Depends on Milestones 1–10 (all UI text must exist before it can be translate
 - [x] **A long backup directory wraps on a phone** (issue #176): the Settings lines (backup directory, version, update) wrap anywhere, so the page is never wider than the phone and the tab bar keeps taking taps
 - [x] **1.2 Arrow.js is removed and React is set up** (issue #156): on `feat/issue-146-react`, the Arrow.js packages, pages, components and skill are gone; React 19 renders under `StrictMode` from `entry-client.tsx`, `page.tsx` routes only the pages already ported (none yet, so every path shows Not Found), `pnpm lint` runs the react-hooks rules in CI, and `.agents/skills/react/SKILL.md` replaces the Arrow.js skill
 - [x] **1.3 The app shell, NavBar and Settings are ported** (issue #157): `App` with the desktop navbar and the mobile tab bar, Not Found as the shell's content, and Settings with the theme, Backup and the update check render as on `pre-react`, with their rules in `src/lib/`; the React skill settles the conventions every later port copies (ticked once the maintainer approves them)
+- [x] **1.4 The small equipment pages are ported** (issue #158): Delete equipment, Update hours, Correct reading and Edit equipment, with `EquipmentAvatar`, `IconPicker` (the `emoji-picker-element` custom element) and `GroupPicker`, render and behave as on `pre-react`, known bugs included (#175); their remaining inline rules moved to `src/lib/` (`groupForm.ts` and a few functions); the React skill covers the pickers, custom elements and page-only modals
 
 ## Future (post-V1)
 
