@@ -57,19 +57,19 @@ export function IconPicker({ current, onSelect, variant = 'button', defaultIcon 
     setOpen(false)
   }
 
-  const toggle = () => setOpen(o => !o)
+  const onToggle = () => setOpen(o => !o)
   let trigger
   if (variant === 'menuitem') {
-    trigger = <button type="button" className="menu__item" onClick={toggle}>Change icon</button>
+    trigger = <button type="button" className="menu__item" onClick={onToggle}>Change icon</button>
   } else if (variant === 'avatar') {
     trigger = (
-      <button type="button" className="equipment-avatar equipment-avatar--lg icon-picker__avatar" title="Change icon" onClick={toggle}>
+      <button type="button" className="equipment-avatar equipment-avatar--lg icon-picker__avatar" title="Change icon" onClick={onToggle}>
         <span className="equipment-avatar__emoji">{shownIcon(current, defaultIcon)}</span>
       </button>
     )
   } else {
     trigger = (
-      <button type="button" className="icon-picker__button" onClick={toggle}>
+      <button type="button" className="icon-picker__button" onClick={onToggle}>
         <span className="icon-picker__current">{shownIcon(current, defaultIcon)}</span>
         <span className="icon-picker__label">Choose icon</span>
         <span className="icon-picker__caret">▾</span>
