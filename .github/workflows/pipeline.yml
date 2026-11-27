@@ -194,6 +194,12 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
 
+      # --with-deps runs apt-get update, which fails the job whenever the
+      # runner's Microsoft package repository answers 403 (#191). Nothing here
+      # installs from it, so its sources are removed first.
+      - name: Drop the Microsoft apt repository
+        run: grep -l packages.microsoft.com /etc/apt/sources.list.d/* | xargs -r sudo rm -f
+
       - name: Install Playwright Chromium
         working-directory: frontend
         run: pnpm exec playwright install --with-deps chromium
@@ -272,6 +278,10 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+
+      # As in test-frontend (#191).
+      - name: Drop the Microsoft apt repository
+        run: grep -l packages.microsoft.com /etc/apt/sources.list.d/* | xargs -r sudo rm -f
 
       - name: Install Playwright Chromium
         working-directory: frontend
