@@ -4,6 +4,7 @@ import { Task } from '@generated/api/models/Task'
 import { extractErrorMessage } from '@/lib/format'
 import { CalendarDate, today, toApiDate, toApiDateTime } from '@/lib/calendar-date'
 import { DecommissionableEquipment, equipmentLabel, isDecommissioned } from '@/lib/decommissioning'
+import { InterventionReading, ReadingDoubt, ReadingDoubtContext, readingDoubt } from '@/lib/readingDoubt'
 import { InterventionRow } from '@/lib/rows'
 
 // The intervention form (to log, to mark a task done, and to edit): its
@@ -104,6 +105,34 @@ export function equipmentChoices(equipments: (Pick<Equipment, 'id' | 'name'> & D
   return [...inService, ...decommissioned].map(eq => ({ id: eq.id, label: equipmentLabel(eq) }))
 }
 
+/** The form's title: editing an intervention, or logging one. */
+export function formTitle(form: Pick<InterventionFormValues, 'editId'>): string {
+  return form.editId != null ? 'Edit intervention' : 'Log intervention'
+}
+
+/** The Task picker's options: the tasks of the equipment picked, none until one is. */
+export function taskChoices<T extends { equipmentId?: number }>(form: Pick<InterventionFormValues, 'equipmentId'>, tasks: T[]): T[] {
+  if (form.equipmentId == null) return []
+  return tasks.filter(t => t.equipmentId === form.equipmentId)
+}
+
+/** Whether the form asks for a reading: the equipment picked tracks hours. */
+export function showsHours(form: Pick<InterventionFormValues, 'equipmentId'>, ctx: InterventionFormContext): boolean {
+  if (form.equipmentId == null) return false
+  return ctx.equipments.find(e => e.id === form.equipmentId)?.tracksHours ?? false
+}
+
+/**
+ * The form once the exceptional switch is set: checking it clears the task,
+ * unchecking it clears the exceptional label. A new object: the form given is
+ * unchanged.
+ */
+export function withExceptional(form: InterventionFormValues, isExceptional: boolean): InterventionFormValues {
+  return isExceptional
+    ? { ...form, isExceptional, taskId: null }
+    : { ...form, isExceptional, exceptionalLabel: '' }
+}
+
 /** Picks the equipment: its tasks replace the previous one's, and the reading starts at its current one. */
 export function selectEquipment(form: InterventionFormValues, equipmentId: number | null, ctx: InterventionFormContext): void {
   form.equipmentId = equipmentId
@@ -175,5 +204,49 @@ export async function save(form: InterventionFormValues, ctx: InterventionFormCo
     return null
   } catch (err: unknown) {
     return extractErrorMessage(err, 'Failed to save intervention')
+  }
+}
+
+/**
+ * The doubt the save of an edit leaves on the equipment's reading
+ * (readingDoubt), or null; always null for a new log. Computed before saving,
+ * from the reading and the interventions as they were: the edit never lowers
+ * the reading, the user decides once it is saved.
+ */
+export function doubtLeftByEdit(
+  source: InterventionFormSource,
+  form: InterventionFormValues,
+  ctx: InterventionFormContext & ReadingDoubtContext,
+): ReadingDoubt | null {
+  if (!('edit' in source)) return null
+  const after = toRequest(form, ctx).interventionInput
+  return readingDoubt({ edited: source.edit, to: { equipmentId: form.equipmentId, hoursAt: after.hoursAt } }, ctx)
+}
+
+// ── Delete an intervention ──
+
+/** The part of the generated InterventionApi that deleting an intervention goes through. */
+export interface InterventionDeleter {
+  deleteIntervention(req: { id: number }): Promise<unknown>
+}
+
+/**
+ * Deletes the intervention. Resolves to the doubt the delete leaves on its
+ * equipment's reading (readingDoubt, computed from the data as it was before
+ * the delete), or to the message to show: always "Failed to delete
+ * intervention", whatever the backend says. Call only for a saved
+ * intervention (one with an id).
+ */
+export async function deleteIntervention(
+  intervention: InterventionReading,
+  ctx: ReadingDoubtContext,
+  api: InterventionDeleter,
+): Promise<{ doubt: ReadingDoubt | null } | { error: string }> {
+  const doubt = readingDoubt({ deleted: intervention }, ctx)
+  try {
+    await api.deleteIntervention({ id: intervention.id! })
+    return { doubt }
+  } catch {
+    return { error: 'Failed to delete intervention' }
   }
 }

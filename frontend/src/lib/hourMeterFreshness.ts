@@ -1,6 +1,7 @@
 import { Equipment } from '@generated/api/models/Equipment'
+import { EquipmentHoursInput } from '@generated/api/models/EquipmentHoursInput'
 import { DecommissionableEquipment, isDecommissioned } from '@/lib/decommissioning'
-import { isHoursStale } from '@/lib/timestamp'
+import { isHoursStale, isHoursVeryStale } from '@/lib/timestamp'
 
 // The Dashboard's hour-meter freshness banner (doc/gui/dashboard.md,
 // "Hour-meter freshness banner"). Pages hold hoursUpdatedAt as an ISO string,
@@ -34,6 +35,40 @@ export function freshnessBanner<E extends FreshnessEquipment>(equipments: E[]): 
 // confirm and the button is not offered: a reading is never invented.
 export function sameHoursReading(eq: Pick<Equipment, 'hours'>): number | null {
   return eq.hours ?? null
+}
+
+/**
+ * The classes of a banner row and of its "updated …" text: a stale reading
+ * emphasizes the row, and its text more strongly once it is very stale
+ * (timestamp.ts).
+ */
+export function bannerRowClasses(eq: { hoursUpdatedAt?: Date | string | null }): { row: string; updated: string } {
+  const stale = isHoursStale(eq.hoursUpdatedAt)
+  const freshness = isHoursVeryStale(eq.hoursUpdatedAt) ? ' very-stale' : stale ? ' stale' : ''
+  return {
+    row: 'hours-banner__row' + (stale ? ' hours-banner__row--stale' : ''),
+    updated: 'hours-banner__updated' + freshness,
+  }
+}
+
+/** The part of the generated EquipmentApi that "Same hours" saves through. */
+export interface SameHoursSaver {
+  updateEquipmentHours(req: { id: number, equipmentHoursInput: EquipmentHoursInput }): Promise<unknown>
+}
+
+/**
+ * "Same hours": saves the current reading again, which refreshes its
+ * freshness. Resolves to null on success, or to the message to show: always
+ * "Failed to update hours", whatever the backend says. Call only when
+ * sameHoursReading has a reading.
+ */
+export async function saveSameHours(eq: Pick<Equipment, 'id' | 'hours'>, api: SameHoursSaver): Promise<string | null> {
+  try {
+    await api.updateEquipmentHours({ id: eq.id!, equipmentHoursInput: { hours: sameHoursReading(eq)! } })
+    return null
+  } catch {
+    return 'Failed to update hours'
+  }
 }
 
 function updatedTime(eq: FreshnessEquipment): number {

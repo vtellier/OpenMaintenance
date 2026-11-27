@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { filterValue, historyItemLabel, historyList, inDateRange, parseFilterValue } from '@/lib/history'
+import { filterValue, historyEmptyText, historyItemLabel, historyList, inDateRange, parseFilterValue } from '@/lib/history'
 
 // The History screen's list and filters (doc/gui/history.md).
 
@@ -135,5 +135,17 @@ describe('historyItemLabel', () => {
     expect(historyItemLabel({ taskId: 999, equipmentId: 1 }, equipments, tasks)).toBe('')
     expect(historyItemLabel({ equipmentId: 3, exceptionalLabel: 'Dent' }, equipments, tasks)).toBe('Dent')
     expect(historyItemLabel({ equipmentId: 99 }, equipments, tasks)).toBe('')
+  })
+})
+
+describe('historyEmptyText', () => {
+  it('says nothing is logged yet when there is no equipment', () => {
+    expect(historyEmptyText(0)).toBe("No interventions logged yet. Once you add equipments and mark tasks as done, they'll appear here.")
+  })
+
+  // #170: with equipments but nothing logged, the doc says nothing is logged
+  // yet; the app says the filters match nothing. Kept until it is fixed.
+  it('says the filters match nothing once there is an equipment', () => {
+    expect(historyEmptyText(3)).toBe('No interventions match your filters.')
   })
 })
