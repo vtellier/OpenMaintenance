@@ -222,7 +222,7 @@ During the port (#146, branch `feat/issue-146-react`), `frontend/tests/` and `sr
 
 - Read the rendered DOM, not only the old template: open the screen in the reference app and compare `document.querySelector('main').outerHTML` with the port's.
 - `class` becomes `className`; a class computed in a template (`'tabbar__tab' + (active ? ' active' : '')`) stays computed the same way.
-- Not Found has no reference to match (`pre-react` rendered a blank page there, #184): it keeps the starter's markup and wording, as the shell's content (see [Routes and the shell](#routes-and-the-shell)).
+- Not Found has no reference to match (`pre-react` rendered a blank page there, #184): it keeps the markup of `pre-react`'s `NotFound.ts`, as the shell's content, without the starter's sentence about `src/App.ts` (dropped with the maintainer's approval) (see [Routes and the shell](#routes-and-the-shell)).
 
 ## Comparing with the reference app
 
