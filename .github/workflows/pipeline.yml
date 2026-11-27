@@ -44,9 +44,27 @@ jobs:
         working-directory: frontend
         run: pnpm install --frozen-lockfile
 
+      # openapi-generator-cli downloads its jar from Maven Central, which
+      # rate-limits GitHub's runners (#164). openapitools.json keeps the jar in
+      # ~/.cache/openapi-generator-cli, so it is restored from the cache, and
+      # saved right after a download: a job that fails later still keeps it.
+      - name: Restore the openapi-generator jar
+        id: generator-jar
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/openapi-generator-cli
+          key: openapi-generator-${{ hashFiles('frontend/openapitools.json') }}
+
       - name: Generate TypeScript API client
         working-directory: frontend
         run: pnpm run generate:api
+
+      - name: Save the openapi-generator jar
+        if: steps.generator-jar.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/openapi-generator-cli
+          key: ${{ steps.generator-jar.outputs.cache-primary-key }}
 
       - name: Build frontend
         working-directory: frontend
@@ -151,9 +169,24 @@ jobs:
         working-directory: frontend
         run: pnpm install --frozen-lockfile
 
+      # The generator jar, as in build-frontend (#164).
+      - name: Restore the openapi-generator jar
+        id: generator-jar
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/openapi-generator-cli
+          key: openapi-generator-${{ hashFiles('frontend/openapitools.json') }}
+
       - name: Generate TypeScript API client
         working-directory: frontend
         run: pnpm run generate:api
+
+      - name: Save the openapi-generator jar
+        if: steps.generator-jar.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/openapi-generator-cli
+          key: ${{ steps.generator-jar.outputs.cache-primary-key }}
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
@@ -215,9 +248,24 @@ jobs:
         working-directory: frontend
         run: pnpm install --frozen-lockfile
 
+      # The generator jar, as in build-frontend (#164).
+      - name: Restore the openapi-generator jar
+        id: generator-jar
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/openapi-generator-cli
+          key: openapi-generator-${{ hashFiles('frontend/openapitools.json') }}
+
       - name: Generate TypeScript API client
         working-directory: frontend
         run: pnpm run generate:api
+
+      - name: Save the openapi-generator jar
+        if: steps.generator-jar.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/openapi-generator-cli
+          key: ${{ steps.generator-jar.outputs.cache-primary-key }}
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
