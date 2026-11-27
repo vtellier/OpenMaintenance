@@ -1,10 +1,13 @@
 import type { ReactNode } from 'react'
 import { App, AppShell } from '@/App'
 import { NotFound } from '@/components/NotFound'
+import { DashboardPage } from '@/pages/DashboardPage'
 import { EquipmentCorrectHoursPage } from '@/pages/EquipmentCorrectHoursPage'
 import { EquipmentDeletePage } from '@/pages/EquipmentDeletePage'
 import { EquipmentEditPage } from '@/pages/EquipmentEditPage'
 import { EquipmentHoursPage } from '@/pages/EquipmentHoursPage'
+import { EquipmentsPage } from '@/pages/EquipmentsPage'
+import { HistoryPage } from '@/pages/HistoryPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 
 export interface Page {
@@ -34,6 +37,22 @@ const equipmentCorrectHoursRe = /^\/equipments\/(\d+)\/edit\/hours\/correct$/
  */
 export async function routeToPage(url: string): Promise<Page> {
   const pathname = new URL(url, 'http://localhost').pathname
+
+  if (pathname === '/' || pathname === '') {
+    return {
+      description: 'Dashboard — upcoming and overdue maintenance tasks',
+      title: 'Dashboard | OpenMaintenance',
+      view: <App currentPath={pathname}><DashboardPage /></App>,
+    }
+  }
+
+  if (pathname === '/equipments') {
+    return {
+      description: 'All equipments',
+      title: 'Equipments | OpenMaintenance',
+      view: <App currentPath={pathname}><EquipmentsPage /></App>,
+    }
+  }
 
   const correctHoursMatch = pathname.match(equipmentCorrectHoursRe)
   if (correctHoursMatch) {
@@ -68,6 +87,14 @@ export async function routeToPage(url: string): Promise<Page> {
       description: 'Delete equipment',
       title: 'Delete equipment | OpenMaintenance',
       view: <App currentPath={pathname}><EquipmentDeletePage equipmentId={Number(deleteMatch[1])} /></App>,
+    }
+  }
+
+  if (pathname === '/history') {
+    return {
+      description: 'Global intervention history',
+      title: 'History | OpenMaintenance',
+      view: <App currentPath={pathname}><HistoryPage /></App>,
     }
   }
 
