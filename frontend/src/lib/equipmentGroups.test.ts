@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { equipmentList, equipmentStatus, groupStatus, interventionsFor } from '@/lib/equipmentGroups'
+import { equipmentList, equipmentStatus, groupOptionLabel, groupStatus, interventionsFor } from '@/lib/equipmentGroups'
 
 // Issue #112: the Equipments list shows group sections and ungrouped cards
 // (doc/gui/equipments.md, "Layout").
@@ -180,5 +180,18 @@ describe('statuses of a decommissioned equipment', () => {
   it('adds nothing to its group\'s badge', () => {
     expect(groupStatus([[{}, {}], [{ dueStatus: 'due_soon' }]])).toBe('due_soon')
     expect(groupStatus([[{}, {}]])).toBeNull()
+  })
+})
+
+// The Group picker and the History filter list a group by its icon and name
+// (doc/gui/equipments.md, "The Group picker").
+describe('groupOptionLabel', () => {
+  it('gives the icon, a space, then the name', () => {
+    expect(groupOptionLabel({ icon: '⚙️', name: 'Winches' })).toBe('⚙️ Winches')
+  })
+
+  it('gives the default group icon when the group has none', () => {
+    expect(groupOptionLabel({ name: 'Sails' })).toBe('🗂️ Sails')
+    expect(groupOptionLabel({ icon: '', name: 'Sails' })).toBe('🗂️ Sails')
   })
 })

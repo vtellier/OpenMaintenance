@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react'
 import { App, AppShell } from '@/App'
 import { NotFound } from '@/components/NotFound'
+import { EquipmentCorrectHoursPage } from '@/pages/EquipmentCorrectHoursPage'
+import { EquipmentDeletePage } from '@/pages/EquipmentDeletePage'
+import { EquipmentEditPage } from '@/pages/EquipmentEditPage'
+import { EquipmentHoursPage } from '@/pages/EquipmentHoursPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 
 export interface Page {
@@ -8,6 +12,11 @@ export interface Page {
   title: string
   view: ReactNode
 }
+
+const equipmentEditRe = /^\/equipments\/(\d+)\/edit$/
+const equipmentDeleteRe = /^\/equipments\/(\d+)\/delete$/
+const equipmentHoursRe = /^\/equipments\/(\d+)\/edit\/hours$/
+const equipmentCorrectHoursRe = /^\/equipments\/(\d+)\/edit\/hours\/correct$/
 
 /**
  * The page for a URL, chosen by its pathname. Pages are full page loads (no
@@ -25,6 +34,42 @@ export interface Page {
  */
 export async function routeToPage(url: string): Promise<Page> {
   const pathname = new URL(url, 'http://localhost').pathname
+
+  const correctHoursMatch = pathname.match(equipmentCorrectHoursRe)
+  if (correctHoursMatch) {
+    return {
+      description: 'Correct hour-meter reading',
+      title: 'Correct reading | OpenMaintenance',
+      view: <App currentPath={pathname}><EquipmentCorrectHoursPage equipmentId={Number(correctHoursMatch[1])} /></App>,
+    }
+  }
+
+  const hoursMatch = pathname.match(equipmentHoursRe)
+  if (hoursMatch) {
+    return {
+      description: 'Update hour-meter reading',
+      title: 'Update hours | OpenMaintenance',
+      view: <App currentPath={pathname}><EquipmentHoursPage equipmentId={Number(hoursMatch[1])} /></App>,
+    }
+  }
+
+  const editMatch = pathname.match(equipmentEditRe)
+  if (editMatch) {
+    return {
+      description: 'Edit equipment',
+      title: 'Edit equipment | OpenMaintenance',
+      view: <App currentPath={pathname}><EquipmentEditPage equipmentId={Number(editMatch[1])} /></App>,
+    }
+  }
+
+  const deleteMatch = pathname.match(equipmentDeleteRe)
+  if (deleteMatch) {
+    return {
+      description: 'Delete equipment',
+      title: 'Delete equipment | OpenMaintenance',
+      view: <App currentPath={pathname}><EquipmentDeletePage equipmentId={Number(deleteMatch[1])} /></App>,
+    }
+  }
 
   if (pathname === '/settings') {
     return {

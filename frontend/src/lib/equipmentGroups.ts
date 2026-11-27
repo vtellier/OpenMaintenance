@@ -1,6 +1,7 @@
 import { Equipment } from '@generated/api/models/Equipment'
 import { Group } from '@generated/api/models/Group'
 import { DecommissionableEquipment, isDecommissioned } from '@/lib/decommissioning'
+import { shownIcon } from '@/lib/equipmentForm'
 import { belongsTo, interventionOwner } from '@/lib/interventions'
 
 // Groups organise the Equipments list (doc/data-model.md, "Group";
@@ -8,6 +9,11 @@ import { belongsTo, interventionOwner } from '@/lib/interventions'
 // applies to them, so pages only render.
 
 export const DEFAULT_GROUP_ICON = '🗂️'
+
+/** A group as a picker lists it: its icon (the default when it has none), a space, its name. */
+export function groupOptionLabel(group: Pick<Group, 'icon' | 'name'>): string {
+  return shownIcon(group.icon, DEFAULT_GROUP_ICON) + ' ' + group.name
+}
 
 type NamedGroup = Pick<Group, 'id' | 'name'>
 type GroupedEquipment = Pick<Equipment, 'id' | 'name' | 'groupId'> & DecommissionableEquipment
