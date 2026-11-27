@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ResponseError } from '@generated/api/runtime'
-import { canSave, equipmentChoices, InterventionFormValues, isExpiryTask, prefill, save, selectEquipment, toRequest } from '@/lib/interventionForm'
+import {
+  canSave, deleteIntervention, doubtLeftByEdit, equipmentChoices, formTitle, InterventionDeleter, InterventionFormValues, isExpiryTask, prefill, save,
+  selectEquipment, showsHours, taskChoices, toRequest, withExceptional,
+} from '@/lib/interventionForm'
 
 const engine = { id: 1, name: 'Engine', tracksHours: true, hours: 120 }
 const trailer = { id: 2, name: 'Trailer', tracksHours: false }
@@ -310,5 +313,113 @@ describe('equipmentChoices', () => {
       { id: 1, label: 'Old dinghy (decommissioned)' },
       { id: 3, label: 'Bow thruster (decommissioned)' },
     ])
+  })
+})
+
+describe('formTitle', () => {
+  it('reads "Edit intervention" for an intervention being edited, "Log intervention" otherwise', () => {
+    expect(formTitle({ editId: 7 })).toBe('Edit intervention')
+    expect(formTitle({ editId: null })).toBe('Log intervention')
+  })
+})
+
+describe('taskChoices', () => {
+  it("offers the tasks of the equipment picked, in the order given", () => {
+    expect(taskChoices({ equipmentId: 2 }, ctx.tasks)).toEqual([greaseHubs, co2Cartridge])
+  })
+
+  it('offers none until an equipment is picked', () => {
+    expect(taskChoices({ equipmentId: null }, ctx.tasks)).toEqual([])
+  })
+})
+
+describe('showsHours', () => {
+  it('asks for a reading when the equipment picked tracks hours, with or without one yet', () => {
+    expect(showsHours({ equipmentId: 1 }, ctx)).toBe(true)
+    expect(showsHours({ equipmentId: 3 }, ctx)).toBe(true)
+  })
+
+  it('does not for an equipment without an hour-meter, an unknown one, or none', () => {
+    expect(showsHours({ equipmentId: 2 }, ctx)).toBe(false)
+    expect(showsHours({ equipmentId: 99 }, ctx)).toBe(false)
+    expect(showsHours({ equipmentId: null }, ctx)).toBe(false)
+  })
+})
+
+describe('withExceptional', () => {
+  it('checking the switch clears the task and keeps the label', () => {
+    const form = { ...prefill({ done: { taskId: 10 } }, ctx), exceptionalLabel: 'Kept' }
+
+    expect(withExceptional(form, true)).toMatchObject({ isExceptional: true, taskId: null, exceptionalLabel: 'Kept' })
+    expect(form).toMatchObject({ isExceptional: false, taskId: 10 })
+  })
+
+  it('unchecking it clears the label and keeps the task', () => {
+    const form = { ...prefill({ new: { equipmentId: 1 } }, ctx), isExceptional: true, exceptionalLabel: 'Replaced impeller', taskId: 10 }
+
+    expect(withExceptional(form, false)).toMatchObject({ isExceptional: false, exceptionalLabel: '', taskId: 10 })
+  })
+})
+
+// The reading the edit or the delete may leave in doubt (doc/gui/interventions.md,
+// "Reading in doubt"); readingDoubt.test.ts covers the rule itself.
+describe('doubtLeftByEdit', () => {
+  const logged = { id: 7, taskId: 10, equipmentId: 1, date: '2026-05-03', hoursAt: 120 }
+  const doubtCtx = { ...ctx, interventions: [logged] }
+
+  it('an edit that lowers the reading the equipment has leaves it in doubt', () => {
+    const source = { edit: logged }
+    const form = { ...prefill(source, ctx), hours: 100 }
+
+    expect(doubtLeftByEdit(source, form, doubtCtx)).toEqual({ equipmentId: 1, equipmentName: 'Engine', reading: 120, suggested: 100 })
+  })
+
+  it('an edit that keeps the reading leaves no doubt', () => {
+    const source = { edit: logged }
+
+    expect(doubtLeftByEdit(source, prefill(source, ctx), doubtCtx)).toBeNull()
+  })
+
+  it('a new log never does', () => {
+    const source = { new: { equipmentId: 1 } }
+
+    expect(doubtLeftByEdit(source, { ...prefill(source, ctx), hours: 0, taskId: 10 }, doubtCtx)).toBeNull()
+  })
+})
+
+describe('deleteIntervention', () => {
+  function fakeApi(failure?: Error) {
+    const calls: { id: number }[] = []
+    const api: InterventionDeleter = {
+      async deleteIntervention(req) {
+        calls.push(req)
+        if (failure) throw failure
+      },
+    }
+    return { api, calls }
+  }
+  const logged = { id: 7, taskId: 10, equipmentId: 1, hoursAt: 120 }
+  const doubtCtx = { ...ctx, interventions: [logged] }
+
+  it('deletes the intervention, and resolves to the doubt it leaves on the reading, from the data before the delete', async () => {
+    const { api, calls } = fakeApi()
+
+    expect(await deleteIntervention(logged, doubtCtx, api)).toEqual({
+      doubt: { equipmentId: 1, equipmentName: 'Engine', reading: 120, suggested: null },
+    })
+    expect(calls).toEqual([{ id: 7 }])
+  })
+
+  it('resolves to no doubt when the intervention did not record the current reading', async () => {
+    const { api } = fakeApi()
+
+    expect(await deleteIntervention({ ...logged, hoursAt: 100 }, doubtCtx, api)).toEqual({ doubt: null })
+  })
+
+  it('resolves to "Failed to delete intervention", whatever the backend says', async () => {
+    const response = new Response(JSON.stringify({ error: 'database is locked' }), { status: 500 })
+    const { api } = fakeApi(new ResponseError(response))
+
+    expect(await deleteIntervention(logged, doubtCtx, api)).toEqual({ error: 'Failed to delete intervention' })
   })
 })

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CARD_TASK_NAME_MAX, cardStatusLine, cropText, lastInterventionText, tasksByEquipment } from '@/lib/equipmentCard'
+import { CARD_TASK_NAME_MAX, cardClassName, cardHoursClassName, cardStatusLine, cropText, lastInterventionText, tasksByEquipment } from '@/lib/equipmentCard'
 
 // What an equipment's card says (doc/gui/equipments.md, "Card content").
 
@@ -116,5 +116,29 @@ describe('cardStatusLine', () => {
     expect(cardStatusLine([])).toBeNull()
     // A decommissioned equipment's tasks have no due status.
     expect(cardStatusLine([{ id: 1, name: 'Oil change' }])).toBeNull()
+  })
+})
+
+describe('cardClassName', () => {
+  it("dims a decommissioned equipment's card", () => {
+    expect(cardClassName({ decommissionedAt: '2024-03-03' })).toBe('equipment-card equipment-card--decommissioned')
+    expect(cardClassName({})).toBe('equipment-card')
+  })
+})
+
+describe('cardHoursClassName', () => {
+  const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+
+  it('emphasizes a very stale reading, or none', () => {
+    expect(cardHoursClassName({ hoursUpdatedAt: daysAgo(40) })).toBe('very-stale')
+    expect(cardHoursClassName({})).toBe('very-stale')
+  })
+
+  it('does not emphasize a fresher one', () => {
+    expect(cardHoursClassName({ hoursUpdatedAt: daysAgo(10) })).toBe('')
+  })
+
+  it("never emphasizes a decommissioned equipment's reading", () => {
+    expect(cardHoursClassName({ hoursUpdatedAt: daysAgo(400), decommissionedAt: '2024-03-03' })).toBe('')
   })
 })

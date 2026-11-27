@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { freshnessBanner, freshnessBannerEquipments, sameHoursReading } from '@/lib/hourMeterFreshness'
+import { ResponseError } from '@generated/api/runtime'
+import { bannerRowClasses, freshnessBanner, freshnessBannerEquipments, sameHoursReading, SameHoursSaver, saveSameHours } from '@/lib/hourMeterFreshness'
 
 // The Dashboard's hour-meter freshness banner lists every hour-tracked
 // equipment in service, oldest update first (doc/gui/dashboard.md,
@@ -87,5 +88,53 @@ describe('sameHoursReading', () => {
   // Issue #130: Same hours recorded 0 h the user never entered.
   it('has nothing to confirm for an equipment with no reading yet', () => {
     expect(sameHoursReading({})).toBeNull()
+  })
+})
+
+// A stale row is emphasized, its "updated …" text more once very stale
+// (doc/gui/dashboard.md, "Hour-meter freshness banner").
+describe('bannerRowClasses', () => {
+  const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+
+  it('a fresh reading is not emphasized', () => {
+    expect(bannerRowClasses({ hoursUpdatedAt: daysAgo(2) })).toEqual({ row: 'hours-banner__row', updated: 'hours-banner__updated' })
+  })
+
+  it('a stale one emphasizes the row and its text', () => {
+    expect(bannerRowClasses({ hoursUpdatedAt: daysAgo(10) }))
+      .toEqual({ row: 'hours-banner__row hours-banner__row--stale', updated: 'hours-banner__updated stale' })
+  })
+
+  it('a very stale one, or none at all, more strongly', () => {
+    const veryStale = { row: 'hours-banner__row hours-banner__row--stale', updated: 'hours-banner__updated very-stale' }
+    expect(bannerRowClasses({ hoursUpdatedAt: daysAgo(40) })).toEqual(veryStale)
+    expect(bannerRowClasses({})).toEqual(veryStale)
+  })
+})
+
+describe('saveSameHours', () => {
+  function fakeApi(failure?: Error) {
+    const calls: unknown[] = []
+    const api: SameHoursSaver = {
+      async updateEquipmentHours(req) {
+        calls.push(req)
+        if (failure) throw failure
+      },
+    }
+    return { api, calls }
+  }
+
+  it('saves the current reading again, and resolves to null', async () => {
+    const { api, calls } = fakeApi()
+
+    expect(await saveSameHours({ id: 4, hours: 1245 }, api)).toBeNull()
+    expect(calls).toEqual([{ id: 4, equipmentHoursInput: { hours: 1245 } }])
+  })
+
+  it('resolves to "Failed to update hours", whatever the backend says', async () => {
+    const response = new Response(JSON.stringify({ error: 'hours cannot decrease' }), { status: 400 })
+    const { api } = fakeApi(new ResponseError(response))
+
+    expect(await saveSameHours({ id: 4, hours: 1245 }, api)).toBe('Failed to update hours')
   })
 })

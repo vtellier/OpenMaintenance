@@ -1,4 +1,6 @@
 import { Task } from '@generated/api/models/Task'
+import { dueTimingText } from '@/lib/dueTiming'
+import { statusBadge } from '@/lib/equipmentGroups'
 import { byUrgency } from '@/lib/urgency'
 
 // The Dashboard's list of due tasks (doc/gui/dashboard.md): one block per
@@ -33,4 +35,18 @@ export function dueTaskBlocks<T extends DueTask>(tasks: T[]): DueTaskBlock<T>[] 
   }
   const blocks = [...byEquipment].map(([equipmentId, list]) => ({ equipmentId, tasks: list.sort(byUrgency) }))
   return blocks.sort((a, b) => byUrgency(a.tasks[0], b.tasks[0]))
+}
+
+/**
+ * A due task's urgency, under its name: the indicator's class (red when
+ * overdue, amber when due soon) and its text, the status label and the timing
+ * text (dueTiming.ts): "Overdue — 3d ago", "Due soon — in 80 h". The class and
+ * the label are the status badge's (equipmentGroups.ts).
+ */
+export function dueLine(task: Pick<Task, 'dueStatus' | 'dueTrigger' | 'dueInDays' | 'dueInHours'>): { className: string; text: string } {
+  const badge = statusBadge(task.dueStatus === 'overdue' ? 'overdue' : 'due_soon')
+  return {
+    className: badge.className,
+    text: badge.label + ' \u2014 ' + dueTimingText(task),
+  }
 }

@@ -88,3 +88,15 @@ export function historyItemLabel(
   }
   return parts.join(' / ')
 }
+
+/**
+ * What the History list says when it shows nothing: nothing is logged yet
+ * when there is no equipment, otherwise the filters match nothing. With
+ * equipments but nothing logged it also says the filters match nothing
+ * (#170, kept until it is fixed).
+ */
+export function historyEmptyText(equipmentCount: number): string {
+  return equipmentCount === 0
+    ? "No interventions logged yet. Once you add equipments and mark tasks as done, they'll appear here."
+    : 'No interventions match your filters.'
+}

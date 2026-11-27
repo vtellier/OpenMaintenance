@@ -1,14 +1,30 @@
 import { Task } from '@generated/api/models/Task'
 import { CalendarDate, formatCalendarDate } from '@/lib/calendar-date'
+import { DecommissionableEquipment, isDecommissioned } from '@/lib/decommissioning'
 import { dueTimingText } from '@/lib/dueTiming'
 import { EquipmentStatus, equipmentStatus } from '@/lib/equipmentGroups'
 import { taskName } from '@/lib/interventions'
+import { isHoursVeryStale, Timestamp } from '@/lib/timestamp'
 import { byUrgency } from '@/lib/urgency'
 
 // What an equipment's card on the Equipments list says (doc/gui/equipments.md,
 // "Card content"). Pages only render it.
 
 type CardTask = Pick<Task, 'id' | 'name' | 'dueStatus' | 'urgency' | 'dueTrigger' | 'dueInDays' | 'dueInHours'>
+
+/** The card's class: a decommissioned equipment's card is dimmed. */
+export function cardClassName(eq: DecommissionableEquipment): string {
+  return isDecommissioned(eq) ? 'equipment-card equipment-card--decommissioned' : 'equipment-card'
+}
+
+/**
+ * The class of the card's "• updated …" text: emphasized once the reading is
+ * very stale, never on a decommissioned equipment, whose hour-meter no
+ * longer matters.
+ */
+export function cardHoursClassName(eq: DecommissionableEquipment & { hoursUpdatedAt?: Timestamp }): string {
+  return !isDecommissioned(eq) && isHoursVeryStale(eq.hoursUpdatedAt) ? 'very-stale' : ''
+}
 
 /** The longest task name a card's status line shows whole, in characters. */
 export const CARD_TASK_NAME_MAX = 30

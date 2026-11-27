@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { equipmentList, equipmentStatus, groupOptionLabel, groupStatus, interventionsFor } from '@/lib/equipmentGroups'
+import { emptyGroupText, equipmentList, equipmentStatus, groupOptionLabel, groupStatus, interventionsFor, listBlocks, statusBadge } from '@/lib/equipmentGroups'
 
 // Issue #112: the Equipments list shows group sections and ungrouped cards
 // (doc/gui/equipments.md, "Layout").
@@ -193,5 +193,45 @@ describe('groupOptionLabel', () => {
   it('gives the default group icon when the group has none', () => {
     expect(groupOptionLabel({ name: 'Sails' })).toBe('🗂️ Sails')
     expect(groupOptionLabel({ icon: '', name: 'Sails' })).toBe('🗂️ Sails')
+  })
+})
+
+describe('listBlocks', () => {
+  const blocks = (entries: ReturnType<typeof equipmentList>) =>
+    listBlocks(entries).map(b => b.kind === 'group' ? 'group ' + b.group.name : 'cards ' + b.equipments.map(eq => eq.name).join(', '))
+
+  it('puts consecutive ungrouped cards in one grid, between the sections, in the order given', () => {
+    const groups = [{ id: 1, name: 'Engines' }, { id: 2, name: 'Sails' }]
+    const equipments = [
+      { id: 10, name: 'Anchor' }, { id: 11, name: 'Bilge pump' }, { id: 12, name: 'Main engine', groupId: 1 },
+      { id: 13, name: 'Radar' }, { id: 14, name: 'Zinc anode' },
+    ]
+
+    expect(blocks(equipmentList(groups, equipments))).toEqual(['cards Anchor, Bilge pump', 'group Engines', 'cards Radar', 'group Sails', 'cards Zinc anode'])
+  })
+
+  it('keeps a section, its equipments and its hidden count as equipmentList gives them', () => {
+    const entries = equipmentList([{ id: 1, name: 'Engines' }], [{ id: 12, name: 'Old engine', groupId: 1, decommissionedAt: '2024-01-01' }])
+
+    expect(listBlocks(entries)).toEqual([{ kind: 'group', group: { id: 1, name: 'Engines' }, equipments: [], hidden: 1 }])
+  })
+
+  it('has no block for an empty list', () => {
+    expect(listBlocks([])).toEqual([])
+  })
+})
+
+describe('emptyGroupText', () => {
+  it('says when the hidden equipments are all decommissioned, otherwise that there is none', () => {
+    expect(emptyGroupText(2)).toBe('All equipments in this group are decommissioned.')
+    expect(emptyGroupText(0)).toBe('No equipments in this group.')
+  })
+})
+
+describe('statusBadge', () => {
+  it('labels and colors each status', () => {
+    expect(statusBadge('overdue')).toEqual({ label: 'Overdue', className: 'due-indicator due-indicator--overdue' })
+    expect(statusBadge('due_soon')).toEqual({ label: 'Due soon', className: 'due-indicator due-indicator--due-soon' })
+    expect(statusBadge('ok')).toEqual({ label: 'OK', className: 'due-indicator due-indicator--ok' })
   })
 })
