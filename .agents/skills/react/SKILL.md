@@ -7,7 +7,7 @@ description: Write or change OpenMaintenance frontend code in React (TSX pages, 
 
 The web UI is plain React 19 in TSX, built by Vite ([ADR 0005](../../../doc/adr/0005-react-web-ui.md)). Nothing else at runtime: no router (every page is a full page load), no state library, no component kit.
 
-Settings is the reference page (#157): `src/pages/SettingsPage.tsx`, `src/components/UpdateCheck.tsx`, `src/components/NavBar.tsx` and `src/App.tsx` show in working code the file layout, the routes and the shell, data loading, the loading states, the three lib call points and the event handlers. The sections Settings does not exercise (the `flash--error` path, [the shared reload](#a-reload-shared-by-the-effect-and-the-handlers), [Forms](#forms) and [Modals](#modals)) are first applied in 1.4 to 1.6.
+Settings is the reference page (#157): `src/pages/SettingsPage.tsx`, `src/components/UpdateCheck.tsx`, `src/components/NavBar.tsx` and `src/App.tsx` show in working code the file layout, the routes and the shell, data loading, the loading states, the three lib call points and the event handlers. The equipment pages of #158 show what Settings does not exercise: the `flash--error` path and [Forms](#forms) (`src/pages/EquipmentHoursPage.tsx`, `EquipmentCorrectHoursPage.tsx`, `EquipmentEditPage.tsx`, `EquipmentDeletePage.tsx`), a page-only modal (`ConfirmTracksModal` in `EquipmentEditPage.tsx`), [the pickers](#pickers) and [a custom element](#custom-elements) (`src/components/IconPicker.tsx`, `GroupPicker.tsx`). [The shared reload](#a-reload-shared-by-the-effect-and-the-handlers) and the shared [Modals](#modals) are first applied in 1.5 and 1.6.
 
 ## Quick workflow
 
@@ -45,14 +45,14 @@ A port keeps `pre-react`'s file name with `.tsx` (`pages/SettingsPage.ts` → `p
 ## Components and props
 
 - One named export per component, a function in PascalCase. Props are one typed object, destructured: `export function NotFound({ path }: { path: string })`. Name the type `<Name>Props` once it has more than two or three fields.
-- API clients are module-level constants, as before: `const equipmentApi = new EquipmentApi(apiConfig)`.
+- API clients are module-level constants, in each file that calls them, as before: `const equipmentApi = new EquipmentApi(apiConfig)`. Two files may each create the same client (`SettingsPage` and `UpdateCheck` both have a `SystemApi`, `EquipmentEditPage` and `GroupPicker` both have a `GroupApi`): a client holds nothing but `apiConfig`, so there is no shared clients module, and a component never takes a client as a prop. A lib flow function still takes the client as an argument, typed as a narrow interface.
 - State lives in `useState`, and every change goes through its setter with a new value: `setForm(f => ({ ...f, newHours }))`, `setItems(items => items.filter(i => i.id !== id))`. A mutated object keeps its identity, so React does not re-render.
 - Derive what can be derived during render (`const canSave = canUpdateHours(form)`), rather than storing it in a second state.
 - Define every component at module level. A component defined inside another is a new type on each render, so React remounts it and the input loses focus and content.
 
 ## Pages only render
 
-The rules are what a screen shows, what a form requires and what a save sends. They live in `src/lib/` as plain functions with Vitest tests (`rows`, `dashboard`, `interventions`, `equipmentCard`, `history`, `taskForm`, `equipmentForm`, `hoursForm`, `interventionForm`, `navigation`, `backups`, `updateCheck`, …). A page calls them and renders the result; it holds no `if` that decides a rule.
+The rules are what a screen shows, what a form requires and what a save sends. They live in `src/lib/` as plain functions with Vitest tests (`rows`, `dashboard`, `interventions`, `equipmentCard`, `history`, `taskForm`, `equipmentForm`, `groupForm`, `hoursForm`, `interventionForm`, `navigation`, `backups`, `updateCheck`, …). A page calls them and renders the result; it holds no `if` that decides a rule.
 
 A page imports each function by name and calls the lib at three points:
 
@@ -204,13 +204,39 @@ Every field is controlled: `value` (or `checked`) from state, `onChange` back in
 - The save handler: set `saving`, clear the error, `await` the lib's `save…`, then on `null` navigate with `window.location.href = …` (full page load), otherwise show the reason and clear `saving`.
 - A setter does not change the variable in the current render. Compute the next value into a local, use it, and pass it to the setter.
 - `selectEquipment` in `lib/interventionForm.ts` changes the form it is given, as Arrow's reactive state expected. Call it on a copy, then set the copy: `const next = { ...form }; selectEquipment(next, id, ctx); setForm(next)`.
+- A form that is `null` until its data loads renders its fields in a module-level component that takes the loaded form and an `onChange(form)`, so the fields never deal with `null`: `<EditForm form={form} onChange={setForm} … />` in `EquipmentEditPage.tsx`. Inside it, `const set = (fields: Partial<EquipmentEditValues>) => onChange({ ...form, ...fields })` keeps each field's handler short.
+- What `pre-react` checked to show the error alone stays as it was, even where it looks odd: Update hours, Correct reading and Edit show the error in place of the form while `error && !name`, so a save error with the Name field cleared hides the form on Edit, as on `pre-react`.
+
+## Pickers
+
+`IconPicker` and `GroupPicker` (`src/components/`) are the fields that several forms share: the equipment forms, the detail header and a group's menu.
+
+- `pre-react` gave them getters (`current: () => string`); a React picker takes the value itself and a callback: `<IconPicker current={form.icon} onSelect={icon => set({ icon })} />`, `<GroupPicker groups={groups} current={form.groupId} onSelect={…} onCreated={…} />`. The form's state stays in the page; what only the picker shows (the popover open or not, the "+ New group" form) is the picker's own state.
+- `IconPicker`'s `variant` picks the trigger (`'button'` in forms, `'avatar'` in the detail header, `'menuitem'` in a group's menu) and `defaultIcon` what Reset restores (`DEFAULT_GROUP_ICON` for a group).
+- A `<select>` is controlled by its `value`, computed during render; never `selected` on an `<option>` (Gotcha 1).
+- `GroupPicker` creates the group through `saveNewGroup(form, groupApi)` (`lib/groupForm.ts`), then calls `onCreated(group)` and `onSelect(group.id)`; the page adds the group to its list.
+
+### A known bug the port would fix by accident
+
+A pure port keeps `pre-react`'s known bugs, which are fixed after the cutover. Where React's model would fix one by itself, reproduce it on purpose, as small as it can be, with a comment that names the issue. #175: after the inline form's Cancel, `pre-react`'s Group picker shows "No group" while the form keeps the group picked before. A controlled `<select>` would show that group, so `GroupPicker` holds a `showsNoGroup` flag, set by Cancel and cleared by the next change. Its spec stays a `test.fixme`.
+
+## Custom elements
+
+`IconPicker` renders `<emoji-picker>`, the custom element of `emoji-picker-element`, defined by `import 'emoji-picker-element'`. React 19 supports custom elements (react.dev, "Custom HTML elements"):
+
+- **Attributes or properties.** React sets a prop as a property when the element's class has a property of that name once constructed, and as an attribute otherwise. `data-source` is no property (the property is `dataSource`), so `data-source={emojiDataUrl}` is written as the attribute, the markup `pre-react` rendered, and the element reads it through `observedAttributes`.
+- **Events.** A custom element's `CustomEvent` is listened to with `on` followed by the event's name, its case and dashes kept: `onemoji-click={onEmojiClick}` for `emoji-click`. React adds the listener to the element, and swaps it when the handler changes.
+- **Types.** TSX knows no custom tag. Declare it once, in the file of the component that renders it, by augmenting `JSX.IntrinsicElements` in `declare module 'react'` (see `IconPicker.tsx`), and type the event with the library's own type (`EmojiClickEvent` from `emoji-picker-element/shared`).
+- **Data offline.** The emoji data is bundled (`emoji-picker-element-data/…/data.json?url`), so the picker never fetches the default CDN: the suite blocks any request that leaves `localhost`.
+- The grid lives in the element's shadow DOM, which `style.css` and the specs do not reach: `style.css` themes it through its CSS variables, and the specs use the Reset button.
 
 ## Modals
 
 A modal is rendered only while open: `{doubt && <ReadingDoubtModal doubt={doubt} onKeep={() => setDoubt(null)} />}`. Its state (open or not, and what it is about) belongs to the page that opens it.
 
-- Markup as `pre-react` had it: `div.modal-overlay` > `div.modal` with `role="dialog"` and `aria-modal="true"`, a `h2.modal__title`, and `div.modal__actions`.
-- A click on the overlay itself closes it: `onClick={e => { if (e.target === e.currentTarget) onClose() }}`.
+- A modal that only one page opens stays in that page's file, as a module-level component (`ConfirmTracksModal` in `EquipmentEditPage.tsx`); one that several pages open goes in `src/components/` (`ReadingDoubtModal`).
+- Markup as `pre-react` had it, modal by modal: `div.modal-overlay` > `div.modal`, a `h2.modal__title`, and `div.modal__actions`. Only `ReadingDoubtModal` has `role="dialog"` and `aria-modal="true"` on `pre-react`; the others have neither, and keep neither in the port.
+- Most `pre-react` overlays close on a click on the overlay itself: `onClick={e => { if (e.target === e.currentTarget) onClose() }}`. The Edit page's "Enable hour-meter tracking?" closes on any click inside it too, the modal's text included, since the click bubbles up to its overlay: `ConfirmTracksModal` keeps that (`onClick={onCancel}` on the overlay). Read each modal's overlay handler in `pre-react` before porting it.
 - To focus a default button when it opens, use `autoFocus` on it.
 - Where a modal's form state lives decides what reopening shows: state inside the modal component is dropped when it closes (it unmounts), state in the page stays. Match what `pre-react` shows when the modal opens again.
 
@@ -220,7 +246,7 @@ The class names, the text, the accessible names (`aria-label`, label text, butto
 
 During the port (#146, branch `feat/issue-146-react`), `frontend/tests/` and `src/style.css` are frozen, so a ported screen renders exactly what `pre-react` rendered: the same elements, classes, text and attributes, in the same order. When a spec seems to need a change, stop and report it.
 
-- Read the rendered DOM, not only the old template: open the screen in the reference app and compare `document.querySelector('main').outerHTML` with the port's.
+- Read the rendered DOM, not only the old template: open the screen in the reference app and compare `document.querySelector('main').outerHTML` with the port's. Three differences are Arrow's, not the port's: Arrow wrote every `.value` / `.checked` property binding as a stray attribute too (`.value="<!--¤-->"`), it wrote `disabled="true"` where React writes `disabled=""`, and it kept the template's whitespace inside text nodes (`<button> Delete </button>`).
 - `class` becomes `className`; a class computed in a template (`'tabbar__tab' + (active ? ' active' : '')`) stays computed the same way.
 - Not Found has no reference to match (`pre-react` rendered a blank page there, #184): it keeps the markup of `pre-react`'s `NotFound.ts`, as the shell's content, without the starter's sentence about `src/App.ts` (dropped with the maintainer's approval) (see [Routes and the shell](#routes-and-the-shell)).
 
