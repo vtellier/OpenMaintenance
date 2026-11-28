@@ -1,6 +1,9 @@
 .PHONY: generate-openapi build build-backend build-backend-linux-amd64 build-backend-windows-amd64 check-cgo build-frontend copy-frontend install-oapi-codegen dev test-backend vet-backend fmt-check-backend static-placeholder seed
 
-VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+# Named after the latest v* release tag, so other tags (pre-react) never name a
+# build and the update check can compare it (#197). Same as getVersion() in
+# frontend/vite.config.ts.
+VERSION := $(shell git describe --tags --match 'v*' --always --dirty 2>/dev/null || echo "dev")
 
 GOBIN := $(shell go env GOPATH)/bin
 OAPI_CODEGEN := $(GOBIN)/oapi-codegen
