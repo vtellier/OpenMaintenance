@@ -32,20 +32,15 @@ const equipmentApi = new EquipmentApi(apiConfig)
 const taskApi = new TaskApi(apiConfig)
 const interventionApi = new InterventionApi(apiConfig)
 
-export interface EquipmentDetailPageProps {
-  equipmentId: number
-  /** The tab the URL names; '' for Tasks, the default. */
-  tab: DetailTab
-}
-
 /**
  * Equipment detail: the header (icon, name, hour-meter, actions), then one of
  * four tabs, each a URL of its own: Tasks, History, Documents and Info
  * (doc/gui/equipments.md, "Equipment detail"; doc/gui/tasks.md). The Tasks
  * tab adds, edits, deletes and marks done the equipment's tasks; History logs,
  * edits and deletes its interventions; Documents uploads and deletes its files.
+ * `tab` is the tab the URL names: '' for Tasks, the default.
  */
-export function EquipmentDetailPage({ equipmentId, tab }: EquipmentDetailPageProps) {
+export function EquipmentDetailPage({ equipmentId, tab }: { equipmentId: number; tab: DetailTab }) {
   const [equipment, setEquipment] = useState<EquipmentRow | null>(null)
   // The equipment's tasks, and every task: the intervention form and the
   // History tab name an intervention's task from them.
@@ -600,40 +595,39 @@ function TaskFormModal({ equipmentId, task, hasIntervention, tracksHours, onClos
             </fieldset>
           )
           : <p className="form-field__hint">{taskKindText(form.kind)}</p>}
-        {form.kind === 'expiry'
-          ? asksCurrentExpiryDate(form, hasIntervention) && (
-            <div className="form-field">
-              <label className="form-field__label">Current expiry date</label>
-              <input type="date" aria-label="Current expiry date" value={form.currentExpiryDate} onChange={e => set({ currentExpiryDate: e.target.value })} />
-              <p className="form-field__hint">The date printed on the part fitted now. Leave empty if unknown.</p>
-            </div>
-          )
-          : (
-            <div>
-              {tracksHours && (
-                <div className="form-field">
-                  <label className="form-field__label">Hours interval</label>
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="e.g. 100"
-                    value={intervalValue(form.hoursInterval)}
-                    onChange={e => set({ hoursInterval: intervalFromInput(e.target.value) })}
-                  />
-                </div>
-              )}
+        {asksCurrentExpiryDate(form, hasIntervention) && (
+          <div className="form-field">
+            <label className="form-field__label">Current expiry date</label>
+            <input type="date" aria-label="Current expiry date" value={form.currentExpiryDate} onChange={e => set({ currentExpiryDate: e.target.value })} />
+            <p className="form-field__hint">The date printed on the part fitted now. Leave empty if unknown.</p>
+          </div>
+        )}
+        {form.kind !== 'expiry' && (
+          <div>
+            {tracksHours && (
               <div className="form-field">
-                <label className="form-field__label">Months interval</label>
+                <label className="form-field__label">Hours interval</label>
                 <input
                   type="number"
                   min="1"
-                  placeholder="e.g. 6"
-                  value={intervalValue(form.monthsInterval)}
-                  onChange={e => set({ monthsInterval: intervalFromInput(e.target.value) })}
+                  placeholder="e.g. 100"
+                  value={intervalValue(form.hoursInterval)}
+                  onChange={e => set({ hoursInterval: intervalFromInput(e.target.value) })}
                 />
               </div>
+            )}
+            <div className="form-field">
+              <label className="form-field__label">Months interval</label>
+              <input
+                type="number"
+                min="1"
+                placeholder="e.g. 6"
+                value={intervalValue(form.monthsInterval)}
+                onChange={e => set({ monthsInterval: intervalFromInput(e.target.value) })}
+              />
             </div>
-          )}
+          </div>
+        )}
         <div className="modal__actions">
           <button className="btn" onClick={onClose}>Cancel</button>
           <button className="btn btn--accent" onClick={onSave} disabled={saving || !canSaveTask(form)}>
