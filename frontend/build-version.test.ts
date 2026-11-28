@@ -1,9 +1,11 @@
-// A build is named after the latest v* release tag (#197). Two places compute
-// that name with `git describe`: the Makefile's VERSION (the binary and
-// /api/version) and vite.config.ts's __APP_VERSION__ (the frontend bundle).
+// A build is named after the latest v[0-9]* release tag (#197). Two places
+// compute that name with `git describe`: the Makefile's VERSION (the binary
+// and /api/version) and vite.config.ts's __APP_VERSION__ (the frontend
+// bundle).
 // Each test runs one of them in a throwaway repository where v0.9.0 is
-// followed by a tag of another name, as `pre-react` follows it on main: both
-// must still read v0.9.0-N-g<sha>, a version the update check can compare.
+// followed by tags of other names (`pre-react`, as on main, and `vnext`, which
+// starts with v but is no release): both must still read v0.9.0-N-g<sha>, a
+// version the update check can compare.
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -53,6 +55,7 @@ beforeAll(() => {
   git('tag', 'v0.9.0')
   git('commit', '-q', '--allow-empty', '-m', 'later work')
   git('tag', 'pre-react')
+  git('tag', 'vnext') // starts with v but is no release tag
   git('commit', '-q', '--allow-empty', '-m', 'branch work')
   expected = `v0.9.0-2-g${git('rev-parse', '--short', 'HEAD')}`
 })
@@ -61,7 +64,7 @@ afterAll(() => {
   rmSync(tmp, { recursive: true, force: true })
 })
 
-test.skipIf(!hasMake)('the Makefile names the build after the latest v* tag', () => {
+test.skipIf(!hasMake)('the Makefile names the build after the latest v[0-9]* tag', () => {
   // A second makefile prints VERSION, so the repository's Makefile is read as
   // it is (GNU make 3.81, as on macOS, has no --eval).
   const printer = path.join(tmp, 'print-version.mk')
@@ -74,7 +77,7 @@ test.skipIf(!hasMake)('the Makefile names the build after the latest v* tag', ()
   expect(version).toBe(expected)
 })
 
-test('vite.config.ts names the bundle after the latest v* tag', async () => {
+test('vite.config.ts names the bundle after the latest v[0-9]* tag', async () => {
   // getVersion() runs `git describe` in the working directory when the config
   // is loaded.
   const cwd = process.cwd()

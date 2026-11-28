@@ -8,10 +8,11 @@ import react from '@vitejs/plugin-react'
 // UTC+14) and two west (UTC−5/−4 and UTC−11).
 const TEST_TIMEZONES = ['UTC', 'Europe/Paris', 'Pacific/Kiritimati', 'America/New_York', 'Pacific/Pago_Pago']
 
-// The latest v* release tag, as the Makefile's VERSION names the binary (#197).
+// The latest v[0-9]* release tag, as the Makefile's VERSION names the binary
+// (#197).
 function getVersion(): string {
   try {
-    return execFileSync('git', ['describe', '--tags', '--match', 'v*', '--always', '--dirty'], { encoding: 'utf8' }).trim()
+    return execFileSync('git', ['describe', '--tags', '--match', 'v[0-9]*', '--always', '--dirty'], { encoding: 'utf8' }).trim()
   } catch {
     return 'dev'
   }

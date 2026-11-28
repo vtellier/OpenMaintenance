@@ -145,7 +145,7 @@ The SQLite database carries its own `schema_version` in a `meta` table. When you
 
 ### Releases and versioning
 
-Versions follow [Semantic Versioning](https://semver.org/) with a `v` prefix (`v1.2.3`). The version is derived at build time from the latest `v*` tag via `git describe --tags --match 'v*' --always --dirty` (the `Makefile`'s `VERSION` and `getVersion()` in `frontend/vite.config.ts`) — no `VERSION` file to maintain. Tags of any other name, such as `pre-react`, never name a build.
+Versions follow [Semantic Versioning](https://semver.org/) with a `v` prefix (`v1.2.3`). The version is derived at build time from the latest release tag (`v` and a digit) via `git describe --tags --match 'v[0-9]*' --always --dirty` (the `Makefile`'s `VERSION` and `getVersion()` in `frontend/vite.config.ts`) — no `VERSION` file to maintain. Tags of any other name, such as `pre-react`, never name a build.
 
 To cut a release:
 ```bash
