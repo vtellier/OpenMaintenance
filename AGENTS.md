@@ -11,7 +11,7 @@
 | Layer | Location | Stack |
 |-------|----------|-------|
 | Backend | `backend/` | Go + Echo + SQLite |
-| Frontend | `frontend/` | Arrow.js + Vite |
+| Frontend | `frontend/` | React 19 (TSX) + Vite |
 | API spec | `backend/api/openapi.yaml` | OpenAPI (single source of truth) |
 
 The backend serves the frontend as embedded static files. The frontend TypeScript client is generated from the OpenAPI spec.
@@ -23,7 +23,7 @@ The backend serves the frontend as embedded static files. The frontend TypeScrip
 2. Read [`doc/data-model.md`](./doc/data-model.md) — Equipment, Task, Intervention, hour-meter rules
 3. Read the relevant GUI spec in [`doc/gui/`](./doc/gui/) — navigation, dashboard, equipments, tasks, interventions, history, settings
 4. Read `backend/api/openapi.yaml` — API contract
-5. Load the Arrow.js skill: `.agents/skills/arrow-js/SKILL.md`
+5. Load the React skill: `.agents/skills/react/SKILL.md`
 
 **Spec first, code second**: before writing any implementation, update the relevant files in `doc/` to reflect the new behaviour. Present the spec to the user and wait for approval before touching any code.
 
@@ -54,7 +54,9 @@ The backend serves the frontend as embedded static files. The frontend TypeScrip
 | Build frontend only | `make build-frontend` | repo root |
 | Regen OpenAPI (Go) | `make generate-openapi` | repo root |
 | Regen API client (TS) | `pnpm run generate:api` | `frontend/` |
-| Run frontend unit tests (Vitest, `src/**/*.test.ts`) | `pnpm test:unit` | `frontend/` |
+| Lint frontend (React hooks rules, fails on any warning) | `pnpm lint` | `frontend/` |
+| Typecheck frontend | `pnpm run typecheck` | `frontend/` |
+| Run frontend unit tests (Vitest, `src/**/*.test.{ts,tsx}`, plus build tests in `*.test.ts` at the frontend root) | `pnpm test:unit` | `frontend/` |
 | Run frontend tests | `pnpm test` | `frontend/` |
 | Run backend tests | `go test ./...` | `backend/` |
 
@@ -69,7 +71,7 @@ Servers run on:
 | Skill | File | When to use |
 |-------|------|-------------|
 | Bug fix | `.agents/skills/bug-fix/SKILL.md` | Entry point for every bug fix — classifies the bug by layer |
-| Arrow.js | `.agents/skills/arrow-js/SKILL.md` | Any frontend code change |
+| React | `.agents/skills/react/SKILL.md` | Any frontend code change |
 | Go tests | `.agents/skills/go-test/SKILL.md` | Backend branch: table-driven logic tests and `httptest` handler tests (called by bug-fix skill) |
 | Non-regression tests | `.agents/skills/non-regression-test/SKILL.md` | Frontend branch: Playwright test mechanics (called by bug-fix skill) |
 
@@ -92,7 +94,7 @@ Single-context: one root `CONTEXT.md` plus ADRs in `doc/adr/`. See `doc/agents/d
 ### Code quality
 - After every frontend change: `pnpm run build` in `frontend/`
 - After every backend change: `go build` in `backend/`
-- Before modifying Arrow.js or Go/Echo code: re-read the **Gotchas / Pitfalls** section in the relevant skill file
+- Before modifying React or Go/Echo code: re-read the **Gotchas / Pitfalls** section in the relevant skill file
 - Use `curl` to test backend changes; use Chrome DevTools MCP for frontend
 
 ### Bug fixes

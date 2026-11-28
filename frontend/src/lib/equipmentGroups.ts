@@ -1,6 +1,7 @@
 import { Equipment } from '@generated/api/models/Equipment'
 import { Group } from '@generated/api/models/Group'
 import { DecommissionableEquipment, isDecommissioned } from '@/lib/decommissioning'
+import { shownIcon } from '@/lib/equipmentForm'
 import { belongsTo, interventionOwner } from '@/lib/interventions'
 
 // Groups organise the Equipments list (doc/data-model.md, "Group";
@@ -8,6 +9,11 @@ import { belongsTo, interventionOwner } from '@/lib/interventions'
 // applies to them, so pages only render.
 
 export const DEFAULT_GROUP_ICON = '🗂️'
+
+/** A group as a picker lists it: its icon (the default when it has none), a space, its name. */
+export function groupOptionLabel(group: Pick<Group, 'icon' | 'name'>): string {
+  return shownIcon(group.icon, DEFAULT_GROUP_ICON) + ' ' + group.name
+}
 
 type NamedGroup = Pick<Group, 'id' | 'name'>
 type GroupedEquipment = Pick<Equipment, 'id' | 'name' | 'groupId'> & DecommissionableEquipment
@@ -49,6 +55,37 @@ export function equipmentList<G extends NamedGroup, E extends GroupedEquipment>(
   return entries.sort(byEntry)
 }
 
+/**
+ * A block of the rendered list: a group's section, or a run of consecutive
+ * ungrouped cards, which share one grid between the sections.
+ */
+export type ListBlock<G extends NamedGroup, E extends GroupedEquipment> =
+  | { kind: 'group'; group: G; equipments: E[]; hidden: number }
+  | { kind: 'cards'; equipments: E[] }
+
+/** The list's entries (equipmentList) as the blocks it renders, in the same order. */
+export function listBlocks<G extends NamedGroup, E extends GroupedEquipment>(entries: ListEntry<G, E>[]): ListBlock<G, E>[] {
+  const blocks: ListBlock<G, E>[] = []
+  for (const entry of entries) {
+    if (entry.kind === 'group') {
+      blocks.push(entry)
+      continue
+    }
+    const last = blocks[blocks.length - 1]
+    if (last?.kind === 'cards') last.equipments.push(entry.equipment)
+    else blocks.push({ kind: 'cards', equipments: [entry.equipment] })
+  }
+  return blocks
+}
+
+/**
+ * What an expanded section with no card shows: its equipments are all
+ * decommissioned and hidden (`hidden` of them), or it has none.
+ */
+export function emptyGroupText(hidden: number): string {
+  return hidden > 0 ? 'All equipments in this group are decommissioned.' : 'No equipments in this group.'
+}
+
 function byEntry(a: ListEntry<NamedGroup, GroupedEquipment>, b: ListEntry<NamedGroup, GroupedEquipment>): number {
   const name = compareNames(entryName(a), entryName(b))
   if (name !== 0) return name
@@ -80,6 +117,17 @@ export type EquipmentStatus = 'overdue' | 'due_soon' | 'ok'
 type StatusTask = { dueStatus?: string | null }
 
 const WORST_FIRST: EquipmentStatus[] = ['overdue', 'due_soon', 'ok']
+
+const STATUS_BADGES: Record<EquipmentStatus, { label: string; className: string }> = {
+  overdue: { label: 'Overdue', className: 'due-indicator due-indicator--overdue' },
+  due_soon: { label: 'Due soon', className: 'due-indicator due-indicator--due-soon' },
+  ok: { label: 'OK', className: 'due-indicator due-indicator--ok' },
+}
+
+/** The badge a status shows on a card or a section header: its label and its class (its color). */
+export function statusBadge(status: EquipmentStatus): { label: string; className: string } {
+  return STATUS_BADGES[status]
+}
 
 // equipmentStatus is the badge of an equipment's card: Overdue when any of its
 // tasks is overdue, otherwise Due soon when any is due soon, otherwise OK.

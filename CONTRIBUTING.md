@@ -5,7 +5,7 @@
 | Layer | Location | Stack |
 |-------|----------|-------|
 | Backend | `backend/` | Go + Echo + SQLite |
-| Frontend | `frontend/` | Arrow.js + Vite |
+| Frontend | `frontend/` | React 19 (TSX) + Vite |
 | API spec | `backend/api/openapi.yaml` | OpenAPI 3.0 (single source of truth) |
 
 The backend embeds the compiled frontend and serves it as static files. The TypeScript API client is generated from the OpenAPI spec.
@@ -47,7 +47,7 @@ pnpm exec vitest run --project Europe/Paris   # one timezone only
 
 Every test runs once in your own timezone (the `local` project) and once in each timezone listed in `TEST_TIMEZONES` in `vite.config.ts`: UTC, two zones east of it and two west. Date code therefore cannot pass only where it was written. Each timezone runs in its own process (the `forks` pool), because `TZ` applies to a whole process.
 
-Put each test next to the module it covers, named `<module>.test.ts` (e.g. `src/lib/format.test.ts`), and test through the module's exported functions. Vitest only collects `src/**/*.test.ts`; the Playwright specs in `frontend/tests/` keep running with `pnpm test`.
+Put each test next to the module it covers, named `<module>.test.ts` (e.g. `src/lib/format.test.ts`), and test through the module's exported functions. A test of the build itself (the `Makefile`, `vite.config.ts`) sits at the frontend root instead, like `build-version.test.ts`. Vitest collects `src/**/*.test.{ts,tsx}` and `*.test.ts` at the frontend root; the Playwright specs in `frontend/tests/` keep running with `pnpm test`.
 
 ## Common commands
 
@@ -58,6 +58,8 @@ Put each test next to the module it covers, named `<module>.test.ts` (e.g. `src/
 | Build frontend only | `make build-frontend` | repo root |
 | Regen OpenAPI Go stubs | `make generate-openapi` | repo root |
 | Regen TS API client | `pnpm run generate:api` | `frontend/` |
+| Lint frontend (React hooks rules) | `pnpm lint` | `frontend/` |
+| Typecheck frontend | `pnpm run typecheck` | `frontend/` |
 | Run frontend unit tests | `pnpm test:unit` | `frontend/` |
 | Run frontend tests | `pnpm test` | `frontend/` |
 | Run frontend tests against the production build | `pnpm test:prod` | `frontend/` |
@@ -127,7 +129,7 @@ Every bug fix must be accompanied by a test that fails on the unfixed code. Pin 
 
 Add a Playwright spec on top of a backend test only when the UI can regress independently of the backend.
 
-`backend/tests/` is a black-box `package tests`; the shared harness `newTestServer(t)` and the `seedEquipment` / `seedHourEquipment` helpers live there already — reuse them rather than writing a new one. Note that `make test-backend` currently runs `go test ./tests/...` only, so run `go test ./...` from `backend/` when you add an in-package test.
+`backend/tests/` is a black-box `package tests`; the shared harness `newTestServer(t)` and the `seedEquipment` / `seedHourEquipment` helpers live there already — reuse them rather than writing a new one. `make test-backend` runs `go test ./...` from `backend/`, so it covers both kinds of backend test.
 
 All existing tests must still pass before you commit.
 
@@ -143,7 +145,7 @@ The SQLite database carries its own `schema_version` in a `meta` table. When you
 
 ### Releases and versioning
 
-Versions follow [Semantic Versioning](https://semver.org/) with a `v` prefix (`v1.2.3`). The version is derived at build time from git tags via `git describe --tags --always --dirty` — no `VERSION` file to maintain.
+Versions follow [Semantic Versioning](https://semver.org/) with a `v` prefix (`v1.2.3`). The version is derived at build time from the latest release tag (`v` and a digit) via `git describe --tags --match 'v[0-9]*' --always --dirty` (the `Makefile`'s `VERSION` and `getVersion()` in `frontend/vite.config.ts`) — no `VERSION` file to maintain. Tags of any other name, such as `pre-react`, never name a build.
 
 To cut a release:
 ```bash

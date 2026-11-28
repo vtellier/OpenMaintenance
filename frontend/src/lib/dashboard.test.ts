@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dueTaskBlocks, isDue } from '@/lib/dashboard'
+import { dueLine, dueTaskBlocks, isDue } from '@/lib/dashboard'
 
 // The Dashboard lists the due tasks, one block per equipment
 // (doc/gui/dashboard.md).
@@ -74,5 +74,21 @@ describe('dueTaskBlocks', () => {
     ]
     dueTaskBlocks(tasks)
     expect(tasks.map(t => t.name)).toEqual(['B', 'A'])
+  })
+})
+
+describe('dueLine', () => {
+  it('an overdue task is red, with its status label and timing text', () => {
+    expect(dueLine({ dueStatus: 'overdue', dueTrigger: 'months', dueInDays: -3 }))
+      .toEqual({ className: 'due-indicator due-indicator--overdue', text: 'Overdue — 3d ago' })
+  })
+
+  it('a task due soon is amber', () => {
+    expect(dueLine({ dueStatus: 'due_soon', dueTrigger: 'hours', dueInHours: 80 }))
+      .toEqual({ className: 'due-indicator due-indicator--due-soon', text: 'Due soon — in 80 h' })
+  })
+
+  it('never leaves the status label dangling: a task never done reads "never done"', () => {
+    expect(dueLine({ dueStatus: 'overdue', dueTrigger: 'months' }).text).toBe('Overdue — never done')
   })
 })

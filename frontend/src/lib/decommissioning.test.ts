@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { decommissioningDateAllowed, equipmentLabel } from '@/lib/decommissioning'
+import { decommissionedCount, decommissioningDateAllowed, equipmentLabel } from '@/lib/decommissioning'
 
 // Issue #113: pickers still list a decommissioned equipment, marked
 // (doc/gui/history.md, "Filters"; doc/gui/interventions.md, "Fields").
@@ -32,5 +32,17 @@ describe('decommissioningDateAllowed', () => {
   it('allows the date of commissioning itself, and refuses the day before', () => {
     expect(decommissioningDateAllowed('2020-05-01', '2020-05-01', today)).toBe(true)
     expect(decommissioningDateAllowed('2020-04-30', '2020-05-01', today)).toBe(false)
+  })
+})
+
+// The Equipments list's "Show decommissioned (2)" (doc/gui/equipments.md,
+// "Decommissioned equipments").
+describe('decommissionedCount', () => {
+  it('counts the equipments with a decommissioning date', () => {
+    expect(decommissionedCount([{ decommissionedAt: '2024-09-30' }, {}, { decommissionedAt: null }, { decommissionedAt: '2025-01-02' }])).toBe(2)
+  })
+
+  it('is 0 when every equipment is in service', () => {
+    expect(decommissionedCount([{}, { decommissionedAt: '' }])).toBe(0)
   })
 })

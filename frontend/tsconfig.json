@@ -4,6 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "jsx": "react-jsx",
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
@@ -14,5 +15,5 @@
       "@generated/*": ["generated/*"]
     }
   },
-  "include": ["src/**/*.ts", "vite.config.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "*.test.ts"]
 }

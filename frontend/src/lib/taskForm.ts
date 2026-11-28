@@ -114,3 +114,41 @@ export async function saveTask(form: TaskFormValues, ctx: TaskFormContext, api: 
     return taskId == null ? 'Failed to add task' : 'Failed to update task'
   }
 }
+
+/**
+ * What the edit form shows in place of the kind choice, which only Add task
+ * offers: the kind cannot change once the task exists.
+ */
+export function taskKindText(kind: TaskKind): string {
+  return kind === 'expiry' ? 'Expiry task' : 'Interval task'
+}
+
+/**
+ * Whether the form asks for the current expiry date: for an expiry task, and
+ * only while it has no intervention, so always on Add task. Logging a
+ * replacement sets the date from then on (doc/gui/tasks.md, "Task form").
+ */
+export function asksCurrentExpiryDate(form: Pick<TaskFormValues, 'kind'>, hasIntervention: boolean): boolean {
+  return form.kind === 'expiry' && !hasIntervention
+}
+
+// ── Delete task ──
+
+/** The part of the generated TaskApi that Delete task goes through. */
+export interface TaskDeleter {
+  deleteTask(req: { id: number }): Promise<unknown>
+}
+
+/**
+ * Deletes the task, with its interventions (the backend cascades). Resolves
+ * to null on success, or to the message to show: always "Failed to delete
+ * task", whatever the backend says.
+ */
+export async function deleteTask(taskId: number, api: TaskDeleter): Promise<string | null> {
+  try {
+    await api.deleteTask({ id: taskId })
+    return null
+  } catch {
+    return 'Failed to delete task'
+  }
+}

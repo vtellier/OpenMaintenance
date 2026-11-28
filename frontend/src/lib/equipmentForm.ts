@@ -12,6 +12,14 @@ import { EquipmentRow, toTaskRow } from '@/lib/rows'
 /** The icon an equipment shows when none is picked. */
 export const DEFAULT_ICON = '🔧'
 
+/**
+ * The icon shown for an equipment, or for a group with its own default
+ * (DEFAULT_GROUP_ICON): the one picked, or the default when there is none.
+ */
+export function shownIcon(icon: string | null | undefined, defaultIcon: string = DEFAULT_ICON): string {
+  return icon || defaultIcon
+}
+
 // ── Add equipment ──
 
 export interface NewEquipmentValues {
@@ -119,6 +127,14 @@ export function turningOn(form: EquipmentEditValues): boolean {
   return form.tracksHours && !form.originalTracksHours
 }
 
+/**
+ * The hint under Current hours while turning the hour-meter on, when a
+ * reading is kept from an earlier tracking period; null when there is none.
+ */
+export function lastReadingHint(form: Pick<EquipmentEditValues, 'minHours'>): string | null {
+  return form.minHours > 0 ? `Last reading: ${form.minHours} h. The hour-meter cannot go backwards.` : null
+}
+
 /** Turning the hour-meter on with a reading below the one kept: the meter cannot go back. */
 export function hoursTooLow(form: EquipmentEditValues): boolean {
   return turningOn(form) && form.hours < form.minHours
@@ -194,6 +210,27 @@ export async function saveEdit(form: EquipmentEditValues, equipmentId: number, a
   }
 }
 
+// ── Delete equipment ──
+
+/** The part of the generated EquipmentApi that Delete equipment goes through. */
+export interface EquipmentDeleter {
+  deleteEquipment(req: { id: number }): Promise<unknown>
+}
+
+/**
+ * Deletes the equipment, with its tasks, interventions and files (the
+ * backend cascades). Resolves to null on success, or to the message to show:
+ * always "Failed to delete equipment", whatever the backend says.
+ */
+export async function deleteEquipment(equipmentId: number, api: EquipmentDeleter): Promise<string | null> {
+  try {
+    await api.deleteEquipment({ id: equipmentId })
+    return null
+  } catch {
+    return 'Failed to delete equipment'
+  }
+}
+
 // ── Icon from the detail header ──
 
 /**
@@ -210,5 +247,29 @@ export function iconChangeInput(eq: EquipmentRow, icon: string): EquipmentInput 
     commissionedAt: optionalApiDate(eq.commissionedAt),
     decommissionedAt: optionalApiDate(eq.decommissionedAt),
     tracksHours: eq.tracksHours,
+  }
+}
+
+/** Whether picking this icon changes the equipment's: picking the one it has saves nothing. */
+export function iconChanged(eq: Pick<EquipmentRow, 'icon'>, icon: string): boolean {
+  return icon !== eq.icon
+}
+
+/** The part of the generated EquipmentApi the header's icon is saved through. */
+export interface EquipmentUpdater {
+  updateEquipment(req: { id: number, equipmentInput: EquipmentInput }): Promise<unknown>
+}
+
+/**
+ * Saves the icon picked from the detail header, at once (iconChangeInput).
+ * Resolves to null on success, or to the message to show: always "Failed to
+ * update icon", whatever the backend says. Call only when iconChanged.
+ */
+export async function saveIcon(eq: EquipmentRow, icon: string, api: EquipmentUpdater): Promise<string | null> {
+  try {
+    await api.updateEquipment({ id: eq.id!, equipmentInput: iconChangeInput(eq, icon) })
+    return null
+  } catch {
+    return 'Failed to update icon'
   }
 }

@@ -13,6 +13,11 @@ export function isDecommissioned(equipment: DecommissionableEquipment): boolean 
   return equipment.decommissionedAt != null && equipment.decommissionedAt !== ''
 }
 
+/** How many of the equipments are decommissioned: the count "Show decommissioned (2)" gives. */
+export function decommissionedCount(equipments: DecommissionableEquipment[]): number {
+  return equipments.filter(isDecommissioned).length
+}
+
 /** Names an equipment in a picker: a decommissioned one is marked, e.g. "Old dinghy (decommissioned)". */
 export function equipmentLabel(equipment: Pick<Equipment, 'name'> & DecommissionableEquipment): string {
   const name = equipment.name ?? ''
