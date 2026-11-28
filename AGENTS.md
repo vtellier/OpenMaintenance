@@ -11,7 +11,7 @@
 | Layer | Location | Stack |
 |-------|----------|-------|
 | Backend | `backend/` | Go + Echo + SQLite |
-| Frontend | `frontend/` | Arrow.js + Vite |
+| Frontend | `frontend/` | React 19 (TSX) + Vite |
 | API spec | `backend/api/openapi.yaml` | OpenAPI (single source of truth) |
 
 The backend serves the frontend as embedded static files. The frontend TypeScript client is generated from the OpenAPI spec.

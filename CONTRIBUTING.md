@@ -5,7 +5,7 @@
 | Layer | Location | Stack |
 |-------|----------|-------|
 | Backend | `backend/` | Go + Echo + SQLite |
-| Frontend | `frontend/` | Arrow.js + Vite |
+| Frontend | `frontend/` | React 19 (TSX) + Vite |
 | API spec | `backend/api/openapi.yaml` | OpenAPI 3.0 (single source of truth) |
 
 The backend embeds the compiled frontend and serves it as static files. The TypeScript API client is generated from the OpenAPI spec.
@@ -47,7 +47,7 @@ pnpm exec vitest run --project Europe/Paris   # one timezone only
 
 Every test runs once in your own timezone (the `local` project) and once in each timezone listed in `TEST_TIMEZONES` in `vite.config.ts`: UTC, two zones east of it and two west. Date code therefore cannot pass only where it was written. Each timezone runs in its own process (the `forks` pool), because `TZ` applies to a whole process.
 
-Put each test next to the module it covers, named `<module>.test.ts` (e.g. `src/lib/format.test.ts`), and test through the module's exported functions. Vitest only collects `src/**/*.test.ts`; the Playwright specs in `frontend/tests/` keep running with `pnpm test`.
+Put each test next to the module it covers, named `<module>.test.ts` (e.g. `src/lib/format.test.ts`), and test through the module's exported functions. Vitest only collects `src/**/*.test.{ts,tsx}`; the Playwright specs in `frontend/tests/` keep running with `pnpm test`.
 
 ## Common commands
 
@@ -58,6 +58,8 @@ Put each test next to the module it covers, named `<module>.test.ts` (e.g. `src/
 | Build frontend only | `make build-frontend` | repo root |
 | Regen OpenAPI Go stubs | `make generate-openapi` | repo root |
 | Regen TS API client | `pnpm run generate:api` | `frontend/` |
+| Lint frontend (React hooks rules) | `pnpm lint` | `frontend/` |
+| Typecheck frontend | `pnpm run typecheck` | `frontend/` |
 | Run frontend unit tests | `pnpm test:unit` | `frontend/` |
 | Run frontend tests | `pnpm test` | `frontend/` |
 | Run frontend tests against the production build | `pnpm test:prod` | `frontend/` |
