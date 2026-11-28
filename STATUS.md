@@ -978,3 +978,13 @@ Deployed to the local install (`openmaintenance.service`, `/opt/openmaintenance`
 ## 2026-11-28 — The run-openmaintenance skill names React
 
 - Committed on `feat/issue-146-react`, with the maintainer's approval. The skill's first line said "Go + Arrow.js web app"; it now says "Go + React web app". The only mention of Arrow.js left outside the history is a body comment of the frozen spec `frontend/tests/non-regression/manual-update-check.spec.ts:108`, for after the cutover.
+
+## 2026-11-28 — The web UI is React on main (issue #162)
+
+- Step 1.8 of the React migration closes epic #146. PR #201 squash-merged `feat/issue-146-react` into `main` as `2ebb900`, with the maintainer's approval; #146, #162 and #184 are closed.
+- **Before the merge:** `pnpm lint`, `pnpm run typecheck`, `pnpm run build`, `pnpm test:unit`, `go test ./...` and `make build` passed. The whole suite, both projects, passed against the production build (`pnpm test:prod`) and against the dev server in StrictMode: 128 passed, 9 skipped, 0 failed each time. `git diff pre-react -- frontend/tests frontend/src/style.css` was empty. Every CI check on #201 passed.
+- **Bundle:** the JS grows from 46,199 to 105,198 bytes gzipped (React 19 and React DOM).
+- **Screenshots:** 88 before-and-after pairs (`~/om-reference/shots-162/`): 44 pixel-identical, 34 differ by a relative time, 4 by the Settings environment, 4 are the Not Found page (#184, blank on `pre-react`), 2 by anti-aliasing. No real difference.
+- **Manual pass:** the maintainer checked the React build on the desktop. The phone servers on the S24 hotspot (`10.29.37.2`, a subnet the phone picks itself) were not reached from a phone.
+- **After the merge:** the reference app and the phone servers are stopped. The last Arrow.js comment (`manual-update-check.spec.ts`), the test README's steps for the reference app, and two comments that cited the reference app of #155 are gone, now that `frontend/tests/` is no longer frozen.
+- **Follow-ups:** #168–#172, #174, #175, #179, #181, #187, #189, #195, #196, #199.

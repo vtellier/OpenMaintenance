@@ -105,7 +105,8 @@ test('a slow page-load status does not overwrite a newer check result', async ({
   // sign that the page has handled it. An init script wraps fetch. Once the
   // page has read the GET's JSON, it marks <html> after three hops, one per
   // way a UI can schedule its re-render:
-  //  - a 0 ms timer runs after every microtask, such as Arrow's re-render;
+  //  - a 0 ms timer runs after every microtask, such as a re-render queued
+  //    as one;
   //  - an animation frame then runs after any frame callback queued before it;
   //  - a posted message then runs after any message posted before it, the
   //    same task source React's scheduler renders in.

@@ -9,8 +9,7 @@
  * - `OM_TEST_BASE_URL=http://127.0.0.1:<port>`: one server that serves the
  *   built app and its API together, as the Go binary does. Playwright starts
  *   nothing and runs against whatever answers there. `pnpm test:prod` uses it
- *   for the binary `make build` produces (`scripts/test-prod.sh`); the
- *   reference app of #155 is reached the same way.
+ *   for the binary `make build` produces (`scripts/test-prod.sh`).
  */
 const target = (process.env.OM_TEST_BASE_URL ?? '').trim().replace(/\/+$/, '')
 

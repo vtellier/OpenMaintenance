@@ -11,8 +11,7 @@
  *
  * Guard: a server at `OM_TEST_BASE_URL` that already holds an equipment or a
  * group is not wiped unless `OM_TEST_ALLOW_WIPE=1` is set, so pointing the
- * suite at a seeded app (the reference app of #155) cannot destroy its data by
- * accident. The default dev run and `pnpm test:prod` (a fresh, empty database)
+ * suite at a seeded app cannot destroy its data by accident. The default dev run and `pnpm test:prod` (a fresh, empty database)
  * never hit it.
  */
 import { API, EXTERNAL_SERVER } from './target'
