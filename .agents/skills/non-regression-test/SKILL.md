@@ -88,7 +88,7 @@ A flow the app gets wrong against `doc/gui/` is a bug: open an issue and pin it 
 
 ## Page errors and console errors fail the test
 
-`frontend/tests/fixtures.ts` extends Playwright's `test`. For every test it collects the uncaught exceptions of the page (`pageerror`) and every console message of type `error`, and at teardown it fails the test with the list. So an error the app logs fails the suite even when the screen looks right, and so will React's warnings after the cutover (#146).
+`frontend/tests/fixtures.ts` extends Playwright's `test`. For every test it collects the uncaught exceptions of the page (`pageerror`) and every console message of type `error`, and at teardown it fails the test with the list. So an error the app logs fails the suite even when the screen looks right, and so does a React warning, which React logs as a `console.error` in development.
 
 Chromium also logs a console error for every request that gets an HTTP error status or is aborted (`Failed to load resource: ...`). A test that provokes an error on purpose declares it with the `expectErrors` fixture, before the action:
 
@@ -130,7 +130,7 @@ The same fixture routes every request that leaves the app's hosts (`localhost`, 
 
 ## Locators — find elements by role, label or text, never by markup
 
-A spec checks behaviour, not markup. The React port (#146) keeps the CSS class names (`style.css` is reused unchanged), but it may use other tags and other nesting. So:
+A spec checks behaviour, not markup. The CSS class names are a contract with `style.css`, but the tags and the nesting may change with any refactor. So:
 
 1. **Role, label or text first**: `getByRole(...)`, `getByLabel(...)`, `getByText(...)`, `getByPlaceholder(...)`.
 2. **A single class** when the element has no role or name to find it by: `page.locator('.flash--error')`, `page.locator('.history-item')`.
@@ -138,11 +138,11 @@ A spec checks behaviour, not markup. The React port (#146) keeps the CSS class n
 4. **No nesting inside one selector**: no `'.modal input'`, `'.photo-section .flash--error'`, no `>>`, no `nth-child`, no XPath. To scope, chain locators: `page.locator('.modal').getByLabel('Task', { exact: true })`, `page.locator('.photo-section').locator('.flash--error')`, `row.getByRole('button', { name: 'Del' })`.
 5. **No position to tell controls apart**: not `locator('select').nth(1)`; use each control's label.
 
-When a control has no accessible name, give it one in the app, with no visible change: associate its `<label>` (`for`/`id`) or add an `aria-label` that repeats the visible label without the `*` (`<select aria-label="Task">` under the label `Task *`). Keep the class names. The React port keeps the name.
+When a control has no accessible name, give it one in the app, with no visible change: associate its `<label>` (`for`/`id`) or add an `aria-label` that repeats the visible label without the `*` (`<select aria-label="Task">` under the label `Task *`). Keep the class names.
 
 `getByLabel` matches part of the name, ignoring case, so `getByLabel('Date')` also finds "Date of commissioning" and "Expiry date". Pass `{ exact: true }` whenever the name is a word other labels contain.
 
-`getByRole('img')` skips an image with `alt=""` (its role becomes `presentation`) and a hidden one. So an image a spec counts or checks the absence of must keep a non-empty `alt` (the app's photos use `alt={originalName}`; the React port must keep it), or an absence check would pass on a decorative `<img alt="">`.
+`getByRole('img')` skips an image with `alt=""` (its role becomes `presentation`) and a hidden one. So an image a spec counts or checks the absence of must keep a non-empty `alt` (the app's photos use `alt={originalName}`), or an absence check would pass on a decorative `<img alt="">`.
 
 The only tag a spec may name is the document's own `body` (`smoke.spec.ts`), which no framework renders. For `<html>`, use `:root`.
 
@@ -227,7 +227,7 @@ await page.locator('.history-item')
 
 A fixed sleep is too short on a slow runner and wasted time on a fast one, so `frontend/tests/` has none. Wait on what the page shows with a web-first assertion (`await expect(locator).toHaveText(...)`). It retries until it holds.
 
-When the expected outcome is that nothing changes (a late response must be ignored), an assertion that passes at once proves nothing. First wait for a sign that the page has handled the event, then assert. `manual-update-check.spec.ts` ("a slow page-load status…") shows how: an init script wraps `fetch`, and once the page has read that response's JSON it marks `<html>` after three hops: a 0 ms timer, then an animation frame, then a `MessageChannel` message. The page queues its re-render in the microtasks that follow the JSON, so each hop runs after the matching kind of render: a microtask re-render (Arrow), a frame callback, or a posted-message task (React's scheduler). The spec waits for the mark, then checks the screen.
+When the expected outcome is that nothing changes (a late response must be ignored), an assertion that passes at once proves nothing. First wait for a sign that the page has handled the event, then assert. `manual-update-check.spec.ts` ("a slow page-load status…") shows how: an init script wraps `fetch`, and once the page has read that response's JSON it marks `<html>` after three hops: a 0 ms timer, then an animation frame, then a `MessageChannel` message. The page queues its re-render in the microtasks that follow the JSON, so each hop runs after the matching kind of render: a re-render in a microtask, a frame callback, or a posted-message task (React's scheduler). The spec waits for the mark, then checks the screen.
 
 The mark is not a proof for every scheduler: a render behind a longer timer, or a time-sliced render (`startTransition`) that yields, could still land after it. So whenever the code under such a test changes framework or scheduling, break the behaviour by hand (for this spec, remove the `checkStarted` guard in `UpdateCheck`) and confirm the test fails before trusting it.
 
@@ -252,6 +252,6 @@ pnpm test:prod       # all specs against the production build (make build, then 
 
 Exit code is 0 on pass, non-zero on fail — used as-is by the `test-frontend` and `test-frontend-prod` jobs in CI (`.github/workflows/pipeline.yml`).
 
-`OM_TEST_BASE_URL=http://127.0.0.1:<port> pnpm test` runs the suite against a server that is already running and serves the app and `/api` together (the binary, or the reference app of #155). Playwright then starts and reuses nothing. **It wipes that server's data**: the global setup deletes every equipment and group there. It refuses a server that already holds data unless `OM_TEST_ALLOW_WIPE=1` is set. For the reference app of #155, run the suite first on an empty database, then reset its `maintenance.db` and `files/` and seed it (`OM_BASE_URL=http://127.0.0.1:3101 make seed`). See "Against any running server: `OM_TEST_BASE_URL`" in `frontend/tests/non-regression/README.md` for the steps.
+`OM_TEST_BASE_URL=http://127.0.0.1:<port> pnpm test` runs the suite against a server that is already running and serves the app and `/api` together (the binary, or another build of the app). Playwright then starts and reuses nothing. **It wipes that server's data**: the global setup deletes every equipment and group there. It refuses a server that already holds data unless `OM_TEST_ALLOW_WIPE=1` is set. To leave a server seeded with the demo data, run the suite first on an empty database, then reset its `maintenance.db` and `files/` and seed it (`OM_BASE_URL=http://127.0.0.1:<port> make seed`). See "Against any running server: `OM_TEST_BASE_URL`" in `frontend/tests/non-regression/README.md` for the steps.
 
 A spec that passes under `pnpm test` but fails under `pnpm test:prod` is either a production-only bug (open an issue, do not weaken the spec) or a spec that hard-codes the dev server's host or port.

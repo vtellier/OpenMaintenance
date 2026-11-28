@@ -1,6 +1,6 @@
 ---
 name: react
-description: Write or change OpenMaintenance frontend code in React (TSX pages, components, hooks), including porting a page from the pre-react Arrow.js code. Use for any frontend code change.
+description: Write or change OpenMaintenance frontend code in React (TSX pages, components, hooks). Use for any frontend code change.
 ---
 
 # React (frontend)
@@ -12,7 +12,7 @@ Settings is the reference page (#157): `src/pages/SettingsPage.tsx`, `src/compon
 ## Quick workflow
 
 1. Find the rules the screen needs in `src/lib/`. A rule that is missing goes there first, with its Vitest test (see [Pages only render](#pages-only-render)).
-2. Read the screen's spec in `doc/gui/` and, for a port, its `pre-react` code (`git show pre-react:frontend/src/pages/<Page>.ts`).
+2. Read the screen's spec in `doc/gui/`.
 3. Write the component as a function in a `.tsx` file. Re-read [Gotchas / Pitfalls](#gotchas--pitfalls) first.
 4. Route a page in `src/page.tsx` (pathname → title and view).
 5. Done when all of these pass from `frontend/`: `pnpm lint`, `pnpm run typecheck`, `pnpm run build`, `pnpm test:unit`, and the Playwright specs that cover the screen (desktop and mobile projects, then `pnpm test:prod` once).
@@ -25,27 +25,27 @@ Settings is the reference page (#157): `src/pages/SettingsPage.tsx`, `src/compon
 | `src/page.tsx` | The route table: pathname → `{ title, description, view }` (see [Routes and the shell](#routes-and-the-shell)) |
 | `src/App.tsx` | The shell: `App` (the navigation, then the page in `main.app-content`) and `AppShell` (the navigation only, for Not Found) |
 | `src/pages/<Name>Page.tsx` | One component per screen |
-| `src/components/<Name>.tsx` | One component per file: components several pages share (modals included), and the self-contained parts `pre-react` kept there (`NavBar`, `UpdateCheck`) |
+| `src/components/<Name>.tsx` | One component per file: components several pages share (modals included), and self-contained parts of a page or the shell (`NavBar`, `UpdateCheck`) |
 | `src/hooks/use<Name>.ts` | A hook that two or more components share (none yet). A hook one component uses stays in that component's file |
 | `src/lib/*.ts` | The rules, plain TypeScript with no React import, each with a `*.test.ts` |
 | `src/theme.ts`, `src/api/config.ts` | Browser helpers that hold no rule: the theme in `localStorage` and on `<html>`, the API client's base path |
 | `src/style.css` | The one global stylesheet |
 | `generated/api/` | The API client generated from `backend/api/openapi.yaml` (never edit) |
 
-A port keeps `pre-react`'s file name with `.tsx` (`pages/SettingsPage.ts` → `pages/SettingsPage.tsx`). A small piece that only one component renders stays in that component's file, as a module-level function or constant (`themeOptions` in `SettingsPage.tsx`).
+A small piece that only one component renders stays in that component's file, as a module-level function or constant (`themeOptions` in `SettingsPage.tsx`).
 
 ## Routes and the shell
 
-- Each route in `page.tsx` matches the pathname with `pre-react`'s test (same regex, same order), parses what it needs and passes it as plain typed props: `<EquipmentHoursPage equipmentId={Number(match[1])} />`. A page reads the query string itself, once, through the lib: `useState(() => prefilledReading(window.location.search))`.
+- Each route in `page.tsx` matches the pathname with a regex (the routes are tried in order), parses what it needs and passes it as plain typed props: `<EquipmentHoursPage equipmentId={Number(match[1])} />`. A page reads the query string itself, once, through the lib: `useState(() => prefilledReading(window.location.search))`.
 - The view is the page inside the shell, `<App currentPath={pathname}><SettingsPage /></App>`; `NavBar` highlights the section from `currentPath` (`isActiveSection` in `lib/navigation.ts`).
-- The title and the description are `pre-react`'s strings. `entry-client.tsx` sets `document.title` from the route before rendering; a page leaves the title alone (a `<title>` rendered by a component would sit next to `index.html`'s).
-- A route whose title needs data keeps `pre-react`'s awaited GET in `routeToPage`, outside React: Equipment detail awaits `getEquipment` there for `"<name> | OpenMaintenance"` and its description, falling back to `Equipment #<id>` when it fails. The page still loads its own data in its effect.
-- Not Found is the one page that brings its own `<main>`: `<AppShell currentPath={pathname}><NotFound path={pathname} /></AppShell>`. `main.not-found` sets its own width and padding, so inside the padded `main.app-content` it sat 16px off-centre on a phone (the 1.2 placeholder did).
+- Each route gives the page's title and description. `entry-client.tsx` sets `document.title` from the route before rendering; a page leaves the title alone (a `<title>` rendered by a component would sit next to `index.html`'s).
+- A route whose title needs data awaits its GET in `routeToPage`, outside React: Equipment detail awaits `getEquipment` there for `"<name> | OpenMaintenance"` and its description, falling back to `Equipment #<id>` when it fails. The page still loads its own data in its effect.
+- Not Found is the one page that brings its own `<main>`: `<AppShell currentPath={pathname}><NotFound path={pathname} /></AppShell>`. `main.not-found` sets its own width and padding, so inside the padded `main.app-content` it would sit 16px off-centre on a phone.
 
 ## Components and props
 
 - One named export per component, a function in PascalCase. Props are one typed object, destructured: `export function NotFound({ path }: { path: string })`. Name the type `<Name>Props` once it has more than two or three fields.
-- API clients are module-level constants, in each file that calls them, as before: `const equipmentApi = new EquipmentApi(apiConfig)`. Two files may each create the same client (`SettingsPage` and `UpdateCheck` both have a `SystemApi`, `EquipmentEditPage` and `GroupPicker` both have a `GroupApi`): a client holds nothing but `apiConfig`, so there is no shared clients module, and a component never takes a client as a prop. A lib flow function still takes the client as an argument, typed as a narrow interface.
+- API clients are module-level constants, in each file that calls them: `const equipmentApi = new EquipmentApi(apiConfig)`. Two files may each create the same client (`SettingsPage` and `UpdateCheck` both have a `SystemApi`, `EquipmentEditPage` and `GroupPicker` both have a `GroupApi`): a client holds nothing but `apiConfig`, so there is no shared clients module, and a component never takes a client as a prop. A lib flow function still takes the client as an argument, typed as a narrow interface.
 - State lives in `useState`, and every change goes through its setter with a new value: `setForm(f => ({ ...f, newHours }))`, `setItems(items => items.filter(i => i.id !== id))`. A mutated object keeps its identity, so React does not re-render.
 - Derive what can be derived during render (`const canSave = canUpdateHours(form)`), rather than storing it in a second state.
 - Define every component at module level. A component defined inside another is a new type on each render, so React remounts it and the input loses focus and content.
@@ -96,13 +96,13 @@ useEffect(() => {
 
 - Every generated API method takes `RequestInit` as its second argument, so `{ signal }` cancels the request. An aborted request rejects (the client wraps it in a `FetchError`) and logs no console error.
 - Check `signal.aborted` after every `await`, before any setter: a response that arrived just before the abort still resolves.
-- Each request that loads on its own gets its own effect, in the component that shows its answer: Settings' backup GET in `SettingsPage`, the update-status GET in `UpdateCheck`. A request `pre-react` made at module level (Settings' backups) moves into that effect.
+- Each request that loads on its own gets its own effect, in the component that shows its answer: Settings' backup GET in `SettingsPage`, the update-status GET in `UpdateCheck`.
 - A reload after a save is an async function the handler awaits, since what follows may need the fresh data; the page-load effect calls the same function with its signal. See [A reload shared by the effect and the handlers](#a-reload-shared-by-the-effect-and-the-handlers).
 - A late answer that must not overwrite a newer one is guarded with a `useRef` flag, as `checkStarted` in `UpdateCheck` keeps the page-load update status from overwriting a manual check (#165): an async callback reads the state of the render that created it, so a state flag would be stale.
 
 ### Loading and error states
 
-A screen renders, while it loads and when a load fails, what `pre-react` rendered in the same place. For most pages that is `<p className="page__empty">Loading...</p>` until loaded and the error in a `flash--error`, inside the page's `section.page`, after what shows from the start. Where `pre-react` chose between them in one reactive slot, compute that slot into a variable before the `return`:
+For most pages, a screen renders `<p className="page__empty">Loading...</p>` until loaded and the error in a `flash--error`, inside the page's `section.page`, after what shows from the start. Where one slot shows one of several states, compute that slot into a variable before the `return`:
 
 ```tsx
 let content: ReactNode
@@ -118,9 +118,9 @@ return (
 )
 ```
 
-- Keep `pre-react`'s state flags (`loaded`, `error`, `loadError`, `saving`) and its conditions in the same order, so the port reads like the old template. An error is `string | null`, `null` when there is none: `{error && <div className="flash flash--error">{error}</div>}`.
+- The state flags are named `loaded`, `error`, `loadError` and `saving`. An error is `string | null`, `null` when there is none: `{error && <div className="flash flash--error">{error}</div>}`.
 - A section that shows nothing until its data arrives holds the data as `T | null`, with no `loaded` flag: Settings → Backup (`BackupSummary | null`).
-- Some loads fail quietly on `pre-react`, and stay quiet: Settings → Backup shows the lib's fallback (`unknownBackupSummary`), the update status line stays hidden.
+- Some loads fail quietly: Settings → Backup shows the lib's fallback (`unknownBackupSummary`), the update status line stays hidden.
 
 ### A reload shared by the effect and the handlers
 
@@ -163,11 +163,11 @@ async function onSave() {
 - Under `<StrictMode>` in `pnpm dev`, the effect runs, its cleanup aborts the first request, and it runs again. The generated client aborts that first request before it is sent, so the network shows one GET, as in the production build; if one were sent, the `signal?.aborted` checks would keep its result from any setter.
 - List in `useCallback`'s array every prop or state value the function reads; setters are stable and need not be listed. `exhaustive-deps` checks that array too.
 - When the handler needs the fresh data after the reload, the reload resolves to it, since the state the handler reads is its render's: History's `reload` resolves to the equipments it loaded (null on failure), and the reading question is checked against them, or against the ones held when the reload failed: `setDoubt(stillInDoubt(before, (await reload()) ?? equipments))`.
-- Keep `pre-react`'s reload as it was, even where it looks odd: the Equipments list shows "Loading equipments..." in place of the list on every reload, and the Dashboard and History never clear a load error once set.
+- Two reload behaviours look odd and are the app's behaviour all the same, so a refactor keeps them (changing one is its own issue): the Equipments list shows "Loading equipments..." in place of the list on every reload, and the Dashboard, History and Equipment detail never clear a load error once set.
 
 ## Event handlers
 
-A handler is a plain function declared in the component body and named `on<Action>` (`onCheck`, `onSave`), or a short inline arrow when it passes an argument: `onChange={() => chooseTheme(o.value)}`. The function such an arrow calls takes an argument and is named for what it does (`chooseTheme`), not `on…`. `useCallback` is only for a function an effect depends on (the shared reload above).
+A handler is a plain function declared in the component body and named `on<Action>` (`onCheck`, `onSave`), or a short inline function when it passes an argument: `onChange={() => chooseTheme(o.value)}`. The function such an inline function calls takes an argument and is named for what it does (`chooseTheme`), not `on…`. `useCallback` is only for a function an effect depends on (the shared reload above).
 
 An async handler runs in this order, as `onCheck` in `UpdateCheck` does:
 
@@ -184,38 +184,38 @@ async function onCheck() {
 }
 ```
 
-1. Return at once while the last run is busy (the button is disabled too, as on `pre-react`).
+1. Return at once while the last run is busy (the button is disabled too).
 2. Set the busy state and clear the last message or error.
 3. `await` the lib's flow function; it catches the failure and resolves to what to show.
 4. Set what it resolved to, then clear the busy state.
 
 A change that also lives outside React is made in the handler that sets the state: `chooseTheme` sets `theme`, writes it to `localStorage` and applies it to `<html>` in one go, with no effect watching `theme`.
 
-- An optimistic save (the header's icon, which shows the new one at once and comes back if the save fails, as on `pre-react`) keeps the row before the change, sets the changed copy, `await`s the lib, and sets the kept row back with the error on failure (`changeIcon` in `EquipmentDetailPage.tsx`).
+- An optimistic save (the header's icon, which shows the new one at once and comes back if the save fails) keeps the row before the change, sets the changed copy, `await`s the lib, and sets the kept row back with the error on failure (`changeIcon` in `EquipmentDetailPage.tsx`).
 - React clears `e.currentTarget` once the handler returns. An async handler that needs the element after an `await` reads it first: `const input = e.currentTarget` and `Array.from(input.files)`, before `input.value = ''` empties the live `FileList` (`InterventionPhotos`).
 
 ## Lists
 
-- A list mixing two kinds of rows keys each by kind and id: the Equipments list keys a group's section `'group-' + id` and a run of ungrouped cards `'cards-' + <its first equipment's id>`. A layout step `pre-react` did while rendering, such as grouping consecutive ungrouped cards into one grid, is a lib rule (`listBlocks` in `lib/equipmentGroups.ts`).
+- A list mixing two kinds of rows keys each by kind and id: the Equipments list keys a group's section `'group-' + id` and a run of ungrouped cards `'cards-' + <its first equipment's id>`. A layout step, such as grouping consecutive ungrouped cards into one grid, is a lib rule (`listBlocks` in `lib/equipmentGroups.ts`).
 - A row's markup that two screens share is a component with the row's variable parts as props: `HistoryList` takes the second column's heading and a `labelOf(intervention)` (`historyItemLabel` on History, `interventionTaskLabel` on an equipment's History tab).
-- State `pre-react` kept per browser is read once, in `useState`'s initializer, and written by the handler that sets it, through the lib: `useState(readCollapsed)`, then `const next = toggleCollapsed(collapsed, id); setCollapsed(next); writeCollapsed(next)`. Filters `pre-react` kept in the page (History's equipment and dates) stay plain state: not in the URL, not in storage.
+- State kept per browser is read once, in `useState`'s initializer, and written by the handler that sets it, through the lib: `useState(readCollapsed)`, then `const next = toggleCollapsed(collapsed, id); setCollapsed(next); writeCollapsed(next)`. Filters (History's equipment and dates) are plain state: not in the URL, not in storage.
 
 ## Tabs
 
-Equipment detail's tabs are URLs (`/equipments/:id`, then `/history`, `/documents` and `/info`), and each tab link is a full page load, as on `pre-react`. The tab lives in the URL and nowhere else: no state, no storage.
+Equipment detail's tabs are URLs (`/equipments/:id`, then `/history`, `/documents` and `/info`), and each tab link is a full page load. The tab lives in the URL and nowhere else: no state, no storage.
 
 - The route parses the segment into a typed prop (`tab: DetailTab`, `lib/equipmentDetail.ts`); the lib builds the links (`detailTabs(id, tab)`: label, `href`, and `className` with `active`).
-- The page renders `{tab === 'history' && <HistoryTab … />}` for each tab: one module-level component per tab, in the page's file. The page holds the data and the handlers, and loads everything `pre-react` loaded on every tab (the documents too), so the network is the same.
+- The page renders `{tab === 'history' && <HistoryTab … />}` for each tab: one module-level component per tab, in the page's file. The page holds the data and the handlers, and loads everything on every tab (the documents too).
 
 ## Files
 
-- **Upload:** a hidden file input inside a `label.btn`, which gives it its accessible name (`getByLabel('+ Upload document')`): `<label className="btn btn--accent">{uploading ? 'Uploading...' : '+ Upload document'}<input type="file" style={{ display: 'none' }} onChange={onUpload} disabled={uploading} /></label>`. The input is uncontrolled. The handler reads `e.currentTarget` and its file before the first `await`, saves through the lib (`uploadDocument`, which resolves to the backend's reason), reloads, then empties `input.value` (see [Event handlers](#event-handlers)). The empty state's second input (`label.upload-inline`) has no `disabled`, and `onUpload` no busy guard, as on `pre-react`.
+- **Upload:** a hidden file input inside a `label.btn`, which gives it its accessible name (`getByLabel('+ Upload document')`): `<label className="btn btn--accent">{uploading ? 'Uploading...' : '+ Upload document'}<input type="file" style={{ display: 'none' }} onChange={onUpload} disabled={uploading} /></label>`. The input is uncontrolled. The handler reads `e.currentTarget` and its file before the first `await`, saves through the lib (`uploadDocument`, which resolves to the backend's reason), reloads, then empties `input.value` (see [Event handlers](#event-handlers)). The empty state's second input (`label.upload-inline`) has no `disabled`, and `onUpload` no busy guard.
 - **Download:** a plain link, `<a href={f.url} download={f.originalName}>`; none for a file missing on the server.
 - A file row is keyed by its stored name, `key={f.name}`: files have no id.
 
 ## Forms
 
-Every field is controlled: `value` (or `checked`) from state, `onChange` back into it. React's `onChange` fires on every keystroke, like the native `input` event the old `@input` listened to.
+Every field is controlled: `value` (or `checked`) from state, `onChange` back into it. React's `onChange` fires on every keystroke, like the native `input` event.
 
 From `EquipmentHoursPage.tsx`, where `const canSave = canUpdateHours(form)` is computed during render:
 
@@ -235,28 +235,28 @@ From `EquipmentHoursPage.tsx`, where `const canSave = canUpdateHours(form)` is c
 - Keep the form's values in one state object shaped like the lib's form type, so the lib's `can…` and `save…` functions take it as it is.
 - The save handler: set `saving`, clear the error, `await` the lib's `save…`, then on `null` navigate with `window.location.href = …` (full page load), otherwise show the reason and clear `saving`.
 - A setter does not change the variable in the current render. Compute the next value into a local, use it, and pass it to the setter.
-- `selectEquipment` in `lib/interventionForm.ts` changes the form it is given, as Arrow's reactive state expected. Call it on a copy, then set the copy: `const next = { ...form }; selectEquipment(next, id, ctx); setForm(next)`.
+- `selectEquipment` in `lib/interventionForm.ts` changes the form it is given in place. Call it on a copy, then set the copy: `const next = { ...form }; selectEquipment(next, id, ctx); setForm(next)`.
 - A form that is `null` until its data loads renders its fields in a module-level component that takes the loaded form and an `onChange(form)`, so the fields never deal with `null`: `<EditForm form={form} onChange={setForm} … />` in `EquipmentEditPage.tsx`. Inside it, `const set = (fields: Partial<EquipmentEditValues>) => onChange({ ...form, ...fields })` keeps each field's handler short.
-- What `pre-react` checked to show the error alone stays as it was, even where it looks odd: Update hours, Correct reading and Edit show the error in place of the form while `error && !name`, so a save error with the Name field cleared hides the form on Edit, as on `pre-react`.
+- Update hours, Correct reading and Edit show the error in place of the form while `error && !name`, so a save error with the Name field cleared hides the form on Edit. That is the app's behaviour; changing it is its own issue.
 
 ## Pickers
 
 `IconPicker` and `GroupPicker` (`src/components/`) are the fields that several forms share: the equipment forms, the detail header and a group's menu.
 
-- `pre-react` gave them getters (`current: () => string`); a React picker takes the value itself and a callback: `<IconPicker current={form.icon} onSelect={icon => set({ icon })} />`, `<GroupPicker groups={groups} current={form.groupId} onSelect={…} onCreated={…} />`. The form's state stays in the page; what only the picker shows (the popover open or not, the "+ New group" form) is the picker's own state.
+- A picker takes the value itself and a callback: `<IconPicker current={form.icon} onSelect={icon => set({ icon })} />`, `<GroupPicker groups={groups} current={form.groupId} onSelect={…} onCreated={…} />`. The form's state stays in the page; what only the picker shows (the popover open or not, the "+ New group" form) is the picker's own state.
 - `IconPicker`'s `variant` picks the trigger (`'button'` in forms, `'avatar'` in the detail header, `'menuitem'` in a group's menu) and `defaultIcon` what Reset restores (`DEFAULT_GROUP_ICON` for a group).
 - A `<select>` is controlled by its `value`, computed during render; never `selected` on an `<option>` (Gotcha 1).
 - `GroupPicker` creates the group through `saveNewGroup(form, groupApi)` (`lib/groupForm.ts`), then calls `onCreated(group)` and `onSelect(group.id)`; the page adds the group to its list.
 
-### A known bug the port would fix by accident
+### A known bug kept on purpose
 
-A pure port keeps `pre-react`'s known bugs, which are fixed after the cutover. Where React's model would fix one by itself, reproduce it on purpose, as small as it can be, with a comment that names the issue. #175: after the inline form's Cancel, `pre-react`'s Group picker shows "No group" while the form keeps the group picked before. A controlled `<select>` would show that group, so `GroupPicker` holds a `showsNoGroup` flag, set by Cancel and cleared by the next change. Its spec stays a `test.fixme`.
+#175: after the inline form's Cancel, the Group picker shows "No group" while the form keeps the group picked before. A controlled `<select>` would show that group, so `GroupPicker` holds a `showsNoGroup` flag, set by Cancel and cleared by the next change, with a comment that names the issue. Its spec is a `test.fixme`; the fix for #175 removes the flag and turns the spec on.
 
 ## Custom elements
 
 `IconPicker` renders `<emoji-picker>`, the custom element of `emoji-picker-element`, defined by `import 'emoji-picker-element'`. React 19 supports custom elements (react.dev, "Custom HTML elements"):
 
-- **Attributes or properties.** React sets a prop as a property when the element's class has a property of that name once constructed, and as an attribute otherwise. `data-source` is no property (the property is `dataSource`), so `data-source={emojiDataUrl}` is written as the attribute, the markup `pre-react` rendered, and the element reads it through `observedAttributes`.
+- **Attributes or properties.** React sets a prop as a property when the element's class has a property of that name once constructed, and as an attribute otherwise. `data-source` is no property (the property is `dataSource`), so `data-source={emojiDataUrl}` is written as the attribute, and the element reads it through `observedAttributes`.
 - **Events.** A custom element's `CustomEvent` is listened to with `on` followed by the event's name, its case and dashes kept: `onemoji-click={onEmojiClick}` for `emoji-click`. React adds the listener to the element, and swaps it when the handler changes.
 - **Types.** TSX knows no custom tag. Declare it once, in the file of the component that renders it, by augmenting `JSX.IntrinsicElements` in `declare module 'react'` (see `IconPicker.tsx`), and type the event with the library's own type (`EmojiClickEvent` from `emoji-picker-element/shared`).
 - **Data offline.** The emoji data is bundled (`emoji-picker-element-data/…/data.json?url`), so the picker never fetches the default CDN: the suite blocks any request that leaves `localhost`.
@@ -267,33 +267,19 @@ A pure port keeps `pre-react`'s known bugs, which are fixed after the cutover. W
 A modal is rendered only while open: `{doubt && <ReadingDoubtModal doubt={doubt} onKeep={() => setDoubt(null)} />}`. Its state (open or not, and what it is about) belongs to the page that opens it.
 
 - A modal that only one page opens stays in that page's file, as a module-level component (`ConfirmTracksModal` in `EquipmentEditPage.tsx`, the group modals in `EquipmentsPage.tsx`); one that several pages open goes in `src/components/` (`ReadingDoubtModal`, `FullInterventionModal`, `DeleteInterventionModal`).
-- A modal opened from a list row holds what it is about in the page, the row or a source: `{deleteTarget && <DeleteInterventionModal intervention={deleteTarget} … />}`, `{formSource && <FullInterventionModal source={formSource} … />}`. A shared modal that saves owns its busy and error state, calls the lib's flow itself and resolves through a callback with what the page needs next: `onSaved(doubt)`, `onDeleted(doubt)`. The page then closes it, reloads, and asks the reading question. Equipment detail passes `equipmentIdFixed` to `FullInterventionModal` and its one equipment as the equipments (`equipments={[eq]}`), as `pre-react` did.
-- Markup as `pre-react` had it, modal by modal: `div.modal-overlay` > `div.modal`, a `h2.modal__title`, and `div.modal__actions`. Only `ReadingDoubtModal` has `role="dialog"` and `aria-modal="true"` on `pre-react`; the others have neither, and keep neither in the port.
-- Most `pre-react` overlays close on a click on the overlay itself: `onClick={e => { if (e.target === e.currentTarget) onClose() }}`. The Edit page's "Enable hour-meter tracking?" closes on any click inside it too, the modal's text included, since the click bubbles up to its overlay: `ConfirmTracksModal` keeps that (`onClick={onCancel}` on the overlay). `FullInterventionModal` keeps `pre-react`'s class check (`classList.contains('modal-overlay')`): the photo delete confirmation is an overlay inside it, and a click on that one closes both. Read each modal's overlay handler in `pre-react` before porting it.
+- A modal opened from a list row holds what it is about in the page, the row or a source: `{deleteTarget && <DeleteInterventionModal intervention={deleteTarget} … />}`, `{formSource && <FullInterventionModal source={formSource} … />}`. A shared modal that saves owns its busy and error state, calls the lib's flow itself and resolves through a callback with what the page needs next: `onSaved(doubt)`, `onDeleted(doubt)`. The page then closes it, reloads, and asks the reading question. Equipment detail passes `equipmentIdFixed` to `FullInterventionModal` and its one equipment as the equipments (`equipments={[eq]}`).
+- The markup: `div.modal-overlay` > `div.modal`, a `h2.modal__title`, and `div.modal__actions`. Only `ReadingDoubtModal` has `role="dialog"` and `aria-modal="true"`; the others have neither.
+- Most overlays close on a click on the overlay itself: `onClick={e => { if (e.target === e.currentTarget) onClose() }}`. The Edit page's "Enable hour-meter tracking?" closes on any click inside it too, the modal's text included, since the click bubbles up to its overlay: `ConfirmTracksModal` keeps that (`onClick={onCancel}` on the overlay). `FullInterventionModal` checks the class (`classList.contains('modal-overlay')`): the photo delete confirmation is an overlay inside it, and a click on that one closes both. Read a modal's overlay handler before changing it: each differs.
 - To focus a default button when it opens, use `autoFocus` on it.
-- Where a modal's form state lives decides what reopening shows: state inside the modal component is dropped when it closes (it unmounts), state in the page stays. Match what `pre-react` shows when the modal opens again.
-- A page-only modal that saves may own its form, busy and error state too, like the shared ones, when `pre-react` reset them on each open: Equipment detail's `TaskFormModal` (Add task and Edit task, prefilled in `useState`'s initializer), `DeleteTaskModal` and `DeleteDocumentModal` save through the lib and call `onSaved()` / `onDeleted()`. The Equipments page keeps its group modals' state in the page.
-- A page that opens several modals renders each as a sibling after its content, in `pre-react`'s order, each behind its own state (`addingTask`, `editTarget`, `deleteTaskTarget`, `formSource`, `doubt`, …). Equipment detail renders them inside the loaded branch, as `pre-react` did, so a reload that fails hides them with the page.
+- Where a modal's form state lives decides what reopening shows: state inside the modal component is dropped when it closes (it unmounts), state in the page stays. Choose by what the modal must show when it opens again: the Add equipment form keeps what was typed before Cancel, so its state is in `EquipmentsPage`.
+- A page-only modal that saves may own its form, busy and error state too, like the shared ones, when they reset on each open: Equipment detail's `TaskFormModal` (Add task and Edit task, prefilled in `useState`'s initializer), `DeleteTaskModal` and `DeleteDocumentModal` save through the lib and call `onSaved()` / `onDeleted()`. The Equipments page keeps its group modals' state in the page.
+- A page that opens several modals renders each as a sibling after its content, each behind its own state (`addingTask`, `editTarget`, `deleteTaskTarget`, `formSource`, `doubt`, …). Equipment detail renders them inside the loaded branch, so a reload that fails hides them with the page.
 
 ## The contract with `style.css` and the tests
 
 The class names, the text, the accessible names (`aria-label`, label text, button text) and the roles are a contract: `src/style.css` styles them and the Playwright specs in `frontend/tests/` find elements by them. A change to one changes the others in the same commit.
 
-During the port (#146, branch `feat/issue-146-react`), `frontend/tests/` and `src/style.css` are frozen, so a ported screen renders exactly what `pre-react` rendered: the same elements, classes, text and attributes, in the same order. When a spec seems to need a change, stop and report it.
-
-- Read the rendered DOM, not only the old template: open the screen in the reference app and compare `document.querySelector('main').outerHTML` with the port's. Five differences are Arrow's, not the port's: Arrow wrote every `.value` / `.checked` property binding as a stray attribute too (`.value="<!--¤-->"`), it wrote `disabled="true"` where React writes `disabled=""`, it kept the template's whitespace inside text nodes (`<button> Delete </button>`), a slot could render a function's source in place of its value (`e=>at(n,e)` where the Delete page's failure flash should be), and a template mounted a second time could render its bindings as `undefined` (Add equipment opened again: `value="undefined"`, no pickers, an empty Save). The port renders what the template meant ("Failed to delete equipment" in `EquipmentDeletePage`; the Add equipment form with what was typed before Cancel). That is not a behaviour change; note it under Decisions in the PR. Where the artifact also reached the state that is saved (the Task form's interval fields: "1.5" saved as 51 on `pre-react`), the port's difference is a behaviour change: record it under Decisions as a known divergence, and list it for the 1.8 cutover checks (#162).
-- `class` becomes `className`; a class computed in a template (`'tabbar__tab' + (active ? ' active' : '')`) stays computed the same way.
-- Not Found has no reference to match (`pre-react` rendered a blank page there, #184): it keeps the markup of `pre-react`'s `NotFound.ts`, as the shell's content, without the starter's sentence about `src/App.ts` (dropped with the maintainer's approval) (see [Routes and the shell](#routes-and-the-shell)).
-
-## Comparing with the reference app
-
-The reference app is the `pre-react` binary, running on its own port and database (#155). On the maintainer's machine it lives in `~/om-reference/`, and its `README.md` there gives the scripts:
-
-- `~/om-reference/start.sh` / `stop.sh`: start and stop it on http://127.0.0.1:3101.
-- `~/om-reference/reset-and-seed.sh`: an empty database with the demo data.
-- `node ~/om-reference/screenshots.mjs <base-url> <out-dir>`: every screen, desktop and mobile, light and dark.
-
-Seed the branch's server the same day (`make seed`) so the relative dates match, open the same screen in both, and compare the DOM and the screenshots. Stop the reference app when you finish. If it is not there, build `pre-react` in a separate checkout with `make build` and run the binary with a `config.yaml` that sets another port and database.
+- A class that depends on state is computed, in the lib when it is a rule (`detailTabs` gives each tab its `className`, with `active`).
 
 ## Gotchas / Pitfalls
 
@@ -306,19 +292,19 @@ Seed the branch's server the same day (`make seed`) so the relative dates match,
 - `selected` on an `<option>` (set `value` on the `<select>`);
 - invalid nesting, such as a `<div>` inside a `<p>`, or an `<a>` inside an `<a>`.
 
-Arrow built its DOM through `innerHTML`, so the browser silently repaired invalid nesting; React builds the DOM node by node and reports it. Check the DOM the reference app renders, and write that structure.
+React builds the DOM node by node, so it reports invalid nesting that an HTML parser would have repaired silently. Write the valid structure.
 
 ### 2. Keys are the row's id, never its index
 
-A list keyed by index reuses a row by position: after a delete, the next item shows in the deleted row's DOM, with its old local state. Arrow had the same bug, found in #122's review: after a delete, a row kept the previous file's Download link. Key every row by its id, and a file, which has none, by its stored name: `{documents.map(f => <div key={f.name} className="doc-row">…</div>)}`.
+A list keyed by index reuses a row by position: after a delete, the next item shows in the deleted row's DOM, with its old local state (#122: a row kept the previous file's Download link). Key every row by its id, and a file, which has none, by its stored name: `{documents.map(f => <div key={f.name} className="doc-row">…</div>)}`.
 
 ### 3. JSX drops whitespace that holds a newline
 
-JSX removes whitespace that contains a line break between an element and text, so `<strong>{name}</strong>` on one line followed by text on the next renders with no space between them. Arrow kept that whitespace, and the browser showed a space. Keep text that follows an element on the same line (`<input type="radio" … /> Auto`), or write `{' '}`. A lost space can fail a `toHaveText`, and it always shows in the screenshots compared at cutover.
+JSX removes whitespace that contains a line break between an element and text, so `<strong>{name}</strong>` on one line followed by text on the next renders with no space between them. Keep text that follows an element on the same line (`<input type="radio" … /> Auto`), or write `{' '}`. A lost space can fail a `toHaveText`, and it shows on screen.
 
 ### 4. `false` on an `aria-*` attribute renders `"false"`
 
-Arrow removed an attribute whose value was `false`. React removes a boolean HTML attribute (`disabled={false}`), but writes any `aria-*` or `data-*` value as a string: `aria-busy={false}` renders `aria-busy="false"`. Write `aria-busy={checking ? 'true' : undefined}` where `pre-react` left the attribute out, and `aria-expanded={open}` where it wrote `"false"`: React writes a boolean `aria-*` as `"true"` / `"false"`, and the types refuse a plain `string` there.
+React removes a boolean HTML attribute (`disabled={false}`), but writes any `aria-*` or `data-*` value as a string: `aria-busy={false}` renders `aria-busy="false"`. Write `aria-busy={checking ? 'true' : undefined}` where the attribute is absent when false, and `aria-expanded={open}` where the attribute reads `"false"` when closed: React writes a boolean `aria-*` as `"true"` / `"false"`, and the types refuse a plain `string` there.
 
 ### 5. Every effect runs twice in development
 
@@ -326,11 +312,11 @@ Arrow removed an attribute whose value was `false`. React removes a boolean HTML
 
 ### 6. Code in the component body runs on every render
 
-The old page factories ran once, so their bodies loaded data, started timers and focused elements. A component's body runs on every render (twice per render in development), so a fetch or a `setTimeout` there runs again and again. Side effects go in `useEffect` or in event handlers. The linter does not catch these.
+A component's body runs on every render (twice per render in development), so a fetch or a `setTimeout` there runs again and again. Side effects go in `useEffect` or in event handlers. The linter does not catch these.
 
 ### 7. A controlled field shows the state, not what was typed
 
-Where a lib rule turns the text into a number (`hoursFromInput('')` is `0`), the field jumps to the parsed value as soon as it is cleared. Check in the reference app what the field shows while typing and clearing; when the two differ, keep the text as typed in state and parse it with the lib rule where the rule is applied.
+Where a lib rule turns the text into a number (`hoursFromInput('')` is `0`), the field jumps to the parsed value as soon as it is cleared. Check what the field must show while typing and clearing; when that differs from the parsed value, keep the text as typed in state and parse it with the lib rule where the rule is applied.
 
 ### 8. `{count && …}` renders `0`
 
