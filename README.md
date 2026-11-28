@@ -149,6 +149,8 @@ To use a custom icon, replace `preferences-system` with the absolute path to a `
 
 ## Development
 
+The backend is Go and SQLite; the web UI is plain React, built by Vite and embedded in the binary ([ADR 0005](./doc/adr/0005-react-web-ui.md)). `cd frontend && pnpm lint` checks the React hooks rules, as CI does.
+
 Run the backend test suite, formatting check and vet — the same gates CI enforces:
 
 ```bash

@@ -11,7 +11,7 @@
 | Layer | Location | Stack |
 |-------|----------|-------|
 | Backend | `backend/` | Go + Echo + SQLite |
-| Frontend | `frontend/` | Arrow.js + Vite |
+| Frontend | `frontend/` | React 19 (TSX) + Vite |
 | API spec | `backend/api/openapi.yaml` | OpenAPI (single source of truth) |
 
 The backend serves the frontend as embedded static files. The frontend TypeScript client is generated from the OpenAPI spec.
@@ -55,6 +55,7 @@ The backend serves the frontend as embedded static files. The frontend TypeScrip
 | Regen OpenAPI (Go) | `make generate-openapi` | repo root |
 | Regen API client (TS) | `pnpm run generate:api` | `frontend/` |
 | Lint frontend (React hooks rules, fails on any warning) | `pnpm lint` | `frontend/` |
+| Typecheck frontend | `pnpm run typecheck` | `frontend/` |
 | Run frontend unit tests (Vitest, `src/**/*.test.{ts,tsx}`) | `pnpm test:unit` | `frontend/` |
 | Run frontend tests | `pnpm test` | `frontend/` |
 | Run backend tests | `go test ./...` | `backend/` |

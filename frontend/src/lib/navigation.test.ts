@@ -18,7 +18,7 @@ describe('isActiveSection', () => {
     ['/settings', '/equipments', false],
     // Not Found highlights no section...
     ['/settings', '/no-such-page', false],
-    // ...unless its path starts like one, as on pre-react.
+    // ...unless its path starts like one.
     ['/settings', '/settingsx', true],
   ])('section %j on %j: %j', (sectionPath, currentPath, expected) => {
     expect(isActiveSection(sectionPath, currentPath)).toBe(expected)

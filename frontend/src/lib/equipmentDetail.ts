@@ -31,7 +31,7 @@ export function detailTabs(equipmentId: number, current: DetailTab): { tab: Deta
 /**
  * The class of the header's "• updated …" text: emphasized once the reading
  * is very stale. Unlike the list's card, the header emphasizes it on a
- * decommissioned equipment too, as pre-react did.
+ * decommissioned equipment too.
  */
 export function detailHoursClassName(eq: { hoursUpdatedAt?: Timestamp }): string {
   return isHoursVeryStale(eq.hoursUpdatedAt) ? 'very-stale' : ''

@@ -12,7 +12,7 @@ describe('triggerText', () => {
     expect(triggerText({ kind: 'interval', hoursInterval: 250 })).toBe('Every 250h')
   })
 
-  it('reads a months interval alone with no "Every", as pre-react did', () => {
+  it('reads a months interval alone with no "Every"', () => {
     expect(triggerText({ kind: 'interval', monthsInterval: 24 })).toBe('24mo')
   })
 

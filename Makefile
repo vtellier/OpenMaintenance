@@ -41,7 +41,7 @@ build-frontend:
 
 copy-frontend:
 	rm -rf backend/static
-	cp -r frontend/dist/client backend/static
+	cp -r frontend/dist backend/static
 
 build: build-frontend copy-frontend build-backend
 

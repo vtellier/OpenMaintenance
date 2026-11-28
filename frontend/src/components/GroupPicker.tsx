@@ -31,9 +31,9 @@ export function GroupPicker({ groups, current, onSelect, onCreated }: GroupPicke
   const [form, setForm] = useState<NewGroupValues>(newGroupForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // #175, kept in this pure port of pre-react: after the inline form's
-  // Cancel, the picker shows "No group" while the form keeps the group picked
-  // before, until the picker changes again.
+  // #175, a known bug kept from pre-react on purpose: after the inline
+  // form's Cancel, the picker shows "No group" while the form keeps the group
+  // picked before, until the picker changes again.
   const [showsNoGroup, setShowsNoGroup] = useState(false)
 
   let value = ''

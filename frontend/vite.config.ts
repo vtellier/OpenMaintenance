@@ -34,9 +34,6 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(getVersion()),
   },
-  build: {
-    outDir: 'dist/client',
-  },
   // Vitest unit tests (`pnpm test:unit`) sit next to the code they cover.
   // Playwright specs live in tests/ and must stay out of Vitest's reach.
   test: {

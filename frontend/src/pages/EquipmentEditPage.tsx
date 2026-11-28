@@ -203,7 +203,7 @@ function EditForm({ form, groups, today, backHref, saving, onChange, onGroupCrea
 
 /**
  * Asked when the save turns the hour-meter on and a task has an hours
- * interval. As on pre-react, a click anywhere in the overlay closes it, the
+ * interval. A click anywhere in the overlay closes it, the
  * modal's own content included (the click bubbles up to the overlay).
  */
 function ConfirmTracksModal({ onCancel, onEnable }: { onCancel: () => void, onEnable: () => void }) {

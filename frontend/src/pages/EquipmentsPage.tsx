@@ -41,8 +41,8 @@ export function EquipmentsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // The Add equipment form lives here, not in its modal: as on pre-react,
-  // Cancel keeps what was typed for the next open; a save empties it.
+  // The Add equipment form lives here, not in its modal, so Cancel keeps
+  // what was typed for the next open; a save empties it.
   const [showAddModal, setShowAddModal] = useState(false)
   const [addForm, setAddForm] = useState<NewEquipmentValues>(newEquipmentForm)
   const [adding, setAdding] = useState(false)
@@ -64,8 +64,8 @@ export function EquipmentsPage() {
 
   const [groupError, setGroupError] = useState<string | null>(null)
 
-  // As on pre-react, every load, a reload included, shows "Loading
-  // equipments..." in place of the list until it is done.
+  // Every load, a reload included, shows "Loading equipments..." in place of
+  // the list until it is done.
   const reload = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
     setError(null)

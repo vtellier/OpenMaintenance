@@ -37,8 +37,8 @@ function localDayByIntl(instant: string): string {
     .format(new Date(instant))
 }
 
-// A row holds no Date: Arrow.js wraps one held in reactive state in a Proxy
-// that loses its methods.
+// A row holds no Date, only plain values: its timestamps are ISO strings
+// (see timestamp.ts).
 function expectNoDate(row: object) {
   for (const [key, value] of Object.entries(row)) {
     expect(value instanceof Date, key + ' is a Date').toBe(false)

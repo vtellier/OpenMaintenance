@@ -7,9 +7,9 @@
  * see calendar-date.ts.
  *
  * Pages hold timestamps as ISO strings: their display rows (rows.ts) convert
- * the generated client's Date with fromApiTimestamp, since Arrow.js wraps a
- * Date held in reactive state in a Proxy that loses its methods. Every helper
- * here still accepts a Date too.
+ * the generated client's Date with fromApiTimestamp, so a row holds only
+ * plain values that copy and compare as they are. Every helper here still
+ * accepts a Date too.
  */
 export type Timestamp = Date | string | null | undefined
 
