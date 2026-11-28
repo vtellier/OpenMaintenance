@@ -14,6 +14,17 @@ import { afterAll, beforeAll, expect, test } from 'vitest'
 const frontendDir = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.dirname(frontendDir)
 
+// The Makefile test needs `make`, which a Windows machine may lack; CI and
+// macOS have it, so it still runs there.
+const hasMake = (() => {
+  try {
+    execFileSync('make', ['--version'], { stdio: 'ignore' })
+    return true
+  } catch {
+    return false
+  }
+})()
+
 let tmp: string
 let repo: string
 let expected: string
@@ -50,7 +61,7 @@ afterAll(() => {
   rmSync(tmp, { recursive: true, force: true })
 })
 
-test('the Makefile names the build after the latest v* tag', () => {
+test.skipIf(!hasMake)('the Makefile names the build after the latest v* tag', () => {
   // A second makefile prints VERSION, so the repository's Makefile is read as
   // it is (GNU make 3.81, as on macOS, has no --eval).
   const printer = path.join(tmp, 'print-version.mk')
