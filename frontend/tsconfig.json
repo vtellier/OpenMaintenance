@@ -15,5 +15,5 @@
       "@generated/*": ["generated/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "*.test.ts"]
 }

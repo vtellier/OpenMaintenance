@@ -34,10 +34,11 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(getVersion()),
   },
-  // Vitest unit tests (`pnpm test:unit`) sit next to the code they cover.
+  // Vitest unit tests (`pnpm test:unit`) sit next to the code they cover:
+  // src/ for the app, the frontend root for the build (build-version.test.ts).
   // Playwright specs live in tests/ and must stay out of Vitest's reach.
   test: {
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', '*.test.ts'],
     // Every unit test runs once in the machine's timezone ('local') and once
     // per timezone below, east and west of UTC, so date code cannot depend on
     // where it runs. TZ only takes effect for a whole process, hence the
