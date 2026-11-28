@@ -70,7 +70,9 @@ export function EquipmentDetailPage({ equipmentId, tab }: { equipmentId: number;
   const [deleteDocTarget, setDeleteDocTarget] = useState<FileRow | null>(null)
 
   // Resolves to the equipment loaded, or null when the load failed or was
-  // aborted. A later success leaves a load error in place, as before React.
+  // aborted. A later success leaves a load error in place: kept on purpose
+  // (React skill, "A reload shared by the effect and the handlers"); changing
+  // it is its own issue.
   const reload = useCallback(async (signal?: AbortSignal): Promise<EquipmentRow | null> => {
     let fresh: EquipmentRow | null = null
     try {

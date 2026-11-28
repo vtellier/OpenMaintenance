@@ -30,7 +30,9 @@ export function DashboardPage() {
   const [doneTaskId, setDoneTaskId] = useState<number | null>(null)
   const [sameHoursSavingId, setSameHoursSavingId] = useState<number | null>(null)
 
-  // A later success leaves a load error in place, as before React.
+  // A later success leaves a load error in place: kept on purpose (React skill,
+  // "A reload shared by the effect and the handlers"); changing it is its own
+  // issue.
   const reload = useCallback(async (signal?: AbortSignal) => {
     try {
       const [eqs, ts, invs] = await Promise.all([

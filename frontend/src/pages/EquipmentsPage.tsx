@@ -64,8 +64,8 @@ export function EquipmentsPage() {
 
   const [groupError, setGroupError] = useState<string | null>(null)
 
-  // Every load, a reload included, shows "Loading
-  // equipments..." in place of the list until it is done.
+  // Every load, a reload included, shows "Loading equipments..." in place of
+  // the list until it is done.
   const reload = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
     setError(null)
