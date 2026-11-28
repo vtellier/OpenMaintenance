@@ -3,7 +3,7 @@ name: run-openmaintenance
 description: Build, run, seed, and drive OpenMaintenance. Use when asked to start the app, run it, seed it with demo data, take a screenshot of its UI, interact with the running app, or verify a frontend or backend change.
 ---
 
-OpenMaintenance is a Go + Arrow.js web app served from a single binary on port 3001. Drive it with the Chrome DevTools MCP — start the backend, then navigate and interact via `mcp__chrome-devtools__*` tools. No separate driver file needed.
+OpenMaintenance is a Go + React web app served from a single binary on port 3001. Drive it with the Chrome DevTools MCP — start the backend, then navigate and interact via `mcp__chrome-devtools__*` tools. No separate driver file needed.
 
 All paths below are relative to the repo root.
 

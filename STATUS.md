@@ -974,3 +974,7 @@ Deployed to the local install (`openmaintenance.service`, `/opt/openmaintenance`
 - **Checks:** `pnpm lint`, `pnpm run typecheck`, `pnpm run build`, `make build`, `pnpm test:unit` (3047 passed, 1 skipped), `go test ./...`. The whole suite with `pnpm test:prod`, both projects: 128 passed, 9 skipped, 0 failed. `git diff pre-react -- frontend/tests frontend/src/style.css` is empty.
 - **Review:** two should-fix. `CONTRIBUTING.md` and `AGENTS.md` now name both Vitest globs and say a test of the build sits at the frontend root. The test clears inherited `GIT_*` variables, since with `GIT_DIR` set it committed and tagged into that repository; with a scratch `GIT_DIR` it now leaves that repository untouched. Nits: the Makefile half is skipped when `make` is missing; the pattern is `v[0-9]*`, so a tag like `vnext` (the test's new decoy) never names a build; `Test_isNewer` compares two `git describe` versions.
 - **Review checks:** `pnpm lint`, `pnpm run typecheck`, `pnpm run build`, `make build`, `pnpm test:unit` (3047 passed, 1 skipped), `go test ./...`. `git diff pre-react -- frontend/tests frontend/src/style.css` is empty.
+
+## 2026-11-28 — The run-openmaintenance skill names React
+
+- Committed on `feat/issue-146-react`, with the maintainer's approval. The skill's first line said "Go + Arrow.js web app"; it now says "Go + React web app". The only mention of Arrow.js left outside the history is a body comment of the frozen spec `frontend/tests/non-regression/manual-update-check.spec.ts:108`, for after the cutover.
