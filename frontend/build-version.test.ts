@@ -27,6 +27,13 @@ function git(...args: string[]): string {
 }
 
 beforeAll(() => {
+  // A git hook or an editor can export GIT_DIR, GIT_WORK_TREE or
+  // GIT_INDEX_FILE, which would point git, make and the vite.config import at
+  // another repository. The forks pool gives this file its own process, so
+  // clearing them here covers all three.
+  for (const key of Object.keys(process.env)) {
+    if (key.startsWith('GIT_')) delete process.env[key]
+  }
   tmp = mkdtempSync(path.join(tmpdir(), 'om-build-version-'))
   repo = path.join(tmp, 'repo')
   mkdirSync(repo)
