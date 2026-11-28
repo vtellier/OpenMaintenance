@@ -191,6 +191,7 @@ async function onCheck() {
 
 A change that also lives outside React is made in the handler that sets the state: `chooseTheme` sets `theme`, writes it to `localStorage` and applies it to `<html>` in one go, with no effect watching `theme`.
 
+- An optimistic save (the header's icon, which shows the new one at once and comes back if the save fails, as on `pre-react`) keeps the row before the change, sets the changed copy, `await`s the lib, and sets the kept row back with the error on failure (`changeIcon` in `EquipmentDetailPage.tsx`).
 - React clears `e.currentTarget` once the handler returns. An async handler that needs the element after an `await` reads it first: `const input = e.currentTarget` and `Array.from(input.files)`, before `input.value = ''` empties the live `FileList` (`InterventionPhotos`).
 
 ## Lists
@@ -208,13 +209,9 @@ Equipment detail's tabs are URLs (`/equipments/:id`, then `/history`, `/document
 
 ## Files
 
-- **Upload:** a hidden file input inside a `label.btn`, which gives it its accessible name (`getByLabel('+ Upload document')`): `<label className="btn btn--accent">{uploading ? 'Uploading...' : '+ Upload document'}<input type="file" style={{ display: 'none' }} onChange={onUpload} disabled={uploading} /></label>`. The input is uncontrolled. The handler reads `e.currentTarget` and its file before the first `await`, saves through the lib (`uploadDocument`, which resolves to the backend's reason), reloads, then empties `input.value` (see [Event handlers](#event-handlers)).
+- **Upload:** a hidden file input inside a `label.btn`, which gives it its accessible name (`getByLabel('+ Upload document')`): `<label className="btn btn--accent">{uploading ? 'Uploading...' : '+ Upload document'}<input type="file" style={{ display: 'none' }} onChange={onUpload} disabled={uploading} /></label>`. The input is uncontrolled. The handler reads `e.currentTarget` and its file before the first `await`, saves through the lib (`uploadDocument`, which resolves to the backend's reason), reloads, then empties `input.value` (see [Event handlers](#event-handlers)). The empty state's second input (`label.upload-inline`) has no `disabled`, and `onUpload` no busy guard, as on `pre-react`.
 - **Download:** a plain link, `<a href={f.url} download={f.originalName}>`; none for a file missing on the server.
 - A file row is keyed by its stored name, `key={f.name}`: files have no id.
-
-## Optimistic saves
-
-The header's icon shows the new one at once and comes back if the save fails, as on `pre-react`: keep the row before the change, set the changed copy, `await` the lib, and set the kept row back with the error on failure (`changeIcon` in `EquipmentDetailPage.tsx`).
 
 ## Forms
 
@@ -284,7 +281,7 @@ The class names, the text, the accessible names (`aria-label`, label text, butto
 
 During the port (#146, branch `feat/issue-146-react`), `frontend/tests/` and `src/style.css` are frozen, so a ported screen renders exactly what `pre-react` rendered: the same elements, classes, text and attributes, in the same order. When a spec seems to need a change, stop and report it.
 
-- Read the rendered DOM, not only the old template: open the screen in the reference app and compare `document.querySelector('main').outerHTML` with the port's. Five differences are Arrow's, not the port's: Arrow wrote every `.value` / `.checked` property binding as a stray attribute too (`.value="<!--¤-->"`), it wrote `disabled="true"` where React writes `disabled=""`, it kept the template's whitespace inside text nodes (`<button> Delete </button>`), a slot could render a function's source in place of its value (`e=>at(n,e)` where the Delete page's failure flash should be), and a template mounted a second time could render its bindings as `undefined` (Add equipment opened again: `value="undefined"`, no pickers, an empty Save). The port renders what the template meant ("Failed to delete equipment" in `EquipmentDeletePage`; the Add equipment form with what was typed before Cancel). That is not a behaviour change; note it under Decisions in the PR.
+- Read the rendered DOM, not only the old template: open the screen in the reference app and compare `document.querySelector('main').outerHTML` with the port's. Five differences are Arrow's, not the port's: Arrow wrote every `.value` / `.checked` property binding as a stray attribute too (`.value="<!--¤-->"`), it wrote `disabled="true"` where React writes `disabled=""`, it kept the template's whitespace inside text nodes (`<button> Delete </button>`), a slot could render a function's source in place of its value (`e=>at(n,e)` where the Delete page's failure flash should be), and a template mounted a second time could render its bindings as `undefined` (Add equipment opened again: `value="undefined"`, no pickers, an empty Save). The port renders what the template meant ("Failed to delete equipment" in `EquipmentDeletePage`; the Add equipment form with what was typed before Cancel). That is not a behaviour change; note it under Decisions in the PR. Where the artifact also reached the state that is saved (the Task form's interval fields: "1.5" saved as 51 on `pre-react`), the port's difference is a behaviour change: record it under Decisions as a known divergence, and list it for the 1.8 cutover checks (#162).
 - `class` becomes `className`; a class computed in a template (`'tabbar__tab' + (active ? ' active' : '')`) stays computed the same way.
 - Not Found has no reference to match (`pre-react` rendered a blank page there, #184): it keeps the markup of `pre-react`'s `NotFound.ts`, as the shell's content, without the starter's sentence about `src/App.ts` (dropped with the maintainer's approval) (see [Routes and the shell](#routes-and-the-shell)).
 
