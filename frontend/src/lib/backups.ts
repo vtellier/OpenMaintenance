@@ -31,8 +31,8 @@ export function backupSummaryOf(status: BackupStatus): BackupSummary {
 
 /**
  * What the Backup section shows when the backup status could not be loaded:
- * the lines of a disabled configuration with no directory, as `pre-react`
- * showed them. No error is shown.
+ * the lines of a disabled configuration with no directory. No error is
+ * shown.
  */
 export const unknownBackupSummary: BackupSummary = backupSummaryOf({ enabled: false, path: '', keep: 0, files: [] })
 

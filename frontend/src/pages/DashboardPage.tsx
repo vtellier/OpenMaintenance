@@ -30,7 +30,7 @@ export function DashboardPage() {
   const [doneTaskId, setDoneTaskId] = useState<number | null>(null)
   const [sameHoursSavingId, setSameHoursSavingId] = useState<number | null>(null)
 
-  // As on pre-react, a later success leaves a load error in place.
+  // A later success leaves a load error in place, as before React.
   const reload = useCallback(async (signal?: AbortSignal) => {
     try {
       const [eqs, ts, invs] = await Promise.all([

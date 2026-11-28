@@ -46,7 +46,7 @@ export function HistoryPage() {
   const [doubt, setDoubt] = useState<ReadingDoubt | null>(null)
 
   // Resolves to the equipments loaded, or null when the load failed or was
-  // aborted. As on pre-react, a later success leaves a load error in place.
+  // aborted. A later success leaves a load error in place, as before React.
   const reload = useCallback(async (signal?: AbortSignal): Promise<EquipmentRow[] | null> => {
     let fresh: EquipmentRow[] | null = null
     try {

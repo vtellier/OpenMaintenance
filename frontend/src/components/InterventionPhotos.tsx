@@ -132,8 +132,8 @@ interface ConfirmPhotoDeleteProps {
 }
 
 /**
- * "Delete this photo?", over the intervention form. As on pre-react, a click
- * on its overlay closes it and, bubbling up to the form's overlay, the form
+ * "Delete this photo?", over the intervention form. A click on its
+ * overlay closes it and, bubbling up to the form's overlay, the form
  * too (see FullInterventionModal).
  */
 function ConfirmPhotoDelete({ photo, deleting, onCancel, onDelete }: ConfirmPhotoDeleteProps) {

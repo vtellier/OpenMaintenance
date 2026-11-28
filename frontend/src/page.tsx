@@ -39,8 +39,7 @@ const equipmentApi = new EquipmentApi(apiConfig)
  * plain, typed props (an id as a number), and wraps the page in `App`, which
  * takes the pathname for the navigation's highlight.
  *
- * The routes are `pre-react`'s (`git show pre-react:frontend/src/page.ts`),
- * in the same order and with the same titles and descriptions. A path no
+ * The routes are tried in order, and the first that matches wins. A path no
  * route matches shows Not Found.
  */
 export async function routeToPage(url: string): Promise<Page> {
@@ -103,8 +102,8 @@ export async function routeToPage(url: string): Promise<Page> {
     const equipmentId = Number(detailMatch[1])
     // The regex admits only these segments.
     const tab = (detailMatch[2] ?? '') as DetailTab
-    // The title names the equipment, so it waits for it, outside React, as
-    // on pre-react; the page loads its own data in its effect.
+    // The title names the equipment, so it waits for it, outside React; the
+    // page loads its own data in its effect.
     let equipmentName: string | null = null
     try {
       const eq = toEquipmentRow(await equipmentApi.getEquipment({ id: equipmentId }))
@@ -136,8 +135,8 @@ export async function routeToPage(url: string): Promise<Page> {
     }
   }
 
-  // pre-react rendered a blank page here, with a page error (#184): Not Found
-  // renders inside the shell instead, as its own <main>.
+  // Not Found renders inside the shell, as its own <main> (#184: before React
+  // this was a blank page with a page error).
   return {
     description: `There is no route for ${pathname}.`,
     title: 'Not Found | OpenMaintenance',

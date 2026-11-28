@@ -10,7 +10,7 @@ import { formatHours } from '@/lib/format'
 
 /**
  * The trigger summary: "Every 100h or 6mo", "Every 250h", or the months
- * alone with no "Every", "24mo", as pre-react wrote it. An expiry task reads
+ * alone with no "Every", "24mo". An expiry task reads
  * "On expiry date". Empty for an interval task with no interval.
  */
 export function triggerText(task: Pick<Task, 'kind' | 'hoursInterval' | 'monthsInterval'>): string {

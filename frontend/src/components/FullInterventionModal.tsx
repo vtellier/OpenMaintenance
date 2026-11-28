@@ -65,7 +65,7 @@ export function FullInterventionModal({ source, equipments, tasks, interventions
     else await onSaved(doubt)
   }
 
-  // As on pre-react, any overlay closes the form, the photo delete
+  // Any overlay closes the form, the photo delete
   // confirmation's included: a click on it bubbles up to this one.
   function onOverlayClick(e: MouseEvent) {
     if ((e.target as HTMLElement).classList.contains('modal-overlay')) onClose()

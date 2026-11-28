@@ -70,7 +70,7 @@ export function EquipmentDetailPage({ equipmentId, tab }: { equipmentId: number;
   const [deleteDocTarget, setDeleteDocTarget] = useState<FileRow | null>(null)
 
   // Resolves to the equipment loaded, or null when the load failed or was
-  // aborted. As on pre-react, a later success leaves a load error in place.
+  // aborted. A later success leaves a load error in place, as before React.
   const reload = useCallback(async (signal?: AbortSignal): Promise<EquipmentRow | null> => {
     let fresh: EquipmentRow | null = null
     try {
@@ -95,7 +95,7 @@ export function EquipmentDetailPage({ equipmentId, tab }: { equipmentId: number;
     return fresh
   }, [equipmentId])
 
-  // The documents load on every tab, as on pre-react.
+  // The documents load on every tab.
   const reloadDocuments = useCallback(async (signal?: AbortSignal) => {
     try {
       const files = await equipmentApi.listEquipmentFiles({ equipmentId }, { signal })
@@ -125,7 +125,7 @@ export function EquipmentDetailPage({ equipmentId, tab }: { equipmentId: number;
 
   function openEditTask(task: TaskRow) {
     if (task.id == null) return
-    // Asked once, when the form opens, as on pre-react.
+    // Asked once, when the form opens.
     setEditTarget({ task, hasIntervention: lastInterventionOfTask(interventions, task.id) != null })
   }
 
@@ -358,7 +358,7 @@ function TasksTab({ tasks, interventions, onAdd, onDone, onEdit, onDelete }: Tas
         <button className="btn btn--accent" onClick={onAdd}>+ Add task</button>
       </div>
       {sorted.length === 0
-        // As on pre-react, the link keeps href="#": the click opens Add task
+        // The link keeps href="#": the click opens Add task
         // and adds "#" to the URL.
         ? <p className="page__empty">No maintenance tasks yet for this equipment. <a href="#" onClick={onAdd}>Add the first task</a>.</p>
         : (
@@ -544,7 +544,7 @@ interface TaskFormModalProps {
 /**
  * Add task and Edit task (doc/gui/tasks.md, "Task form"). Add task offers the
  * kind; Edit task shows it as text, since it cannot change. The form starts
- * from the task, or empty, each time it opens, as on pre-react: its state is
+ * from the task, or empty, each time it opens: its state is
  * its own, dropped when it closes. It saves through saveTask, and stays open
  * with the reason when the save fails.
  */

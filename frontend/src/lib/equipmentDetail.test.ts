@@ -43,7 +43,7 @@ describe('detailHoursClassName', () => {
     expect(detailHoursClassName({})).toBe('very-stale')
   })
 
-  it('emphasizes it on a decommissioned equipment too, as pre-react did', () => {
+  it('emphasizes it on a decommissioned equipment too', () => {
     const decommissioned = { hoursUpdatedAt: daysAgo(90), decommissionedAt: '2026-09-27' }
     expect(detailHoursClassName(decommissioned)).toBe('very-stale')
   })

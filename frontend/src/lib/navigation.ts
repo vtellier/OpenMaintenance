@@ -5,7 +5,7 @@
  * Whether the section at `sectionPath` is the one to highlight on the page at
  * `currentPath`. The Dashboard (`/`) only on `/` itself; any other section on
  * its own path and every path under it, so an equipment page highlights
- * Equipments. The match is on the start of the path, as `pre-react` had it:
+ * Equipments. The match is on the start of the path, so
  * `/settingsx` highlights Settings too.
  */
 export function isActiveSection(sectionPath: string, currentPath: string): boolean {

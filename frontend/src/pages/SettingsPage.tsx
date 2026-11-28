@@ -30,7 +30,7 @@ export function SettingsPage() {
       try {
         summary = backupSummaryOf(await systemApi.getBackupStatus({ signal }))
       } catch {
-        // Shown as unknown, with no error (as on pre-react).
+        // Shown as unknown, with no error.
       }
       if (signal.aborted) return
       setBackups(summary)
