@@ -7,7 +7,12 @@ description: Write or change OpenMaintenance frontend code in React (TSX pages, 
 
 The web UI is plain React 19 in TSX, built by Vite ([ADR 0005](../../../doc/adr/0005-react-web-ui.md)). Nothing else at runtime: no router (every page is a full page load), no state library, no component kit.
 
-Settings is the reference page (#157): `src/pages/SettingsPage.tsx`, `src/components/UpdateCheck.tsx`, `src/components/NavBar.tsx` and `src/App.tsx` show in working code the file layout, the routes and the shell, data loading, the loading states, the three lib call points and the event handlers. The equipment pages of #158 show what Settings does not exercise: the `flash--error` path and [Forms](#forms) (`src/pages/EquipmentHoursPage.tsx`, `EquipmentCorrectHoursPage.tsx`, `EquipmentEditPage.tsx`, `EquipmentDeletePage.tsx`), a page-only modal (`ConfirmTracksModal` in `EquipmentEditPage.tsx`), [the pickers](#pickers) and [a custom element](#custom-elements) (`src/components/IconPicker.tsx`, `GroupPicker.tsx`). The list pages of #159 show [the shared reload](#a-reload-shared-by-the-effect-and-the-handlers), [Lists](#lists) and the shared [Modals](#modals) (`src/pages/DashboardPage.tsx`, `EquipmentsPage.tsx`, `HistoryPage.tsx`; `src/components/FullInterventionModal.tsx`, `DeleteInterventionModal.tsx`, `ReadingDoubtModal.tsx`, `HistoryList.tsx`). Equipment detail (#160, `src/pages/EquipmentDetailPage.tsx`) shows [tabs](#tabs), [a file upload and download](#files), an optimistic save, and a page that composes the shared modals with its own.
+Where to look for working code:
+
+- **A page:** Settings is the reference page (`src/pages/SettingsPage.tsx`, with `src/App.tsx`, `src/components/NavBar.tsx` and `UpdateCheck.tsx`): the file layout, the routes and the shell, data loading, the loading states, the three lib call points and the event handlers. Dashboard, Equipments and History (`src/pages/DashboardPage.tsx`, `EquipmentsPage.tsx`, `HistoryPage.tsx`) show [the shared reload](#a-reload-shared-by-the-effect-and-the-handlers) and [Lists](#lists). Equipment detail (`src/pages/EquipmentDetailPage.tsx`) shows [tabs](#tabs), [a file upload and download](#files), an optimistic save, and a page that composes the shared modals with its own.
+- **A form:** the equipment pages (`src/pages/EquipmentHoursPage.tsx`, `EquipmentCorrectHoursPage.tsx`, `EquipmentEditPage.tsx`, `EquipmentDeletePage.tsx`) show [Forms](#forms) and the `flash--error` path.
+- **A modal:** the shared [Modals](#modals) (`src/components/FullInterventionModal.tsx`, `DeleteInterventionModal.tsx`, `ReadingDoubtModal.tsx`) and a page-only one (`ConfirmTracksModal` in `EquipmentEditPage.tsx`).
+- **A shared component:** [the pickers](#pickers) and [a custom element](#custom-elements) (`src/components/IconPicker.tsx`, `GroupPicker.tsx`), and `src/components/HistoryList.tsx` (History and Equipment detail).
 
 ## Quick workflow
 
@@ -36,7 +41,7 @@ A small piece that only one component renders stays in that component's file, as
 
 ## Routes and the shell
 
-- Each route in `page.tsx` matches the pathname with a regex (the routes are tried in order), parses what it needs and passes it as plain typed props: `<EquipmentHoursPage equipmentId={Number(match[1])} />`. A page reads the query string itself, once, through the lib: `useState(() => prefilledReading(window.location.search))`.
+- Each route in `page.tsx` matches the pathname with an exact path (`/`, `/equipments`) or a regex (the routes are tried in order), parses what it needs and passes it as plain typed props: `<EquipmentHoursPage equipmentId={Number(match[1])} />`. A page reads the query string itself, once, through the lib: `useState(() => prefilledReading(window.location.search))`.
 - The view is the page inside the shell, `<App currentPath={pathname}><SettingsPage /></App>`; `NavBar` highlights the section from `currentPath` (`isActiveSection` in `lib/navigation.ts`).
 - Each route gives the page's title and description. `entry-client.tsx` sets `document.title` from the route before rendering; a page leaves the title alone (a `<title>` rendered by a component would sit next to `index.html`'s).
 - A route whose title needs data awaits its GET in `routeToPage`, outside React: Equipment detail awaits `getEquipment` there for `"<name> | OpenMaintenance"` and its description, falling back to `Equipment #<id>` when it fails. The page still loads its own data in its effect.
@@ -118,7 +123,7 @@ return (
 )
 ```
 
-- The state flags are named `loaded`, `error`, `loadError` and `saving`. An error is `string | null`, `null` when there is none: `{error && <div className="flash flash--error">{error}</div>}`.
+- A boolean flag is named for the state it marks: `loaded` once the data is in, an `-ing` word while a request runs (`loading`, `saving`, `deleting`, `uploading`, `checking`). An error is `string | null`, `null` when there is none (`error`, `loadError`): `{error && <div className="flash flash--error">{error}</div>}`. Delete equipment's `loadError` is the one boolean, since its message is fixed.
 - A section that shows nothing until its data arrives holds the data as `T | null`, with no `loaded` flag: Settings → Backup (`BackupSummary | null`).
 - Some loads fail quietly: Settings → Backup shows the lib's fallback (`unknownBackupSummary`), the update status line stays hidden.
 

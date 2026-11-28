@@ -129,7 +129,7 @@ Every bug fix must be accompanied by a test that fails on the unfixed code. Pin 
 
 Add a Playwright spec on top of a backend test only when the UI can regress independently of the backend.
 
-`backend/tests/` is a black-box `package tests`; the shared harness `newTestServer(t)` and the `seedEquipment` / `seedHourEquipment` helpers live there already — reuse them rather than writing a new one. Note that `make test-backend` currently runs `go test ./tests/...` only, so run `go test ./...` from `backend/` when you add an in-package test.
+`backend/tests/` is a black-box `package tests`; the shared harness `newTestServer(t)` and the `seedEquipment` / `seedHourEquipment` helpers live there already — reuse them rather than writing a new one. `make test-backend` runs `go test ./...` from `backend/`, so it covers both kinds of backend test.
 
 All existing tests must still pass before you commit.
 

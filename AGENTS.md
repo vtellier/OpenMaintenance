@@ -55,6 +55,7 @@ The backend serves the frontend as embedded static files. The frontend TypeScrip
 | Regen OpenAPI (Go) | `make generate-openapi` | repo root |
 | Regen API client (TS) | `pnpm run generate:api` | `frontend/` |
 | Lint frontend (React hooks rules, fails on any warning) | `pnpm lint` | `frontend/` |
+| Typecheck frontend | `pnpm run typecheck` | `frontend/` |
 | Run frontend unit tests (Vitest, `src/**/*.test.{ts,tsx}`) | `pnpm test:unit` | `frontend/` |
 | Run frontend tests | `pnpm test` | `frontend/` |
 | Run backend tests | `go test ./...` | `backend/` |
