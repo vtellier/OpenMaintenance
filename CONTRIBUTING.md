@@ -47,7 +47,7 @@ pnpm exec vitest run --project Europe/Paris   # one timezone only
 
 Every test runs once in your own timezone (the `local` project) and once in each timezone listed in `TEST_TIMEZONES` in `vite.config.ts`: UTC, two zones east of it and two west. Date code therefore cannot pass only where it was written. Each timezone runs in its own process (the `forks` pool), because `TZ` applies to a whole process.
 
-Put each test next to the module it covers, named `<module>.test.ts` (e.g. `src/lib/format.test.ts`), and test through the module's exported functions. Vitest only collects `src/**/*.test.{ts,tsx}`; the Playwright specs in `frontend/tests/` keep running with `pnpm test`.
+Put each test next to the module it covers, named `<module>.test.ts` (e.g. `src/lib/format.test.ts`), and test through the module's exported functions. A test of the build itself (the `Makefile`, `vite.config.ts`) sits at the frontend root instead, like `build-version.test.ts`. Vitest collects `src/**/*.test.{ts,tsx}` and `*.test.ts` at the frontend root; the Playwright specs in `frontend/tests/` keep running with `pnpm test`.
 
 ## Common commands
 
@@ -145,7 +145,7 @@ The SQLite database carries its own `schema_version` in a `meta` table. When you
 
 ### Releases and versioning
 
-Versions follow [Semantic Versioning](https://semver.org/) with a `v` prefix (`v1.2.3`). The version is derived at build time from git tags via `git describe --tags --always --dirty` — no `VERSION` file to maintain.
+Versions follow [Semantic Versioning](https://semver.org/) with a `v` prefix (`v1.2.3`). The version is derived at build time from the latest release tag (`v` and a digit) via `git describe --tags --match 'v[0-9]*' --always --dirty` (the `Makefile`'s `VERSION` and `getVersion()` in `frontend/vite.config.ts`) — no `VERSION` file to maintain. Tags of any other name, such as `pre-react`, never name a build.
 
 To cut a release:
 ```bash

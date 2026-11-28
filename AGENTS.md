@@ -56,7 +56,7 @@ The backend serves the frontend as embedded static files. The frontend TypeScrip
 | Regen API client (TS) | `pnpm run generate:api` | `frontend/` |
 | Lint frontend (React hooks rules, fails on any warning) | `pnpm lint` | `frontend/` |
 | Typecheck frontend | `pnpm run typecheck` | `frontend/` |
-| Run frontend unit tests (Vitest, `src/**/*.test.{ts,tsx}`) | `pnpm test:unit` | `frontend/` |
+| Run frontend unit tests (Vitest, `src/**/*.test.{ts,tsx}`, plus build tests in `*.test.ts` at the frontend root) | `pnpm test:unit` | `frontend/` |
 | Run frontend tests | `pnpm test` | `frontend/` |
 | Run backend tests | `go test ./...` | `backend/` |
 
