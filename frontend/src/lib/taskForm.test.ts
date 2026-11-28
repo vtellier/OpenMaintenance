@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { ResponseError } from '@generated/api/runtime'
 import {
-  canSaveTask, intervalFromInput, intervalValue, kindFields, newTaskForm, saveTask, TaskFormValues, taskFormOf, TaskSaver, toTaskInput,
+  asksCurrentExpiryDate, canSaveTask, deleteTask, intervalFromInput, intervalValue, kindFields, newTaskForm, saveTask, TaskDeleter,
+  TaskFormValues, taskFormOf, taskKindText, TaskSaver, toTaskInput,
 } from '@/lib/taskForm'
 
 const oilChange: TaskFormValues = {
@@ -168,5 +169,53 @@ describe('saveTask', () => {
     expect(await saveTask(oilChange, { equipmentId: 7, taskId: null }, fakeApi(reason).api)).toBe('Failed to add task')
     expect(await saveTask(oilChange, { equipmentId: 7, taskId: 12 }, fakeApi(reason).api)).toBe('Failed to update task')
     expect(await saveTask(oilChange, { equipmentId: 7, taskId: 12 }, fakeApi(new Error('network')).api)).toBe('Failed to update task')
+  })
+})
+
+describe('taskKindText', () => {
+  it("names the task's kind, which the edit form shows instead of the choice", () => {
+    expect(taskKindText('interval')).toBe('Interval task')
+    expect(taskKindText('expiry')).toBe('Expiry task')
+  })
+})
+
+describe('asksCurrentExpiryDate', () => {
+  it('asks for an expiry task with no intervention, as Add task always is', () => {
+    expect(asksCurrentExpiryDate(flare, false)).toBe(true)
+  })
+
+  it('no longer asks once the task has an intervention: logging a replacement sets the date', () => {
+    expect(asksCurrentExpiryDate(flare, true)).toBe(false)
+  })
+
+  it('never asks for an interval task', () => {
+    expect(asksCurrentExpiryDate(oilChange, false)).toBe(false)
+  })
+})
+
+describe('deleteTask', () => {
+  function fakeApi(failure?: Error) {
+    const calls: { id: number }[] = []
+    const api: TaskDeleter = {
+      async deleteTask(req) {
+        calls.push(req)
+        if (failure) throw failure
+      },
+    }
+    return { api, calls }
+  }
+
+  it('deletes the task by its id, and resolves to null', async () => {
+    const { api, calls } = fakeApi()
+
+    expect(await deleteTask(12, api)).toBeNull()
+    expect(calls).toEqual([{ id: 12 }])
+  })
+
+  it('resolves to "Failed to delete task", whatever the backend says', async () => {
+    const refused = new ResponseError(new Response(JSON.stringify({ error: 'task not found' }), { status: 404 }))
+
+    expect(await deleteTask(12, fakeApi(refused).api)).toBe('Failed to delete task')
+    expect(await deleteTask(12, fakeApi(new Error('network')).api)).toBe('Failed to delete task')
   })
 })
