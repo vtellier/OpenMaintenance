@@ -4,8 +4,8 @@ import { EquipmentInput } from '@generated/api/models/EquipmentInput'
 import { Task } from '@generated/api/models/Task'
 import {
   canAddEquipment, canSaveEdit, decommissioningInvalid, deleteEquipment, editFormOf, EquipmentCreator, EquipmentDeleter, EquipmentEditApi, EquipmentEditValues,
-  hasHoursInterval, hoursTooLow, iconChangeInput, lastReadingHint, newEquipmentForm, NewEquipmentValues, saveEdit, saveNewEquipment, shownIcon,
-  toEquipmentEditInput, toNewEquipmentInput, turningOn,
+  EquipmentUpdater, hasHoursInterval, hoursTooLow, iconChanged, iconChangeInput, lastReadingHint, newEquipmentForm, NewEquipmentValues, saveEdit,
+  saveIcon, saveNewEquipment, shownIcon, toEquipmentEditInput, toNewEquipmentInput, turningOn,
 } from '@/lib/equipmentForm'
 
 const utc = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d))
@@ -372,5 +372,44 @@ describe('deleteEquipment', () => {
     const response = new Response(JSON.stringify({ error: 'database is locked' }), { status: 500 })
     expect(await deleteEquipment(7, fakeApi(new ResponseError(response)).api)).toBe('Failed to delete equipment')
     expect(await deleteEquipment(7, fakeApi(new Error('network')).api)).toBe('Failed to delete equipment')
+  })
+})
+
+describe('iconChanged', () => {
+  it('is false for the icon the equipment has: nothing to save', () => {
+    expect(iconChanged({ icon: '⚓' }, '⚓')).toBe(false)
+  })
+
+  it('is true for another icon, and for any icon on an equipment with none', () => {
+    expect(iconChanged({ icon: '⚓' }, '⛵')).toBe(true)
+    expect(iconChanged({}, '🔧')).toBe(true)
+  })
+})
+
+describe('saveIcon', () => {
+  const engine = { id: 3, name: 'Main engine', description: 'Yanmar', icon: '🔧', groupId: 4, decommissionedAt: '2026-01-31', tracksHours: true, hours: 120 }
+  function fakeApi(failure?: Error) {
+    const calls: { id: number, equipmentInput: EquipmentInput }[] = []
+    const api: EquipmentUpdater = {
+      async updateEquipment(req) {
+        calls.push(req)
+        if (failure) throw failure
+      },
+    }
+    return { api, calls }
+  }
+
+  it('saves the icon with the rest of the equipment as it stands, and resolves to null', async () => {
+    const { api, calls } = fakeApi()
+
+    expect(await saveIcon(engine, '⚓', api)).toBeNull()
+    expect(calls).toEqual([{ id: 3, equipmentInput: iconChangeInput(engine, '⚓') }])
+  })
+
+  it('resolves to "Failed to update icon", whatever the backend says', async () => {
+    const refused = new ResponseError(new Response(JSON.stringify({ error: 'name is required' }), { status: 400 }))
+
+    expect(await saveIcon(engine, '⚓', fakeApi(refused).api)).toBe('Failed to update icon')
+    expect(await saveIcon(engine, '⚓', fakeApi(new Error('network')).api)).toBe('Failed to update icon')
   })
 })

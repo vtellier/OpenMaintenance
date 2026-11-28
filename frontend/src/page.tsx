@@ -1,9 +1,14 @@
 import type { ReactNode } from 'react'
+import { EquipmentApi } from '@generated/api'
 import { App, AppShell } from '@/App'
+import { apiConfig } from '@/api/config'
 import { NotFound } from '@/components/NotFound'
+import type { DetailTab } from '@/lib/equipmentDetail'
+import { toEquipmentRow } from '@/lib/rows'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { EquipmentCorrectHoursPage } from '@/pages/EquipmentCorrectHoursPage'
 import { EquipmentDeletePage } from '@/pages/EquipmentDeletePage'
+import { EquipmentDetailPage } from '@/pages/EquipmentDetailPage'
 import { EquipmentEditPage } from '@/pages/EquipmentEditPage'
 import { EquipmentHoursPage } from '@/pages/EquipmentHoursPage'
 import { EquipmentsPage } from '@/pages/EquipmentsPage'
@@ -16,10 +21,14 @@ export interface Page {
   view: ReactNode
 }
 
+// Equipment detail: Tasks (no segment), or the History, Documents or Info tab.
+const equipmentPathRe = /^\/equipments\/(\d+)(?:\/(history|documents|info))?$/
 const equipmentEditRe = /^\/equipments\/(\d+)\/edit$/
 const equipmentDeleteRe = /^\/equipments\/(\d+)\/delete$/
 const equipmentHoursRe = /^\/equipments\/(\d+)\/edit\/hours$/
 const equipmentCorrectHoursRe = /^\/equipments\/(\d+)\/edit\/hours\/correct$/
+
+const equipmentApi = new EquipmentApi(apiConfig)
 
 /**
  * The page for a URL, chosen by its pathname. Pages are full page loads (no
@@ -30,10 +39,9 @@ const equipmentCorrectHoursRe = /^\/equipments\/(\d+)\/edit\/hours\/correct$/
  * plain, typed props (an id as a number), and wraps the page in `App`, which
  * takes the pathname for the navigation's highlight.
  *
- * While the React port (#146) is under way, only the pages already ported
- * have a route here; every other path shows Not Found. Each port adds its
- * routes back from `git show pre-react:frontend/src/page.ts`, in the same
- * order and with the same titles and descriptions.
+ * The routes are `pre-react`'s (`git show pre-react:frontend/src/page.ts`),
+ * in the same order and with the same titles and descriptions. A path no
+ * route matches shows Not Found.
  */
 export async function routeToPage(url: string): Promise<Page> {
   const pathname = new URL(url, 'http://localhost').pathname
@@ -87,6 +95,28 @@ export async function routeToPage(url: string): Promise<Page> {
       description: 'Delete equipment',
       title: 'Delete equipment | OpenMaintenance',
       view: <App currentPath={pathname}><EquipmentDeletePage equipmentId={Number(deleteMatch[1])} /></App>,
+    }
+  }
+
+  const detailMatch = pathname.match(equipmentPathRe)
+  if (detailMatch) {
+    const equipmentId = Number(detailMatch[1])
+    // The regex admits only these segments.
+    const tab = (detailMatch[2] ?? '') as DetailTab
+    // The title names the equipment, so it waits for it, outside React, as
+    // on pre-react; the page loads its own data in its effect.
+    let equipmentName: string | null = null
+    try {
+      const eq = toEquipmentRow(await equipmentApi.getEquipment({ id: equipmentId }))
+      equipmentName = eq.name ?? null
+    } catch {
+      // The generic title.
+    }
+    const name = equipmentName ?? `Equipment #${detailMatch[1]}`
+    return {
+      description: `${name} details`,
+      title: `${name} | OpenMaintenance`,
+      view: <App currentPath={pathname}><EquipmentDetailPage equipmentId={equipmentId} tab={tab} /></App>,
     }
   }
 

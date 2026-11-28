@@ -7,7 +7,7 @@ description: Write or change OpenMaintenance frontend code in React (TSX pages, 
 
 The web UI is plain React 19 in TSX, built by Vite ([ADR 0005](../../../doc/adr/0005-react-web-ui.md)). Nothing else at runtime: no router (every page is a full page load), no state library, no component kit.
 
-Settings is the reference page (#157): `src/pages/SettingsPage.tsx`, `src/components/UpdateCheck.tsx`, `src/components/NavBar.tsx` and `src/App.tsx` show in working code the file layout, the routes and the shell, data loading, the loading states, the three lib call points and the event handlers. The equipment pages of #158 show what Settings does not exercise: the `flash--error` path and [Forms](#forms) (`src/pages/EquipmentHoursPage.tsx`, `EquipmentCorrectHoursPage.tsx`, `EquipmentEditPage.tsx`, `EquipmentDeletePage.tsx`), a page-only modal (`ConfirmTracksModal` in `EquipmentEditPage.tsx`), [the pickers](#pickers) and [a custom element](#custom-elements) (`src/components/IconPicker.tsx`, `GroupPicker.tsx`). The list pages of #159 show [the shared reload](#a-reload-shared-by-the-effect-and-the-handlers), [Lists](#lists) and the shared [Modals](#modals) (`src/pages/DashboardPage.tsx`, `EquipmentsPage.tsx`, `HistoryPage.tsx`; `src/components/FullInterventionModal.tsx`, `DeleteInterventionModal.tsx`, `ReadingDoubtModal.tsx`, `HistoryList.tsx`).
+Settings is the reference page (#157): `src/pages/SettingsPage.tsx`, `src/components/UpdateCheck.tsx`, `src/components/NavBar.tsx` and `src/App.tsx` show in working code the file layout, the routes and the shell, data loading, the loading states, the three lib call points and the event handlers. The equipment pages of #158 show what Settings does not exercise: the `flash--error` path and [Forms](#forms) (`src/pages/EquipmentHoursPage.tsx`, `EquipmentCorrectHoursPage.tsx`, `EquipmentEditPage.tsx`, `EquipmentDeletePage.tsx`), a page-only modal (`ConfirmTracksModal` in `EquipmentEditPage.tsx`), [the pickers](#pickers) and [a custom element](#custom-elements) (`src/components/IconPicker.tsx`, `GroupPicker.tsx`). The list pages of #159 show [the shared reload](#a-reload-shared-by-the-effect-and-the-handlers), [Lists](#lists) and the shared [Modals](#modals) (`src/pages/DashboardPage.tsx`, `EquipmentsPage.tsx`, `HistoryPage.tsx`; `src/components/FullInterventionModal.tsx`, `DeleteInterventionModal.tsx`, `ReadingDoubtModal.tsx`, `HistoryList.tsx`). Equipment detail (#160, `src/pages/EquipmentDetailPage.tsx`) shows [tabs](#tabs), [a file upload and download](#files), an optimistic save, and a page that composes the shared modals with its own.
 
 ## Quick workflow
 
@@ -52,7 +52,7 @@ A port keeps `pre-react`'s file name with `.tsx` (`pages/SettingsPage.ts` → `p
 
 ## Pages only render
 
-The rules are what a screen shows, what a form requires and what a save sends. They live in `src/lib/` as plain functions with Vitest tests (`rows`, `dashboard`, `interventions`, `equipmentCard`, `history`, `taskForm`, `equipmentForm`, `groupForm`, `hoursForm`, `interventionForm`, `navigation`, `backups`, `updateCheck`, …). A page calls them and renders the result; it holds no `if` that decides a rule.
+The rules are what a screen shows, what a form requires and what a save sends. They live in `src/lib/` as plain functions with Vitest tests (`rows`, `dashboard`, `interventions`, `equipmentCard`, `history`, `taskForm`, `taskRow`, `equipmentDetail`, `equipmentDocuments`, `equipmentForm`, `groupForm`, `hoursForm`, `interventionForm`, `navigation`, `backups`, `updateCheck`, …). A page calls them and renders the result; it holds no `if` that decides a rule.
 
 A page imports each function by name and calls the lib at three points:
 
@@ -191,13 +191,27 @@ async function onCheck() {
 
 A change that also lives outside React is made in the handler that sets the state: `chooseTheme` sets `theme`, writes it to `localStorage` and applies it to `<html>` in one go, with no effect watching `theme`.
 
+- An optimistic save (the header's icon, which shows the new one at once and comes back if the save fails, as on `pre-react`) keeps the row before the change, sets the changed copy, `await`s the lib, and sets the kept row back with the error on failure (`changeIcon` in `EquipmentDetailPage.tsx`).
 - React clears `e.currentTarget` once the handler returns. An async handler that needs the element after an `await` reads it first: `const input = e.currentTarget` and `Array.from(input.files)`, before `input.value = ''` empties the live `FileList` (`InterventionPhotos`).
 
 ## Lists
 
 - A list mixing two kinds of rows keys each by kind and id: the Equipments list keys a group's section `'group-' + id` and a run of ungrouped cards `'cards-' + <its first equipment's id>`. A layout step `pre-react` did while rendering, such as grouping consecutive ungrouped cards into one grid, is a lib rule (`listBlocks` in `lib/equipmentGroups.ts`).
-- A row's markup that two screens share is a component with the row's variable parts as props: `HistoryList` takes the second column's heading and a `labelOf(intervention)` (`historyItemLabel` on History; on an equipment's History tab, ported in 1.6, `interventionTaskLabel`).
+- A row's markup that two screens share is a component with the row's variable parts as props: `HistoryList` takes the second column's heading and a `labelOf(intervention)` (`historyItemLabel` on History, `interventionTaskLabel` on an equipment's History tab).
 - State `pre-react` kept per browser is read once, in `useState`'s initializer, and written by the handler that sets it, through the lib: `useState(readCollapsed)`, then `const next = toggleCollapsed(collapsed, id); setCollapsed(next); writeCollapsed(next)`. Filters `pre-react` kept in the page (History's equipment and dates) stay plain state: not in the URL, not in storage.
+
+## Tabs
+
+Equipment detail's tabs are URLs (`/equipments/:id`, then `/history`, `/documents` and `/info`), and each tab link is a full page load, as on `pre-react`. The tab lives in the URL and nowhere else: no state, no storage.
+
+- The route parses the segment into a typed prop (`tab: DetailTab`, `lib/equipmentDetail.ts`); the lib builds the links (`detailTabs(id, tab)`: label, `href`, and `className` with `active`).
+- The page renders `{tab === 'history' && <HistoryTab … />}` for each tab: one module-level component per tab, in the page's file. The page holds the data and the handlers, and loads everything `pre-react` loaded on every tab (the documents too), so the network is the same.
+
+## Files
+
+- **Upload:** a hidden file input inside a `label.btn`, which gives it its accessible name (`getByLabel('+ Upload document')`): `<label className="btn btn--accent">{uploading ? 'Uploading...' : '+ Upload document'}<input type="file" style={{ display: 'none' }} onChange={onUpload} disabled={uploading} /></label>`. The input is uncontrolled. The handler reads `e.currentTarget` and its file before the first `await`, saves through the lib (`uploadDocument`, which resolves to the backend's reason), reloads, then empties `input.value` (see [Event handlers](#event-handlers)). The empty state's second input (`label.upload-inline`) has no `disabled`, and `onUpload` no busy guard, as on `pre-react`.
+- **Download:** a plain link, `<a href={f.url} download={f.originalName}>`; none for a file missing on the server.
+- A file row is keyed by its stored name, `key={f.name}`: files have no id.
 
 ## Forms
 
@@ -253,11 +267,13 @@ A pure port keeps `pre-react`'s known bugs, which are fixed after the cutover. W
 A modal is rendered only while open: `{doubt && <ReadingDoubtModal doubt={doubt} onKeep={() => setDoubt(null)} />}`. Its state (open or not, and what it is about) belongs to the page that opens it.
 
 - A modal that only one page opens stays in that page's file, as a module-level component (`ConfirmTracksModal` in `EquipmentEditPage.tsx`, the group modals in `EquipmentsPage.tsx`); one that several pages open goes in `src/components/` (`ReadingDoubtModal`, `FullInterventionModal`, `DeleteInterventionModal`).
-- A modal opened from a list row holds what it is about in the page, the row or a source: `{deleteTarget && <DeleteInterventionModal intervention={deleteTarget} … />}`, `{formSource && <FullInterventionModal source={formSource} … />}`. A shared modal that saves owns its busy and error state, calls the lib's flow itself and resolves through a callback with what the page needs next: `onSaved(doubt)`, `onDeleted(doubt)`. The page then closes it, reloads, and asks the reading question. Equipment detail (ported in 1.6) is to pass `equipmentIdFixed` to `FullInterventionModal` and its one equipment as the equipments, as `pre-react` did.
+- A modal opened from a list row holds what it is about in the page, the row or a source: `{deleteTarget && <DeleteInterventionModal intervention={deleteTarget} … />}`, `{formSource && <FullInterventionModal source={formSource} … />}`. A shared modal that saves owns its busy and error state, calls the lib's flow itself and resolves through a callback with what the page needs next: `onSaved(doubt)`, `onDeleted(doubt)`. The page then closes it, reloads, and asks the reading question. Equipment detail passes `equipmentIdFixed` to `FullInterventionModal` and its one equipment as the equipments (`equipments={[eq]}`), as `pre-react` did.
 - Markup as `pre-react` had it, modal by modal: `div.modal-overlay` > `div.modal`, a `h2.modal__title`, and `div.modal__actions`. Only `ReadingDoubtModal` has `role="dialog"` and `aria-modal="true"` on `pre-react`; the others have neither, and keep neither in the port.
 - Most `pre-react` overlays close on a click on the overlay itself: `onClick={e => { if (e.target === e.currentTarget) onClose() }}`. The Edit page's "Enable hour-meter tracking?" closes on any click inside it too, the modal's text included, since the click bubbles up to its overlay: `ConfirmTracksModal` keeps that (`onClick={onCancel}` on the overlay). `FullInterventionModal` keeps `pre-react`'s class check (`classList.contains('modal-overlay')`): the photo delete confirmation is an overlay inside it, and a click on that one closes both. Read each modal's overlay handler in `pre-react` before porting it.
 - To focus a default button when it opens, use `autoFocus` on it.
 - Where a modal's form state lives decides what reopening shows: state inside the modal component is dropped when it closes (it unmounts), state in the page stays. Match what `pre-react` shows when the modal opens again.
+- A page-only modal that saves may own its form, busy and error state too, like the shared ones, when `pre-react` reset them on each open: Equipment detail's `TaskFormModal` (Add task and Edit task, prefilled in `useState`'s initializer), `DeleteTaskModal` and `DeleteDocumentModal` save through the lib and call `onSaved()` / `onDeleted()`. The Equipments page keeps its group modals' state in the page.
+- A page that opens several modals renders each as a sibling after its content, in `pre-react`'s order, each behind its own state (`addingTask`, `editTarget`, `deleteTaskTarget`, `formSource`, `doubt`, …). Equipment detail renders them inside the loaded branch, as `pre-react` did, so a reload that fails hides them with the page.
 
 ## The contract with `style.css` and the tests
 
@@ -265,7 +281,7 @@ The class names, the text, the accessible names (`aria-label`, label text, butto
 
 During the port (#146, branch `feat/issue-146-react`), `frontend/tests/` and `src/style.css` are frozen, so a ported screen renders exactly what `pre-react` rendered: the same elements, classes, text and attributes, in the same order. When a spec seems to need a change, stop and report it.
 
-- Read the rendered DOM, not only the old template: open the screen in the reference app and compare `document.querySelector('main').outerHTML` with the port's. Five differences are Arrow's, not the port's: Arrow wrote every `.value` / `.checked` property binding as a stray attribute too (`.value="<!--¤-->"`), it wrote `disabled="true"` where React writes `disabled=""`, it kept the template's whitespace inside text nodes (`<button> Delete </button>`), a slot could render a function's source in place of its value (`e=>at(n,e)` where the Delete page's failure flash should be), and a template mounted a second time could render its bindings as `undefined` (Add equipment opened again: `value="undefined"`, no pickers, an empty Save). The port renders what the template meant ("Failed to delete equipment" in `EquipmentDeletePage`; the Add equipment form with what was typed before Cancel). That is not a behaviour change; note it under Decisions in the PR.
+- Read the rendered DOM, not only the old template: open the screen in the reference app and compare `document.querySelector('main').outerHTML` with the port's. Five differences are Arrow's, not the port's: Arrow wrote every `.value` / `.checked` property binding as a stray attribute too (`.value="<!--¤-->"`), it wrote `disabled="true"` where React writes `disabled=""`, it kept the template's whitespace inside text nodes (`<button> Delete </button>`), a slot could render a function's source in place of its value (`e=>at(n,e)` where the Delete page's failure flash should be), and a template mounted a second time could render its bindings as `undefined` (Add equipment opened again: `value="undefined"`, no pickers, an empty Save). The port renders what the template meant ("Failed to delete equipment" in `EquipmentDeletePage`; the Add equipment form with what was typed before Cancel). That is not a behaviour change; note it under Decisions in the PR. Where the artifact also reached the state that is saved (the Task form's interval fields: "1.5" saved as 51 on `pre-react`), the port's difference is a behaviour change: record it under Decisions as a known divergence, and list it for the 1.8 cutover checks (#162).
 - `class` becomes `className`; a class computed in a template (`'tabbar__tab' + (active ? ' active' : '')`) stays computed the same way.
 - Not Found has no reference to match (`pre-react` rendered a blank page there, #184): it keeps the markup of `pre-react`'s `NotFound.ts`, as the shell's content, without the starter's sentence about `src/App.ts` (dropped with the maintainer's approval) (see [Routes and the shell](#routes-and-the-shell)).
 
@@ -294,7 +310,7 @@ Arrow built its DOM through `innerHTML`, so the browser silently repaired invali
 
 ### 2. Keys are the row's id, never its index
 
-A list keyed by index reuses a row by position: after a delete, the next item shows in the deleted row's DOM, with its old local state. Arrow had the same bug, found in #122's review: after a delete, a row kept the previous file's Download link. Key every row by its id: `{files.map(f => <FileRow key={f.id} file={f} />)}`.
+A list keyed by index reuses a row by position: after a delete, the next item shows in the deleted row's DOM, with its old local state. Arrow had the same bug, found in #122's review: after a delete, a row kept the previous file's Download link. Key every row by its id, and a file, which has none, by its stored name: `{documents.map(f => <div key={f.name} className="doc-row">…</div>)}`.
 
 ### 3. JSX drops whitespace that holds a newline
 

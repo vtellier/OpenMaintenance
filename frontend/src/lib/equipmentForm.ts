@@ -249,3 +249,27 @@ export function iconChangeInput(eq: EquipmentRow, icon: string): EquipmentInput 
     tracksHours: eq.tracksHours,
   }
 }
+
+/** Whether picking this icon changes the equipment's: picking the one it has saves nothing. */
+export function iconChanged(eq: Pick<EquipmentRow, 'icon'>, icon: string): boolean {
+  return icon !== eq.icon
+}
+
+/** The part of the generated EquipmentApi the header's icon is saved through. */
+export interface EquipmentUpdater {
+  updateEquipment(req: { id: number, equipmentInput: EquipmentInput }): Promise<unknown>
+}
+
+/**
+ * Saves the icon picked from the detail header, at once (iconChangeInput).
+ * Resolves to null on success, or to the message to show: always "Failed to
+ * update icon", whatever the backend says. Call only when iconChanged.
+ */
+export async function saveIcon(eq: EquipmentRow, icon: string, api: EquipmentUpdater): Promise<string | null> {
+  try {
+    await api.updateEquipment({ id: eq.id!, equipmentInput: iconChangeInput(eq, icon) })
+    return null
+  } catch {
+    return 'Failed to update icon'
+  }
+}
